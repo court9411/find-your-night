@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
+import { supabase } from "@/lib/supabase";
 import { Venue } from "@/lib/types";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { city?: unknown; vibe?: unknown };
+  let body: { city?: unknown; vibe?: unknown; label?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -26,10 +27,13 @@ export async function POST(request: Request) {
 
   const city = typeof body.city === "string" ? body.city.trim().slice(0, 100) : "";
   const vibe = typeof body.vibe === "string" ? body.vibe.trim().slice(0, 100) : "";
+  const label = typeof body.label === "string" ? body.label.trim().slice(0, 100) : "";
 
   if (!city || !vibe) {
     return NextResponse.json({ error: "City and vibe are required" }, { status: 400 });
   }
+
+  const featuredVenues = await getFeaturedVenues(city, label);
 
   const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
@@ -51,7 +55,7 @@ name (string), type (string), neighborhood (string), description (string, 1-2 se
 
     const venues = parseVenues(textBlock.text);
 
-    return NextResponse.json({ venues });
+    return NextResponse.json({ venues: [...featuredVenues, ...venues] });
   } catch (error) {
     console.error("Search API error:", error);
     return NextResponse.json(
@@ -59,6 +63,41 @@ name (string), type (string), neighborhood (string), description (string, 1-2 se
       { status: 502 }
     );
   }
+}
+
+async function getFeaturedVenues(city: string, label: string): Promise<Venue[]> {
+  const cityToken = city.split(",")[0].trim();
+  if (!cityToken) return [];
+
+  let query = supabase
+    .from("submissions")
+    .select("venue_name, type, neighborhood, date_time, description, vibe_tags")
+    .eq("status", "approved")
+    .ilike("city", `%${cityToken}%`);
+
+  if (label && label !== "Surprise Me") {
+    query = query.ilike("vibe_tags", `%${label}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) {
+    if (error) console.error("Featured venues fetch error:", error);
+    return [];
+  }
+
+  return data.map((row) => ({
+    name: row.venue_name,
+    type: row.type,
+    neighborhood: row.neighborhood,
+    description: row.description,
+    whyTonight: `Happening ${row.date_time}`,
+    price: "$$" as const,
+    tags: row.vibe_tags
+      ? row.vibe_tags.split(",").map((t: string) => t.trim()).filter(Boolean)
+      : [],
+    featured: true,
+  }));
 }
 
 function parseVenues(raw: string): Venue[] {

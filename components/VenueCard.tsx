@@ -34,6 +34,11 @@ export default function VenueCard({ venue, index }: VenueCardProps) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
+          {venue.featured && (
+            <span className="inline-block text-xs px-2 py-1 rounded-full bg-accent text-white font-semibold tracking-wide mb-1">
+              🌟 Local Event
+            </span>
+          )}
           <h3 className="font-display text-2xl tracking-wide leading-tight">{venue.name}</h3>
           <p className="text-sm text-muted">
             {venue.type} · {venue.neighborhood}

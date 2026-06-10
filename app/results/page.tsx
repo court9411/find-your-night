@@ -31,7 +31,7 @@ function ResultsContent() {
         const res = await fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city, vibe }),
+          body: JSON.stringify({ city, vibe, label }),
         });
 
         const data = await res.json();
@@ -54,7 +54,7 @@ function ResultsContent() {
     return () => {
       cancelled = true;
     };
-  }, [city, vibe, router]);
+  }, [city, vibe, label, router]);
 
   return (
     <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">

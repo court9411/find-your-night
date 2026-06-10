@@ -30,12 +30,13 @@ export async function POST(request: Request) {
   const venueName = typeof body.venueName === "string" ? sanitize(body.venueName, 120) : "";
   const type = typeof body.type === "string" ? sanitize(body.type, 60) : "";
   const neighborhood = typeof body.neighborhood === "string" ? sanitize(body.neighborhood, 100) : "";
+  const city = typeof body.city === "string" ? sanitize(body.city, 100) : "";
   const dateTime = typeof body.dateTime === "string" ? sanitize(body.dateTime, 100) : "";
   const description = typeof body.description === "string" ? sanitize(body.description, 1000) : "";
   const vibeTags = typeof body.vibeTags === "string" ? sanitize(body.vibeTags, 200) : "";
   const contactEmail = typeof body.contactEmail === "string" ? sanitize(body.contactEmail, 254) : "";
 
-  if (!venueName || !type || !neighborhood || !dateTime || !description || !contactEmail) {
+  if (!venueName || !type || !neighborhood || !city || !dateTime || !description || !contactEmail) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
   }
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
     venue_name: venueName,
     type,
     neighborhood,
+    city,
     date_time: dateTime,
     description,
     vibe_tags: vibeTags,

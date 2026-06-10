@@ -8,6 +8,7 @@ export interface Venue {
   whyTonight: string;
   price: Price;
   tags: string[];
+  featured?: boolean;
 }
 
 export interface Vibe {
@@ -32,6 +33,7 @@ export interface SubmissionPayload {
   venueName: string;
   type: string;
   neighborhood: string;
+  city: string;
   dateTime: string;
   description: string;
   vibeTags: string;

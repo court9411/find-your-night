@@ -19,6 +19,7 @@ export default function SubmitPage() {
     venueName: "",
     type: "",
     neighborhood: "",
+    city: "",
     dateTime: "",
     description: "",
     vibeTags: "",
@@ -52,6 +53,7 @@ export default function SubmitPage() {
       !form.venueName.trim() ||
       !form.type.trim() ||
       !form.neighborhood.trim() ||
+      !form.city.trim() ||
       !form.dateTime.trim() ||
       !form.description.trim() ||
       !form.contactEmail.trim()
@@ -131,6 +133,14 @@ export default function SubmitPage() {
           placeholder="Neighborhood *"
           value={form.neighborhood}
           onChange={(e) => update("neighborhood", e.target.value)}
+          className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
+          maxLength={100}
+        />
+        <input
+          type="text"
+          placeholder="City *"
+          value={form.city}
+          onChange={(e) => update("city", e.target.value)}
           className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
           maxLength={100}
         />
