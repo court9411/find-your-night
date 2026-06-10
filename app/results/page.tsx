@@ -3,8 +3,11 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoadingScreen from "@/components/LoadingScreen";
-import ResultsGrid from "@/components/ResultsGrid";
+import VenueCard from "@/components/VenueCard";
+import SkeletonCard from "@/components/SkeletonCard";
 import { Venue } from "@/lib/types";
+
+const SKELETON_COUNT = 5;
 
 function ResultsContent() {
   const params = useSearchParams();
@@ -15,8 +18,9 @@ function ResultsContent() {
   const label = params.get("label") ?? "Your Vibe";
   const emoji = params.get("emoji") ?? "🌙";
 
-  const [venues, setVenues] = useState<Venue[] | null>(null);
-  const [error, setError] = useState("");
+  const [featuredVenues, setFeaturedVenues] = useState<Venue[] | null>(null);
+  const [aiVenues, setAiVenues] = useState<Venue[] | null>(null);
+  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     if (!city || !vibe) {
@@ -25,36 +29,63 @@ function ResultsContent() {
     }
 
     let cancelled = false;
+    setFeaturedVenues(null);
+    setAiVenues(null);
+    setAiError("");
 
-    async function fetchVenues() {
+    async function fetchFeatured() {
+      try {
+        const res = await fetch("/api/featured", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ city, label }),
+        });
+        const data = await res.json();
+        if (!cancelled) {
+          setFeaturedVenues(res.ok ? data.venues ?? [] : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setFeaturedVenues([]);
+        }
+      }
+    }
+
+    async function fetchAi() {
       try {
         const res = await fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ city, vibe, label }),
         });
-
         const data = await res.json();
-
         if (!res.ok) {
           throw new Error(data?.error ?? "Something went wrong");
         }
-
         if (!cancelled) {
-          setVenues(data.venues ?? []);
+          setAiVenues(data.venues ?? []);
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Something went wrong");
+          setAiError(err instanceof Error ? err.message : "Something went wrong");
         }
       }
     }
 
-    fetchVenues();
+    fetchFeatured();
+    fetchAi();
+
     return () => {
       cancelled = true;
     };
   }, [city, vibe, label, router]);
+
+  const showInitialLoading = featuredVenues === null;
+  const noResults =
+    featuredVenues !== null &&
+    featuredVenues.length === 0 &&
+    aiVenues !== null &&
+    aiVenues.length === 0;
 
   return (
     <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">
@@ -71,21 +102,49 @@ function ResultsContent() {
       </div>
       <p className="text-muted text-sm -mt-4 w-full max-w-md">{city}</p>
 
-      {!venues && !error && <LoadingScreen emoji={emoji} city={city} />}
+      {showInitialLoading && <LoadingScreen emoji={emoji} city={city} />}
 
-      {error && (
-        <div className="flex flex-col items-center gap-4 min-h-[40vh] justify-center text-center">
-          <p className="text-accent">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-2xl glass-card font-display text-xl tracking-wide px-8 py-3"
-          >
-            Try Again
-          </button>
+      {!showInitialLoading && (
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          {featuredVenues!.map((venue, i) => (
+            <VenueCard key={`${venue.name}-${i}`} venue={venue} index={i} />
+          ))}
+
+          {aiVenues === null &&
+            !aiError &&
+            Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              <SkeletonCard key={`skeleton-${i}`} index={featuredVenues!.length + i} />
+            ))}
+
+          {aiVenues !== null &&
+            aiVenues.map((venue, i) => (
+              <VenueCard
+                key={`${venue.name}-${i}`}
+                venue={venue}
+                index={featuredVenues!.length + i}
+              />
+            ))}
+
+          {aiError && (
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
+              <p className="text-accent">{aiError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-2xl glass-card font-display text-xl tracking-wide px-8 py-3"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {noResults && (
+            <div className="flex flex-col items-center justify-center gap-3 min-h-[40vh] text-center">
+              <span className="text-5xl">🌙</span>
+              <p className="text-muted">No spots found. Try a different vibe or city.</p>
+            </div>
+          )}
         </div>
       )}
-
-      {venues && !error && <ResultsGrid venues={venues} />}
     </main>
   );
 }
