@@ -41,3 +41,27 @@ export async function PATCH(request: Request) {
 
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(request: Request) {
+  let body: { id?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const id = typeof body.id === "string" ? body.id : "";
+
+  if (!id) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin.from("submissions").delete().eq("id", id);
+
+  if (error) {
+    console.error("Admin submissions delete error:", error);
+    return NextResponse.json({ error: "Failed to delete submission" }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

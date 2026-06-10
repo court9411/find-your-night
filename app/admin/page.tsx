@@ -66,6 +66,27 @@ export default function AdminDashboard() {
     }
   }
 
+  async function deleteSubmission(id: string) {
+    if (!confirm("Delete this submission permanently?")) return;
+    setUpdatingId(id);
+    try {
+      const res = await fetch("/api/admin/submissions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Failed to delete");
+      }
+      setSubmissions((prev) => (prev ? prev.filter((s) => s.id !== id) : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
@@ -149,8 +170,8 @@ export default function AdminDashboard() {
               {s.contact_email} · {new Date(s.created_at).toLocaleString()}
             </p>
 
-            {s.status === "pending" && (
-              <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2">
+              {s.status !== "approved" && (
                 <button
                   onClick={() => updateStatus(s.id, "approved")}
                   disabled={updatingId === s.id}
@@ -158,6 +179,8 @@ export default function AdminDashboard() {
                 >
                   Approve
                 </button>
+              )}
+              {s.status !== "rejected" && (
                 <button
                   onClick={() => updateStatus(s.id, "rejected")}
                   disabled={updatingId === s.id}
@@ -165,8 +188,15 @@ export default function AdminDashboard() {
                 >
                   Reject
                 </button>
-              </div>
-            )}
+              )}
+              <button
+                onClick={() => deleteSubmission(s.id)}
+                disabled={updatingId === s.id}
+                className="flex-1 rounded-xl border border-red-500/40 text-red-400 font-display text-lg tracking-wide py-2 transition-transform active:scale-95 disabled:opacity-60"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
