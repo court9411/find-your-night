@@ -1,0 +1,130 @@
+Hey Claude Code! I'm building a web app called "Find Your Night" — a nightlife and 
+experience discovery app. I have 4 days to get a working version live before 
+Cincinnati Pride weekend (June 26-28), which is my soft launch target. 
+Over 280,000 people attend — it's the perfect first audience.
+
+The full project brief is in CLAUDE.md in this folder. Please read that first.
+
+---
+
+HERE'S EVERYTHING WE NEED TO BUILD:
+
+## THE APP
+Users open the app, enter their city (or use GPS location), pick a vibe 
+(drinks, live music, dancing, rooftop, etc.) and AI finds real local venues 
+and experiences for them tonight. Clean, fast, built for mobile.
+
+## TECH STACK
+- Next.js 14 (App Router)
+- Tailwind CSS
+- Supabase (user accounts + database)
+- Anthropic Claude API — claude-sonnet-4-20250514 (for AI venue search)
+- Vercel (deployment)
+
+## DESIGN SYSTEM
+Dark, bold, cinematic — late-night city energy.
+- Background: #09090F
+- Primary accent: #FF6B35 (orange like city lights)
+- Text: white
+- Fonts: "Bebas Neue" for all headings, "Outfit" for body text (Google Fonts)
+- Cards: rounded 16px, glass effect, subtle border rgba(255,255,255,0.08)
+- Background: subtle radial gradients suggesting city lights/bokeh
+- Everything mobile-first — most users will be on their phones
+
+## CORE USER FLOW
+1. Landing screen — big bold app name "FIND YOUR NIGHT", tagline, get started button
+2. Location — text input for city name as PRIMARY method. Also try GPS but 
+   show the manual text input immediately since GPS is unreliable in browsers.
+   (e.g. "Chicago", "Cincinnati", "Miami")
+3. Vibe selector — 8 large tappable cards:
+   🍸 Drinks & Bars, 🎵 Live Music, 🕺 Night Out, 🍕 Late Night Eats,
+   🌃 Rooftop Vibes, 🎮 Casual Fun, 🎭 Arts & Events, 🎲 Surprise Me
+4. Loading screen — animated, shows vibe emoji + "Scanning the city..."
+5. Results — 5 venue cards with: name, type, neighborhood, description, 
+   why tonight, price range ($|$$|$$$), tags
+
+## AI INTEGRATION (CRITICAL — DO THIS RIGHT)
+- Create a Next.js API route at /api/search (server-side only)
+- NEVER put the Anthropic API key in frontend code
+- Call claude-sonnet-4-20250514 with this prompt pattern:
+  "You are a local nightlife guide. Suggest 5 real venues in [city] 
+   for a [day of week] night matching this vibe: [vibe]. 
+   Return ONLY a valid JSON array with no markdown, no backticks:
+   [{name, type, neighborhood, description, whyTonight, price, tags}]"
+- Parse the JSON response and return it to the frontend
+
+## PRIDE WEEKEND PRIORITY FEATURES
+Since Cincinnati Pride (June 26-28) is the launch event, also build:
+
+1. PRIDE MODE — a special section or filter that shows Cincinnati Pride 
+   specific events. Pre-load it with real Pride weekend events including:
+   - The main Parade (June 27, 11am, starts 7th & Central)
+   - Festival at Sawyer Point Park (June 27, noon-8pm, free)
+   - Cincinnati Magazine Pride party (June 26, Elm Street Plaza)
+   
+2. PROMOTER/VENUE SUBMISSION FORM at /submit
+   - Simple form: Venue/Event Name, Type, Neighborhood, Date & Time, 
+     Description, Vibe tags, Contact email
+   - Add input validation on all fields
+   - Add rate limiting so it can't be spammed (max 5 submissions per IP per hour)
+   - Submissions save to Supabase database with status "pending"
+   - Show a thank you confirmation after submission
+
+3. PWA SETUP — make this installable on phones like a real app:
+   - Add manifest.json with app name, icons, theme color #09090F
+   - Add service worker for basic offline support
+   - Add "Add to Home Screen" prompt on mobile
+   - Set theme-color meta tag to #09090F
+
+## SECURITY REQUIREMENTS
+- API key in .env.local only, never in frontend
+- Input validation on all forms
+- Rate limiting on the /api/search and /submit routes
+- Sanitize all user inputs before saving to database
+
+## FILE STRUCTURE
+app/
+  page.tsx                 # Landing page
+  results/page.tsx         # Results page  
+  submit/page.tsx          # Promoter event submission form
+  pride/page.tsx           # Cincinnati Pride special section
+  api/
+    search/route.ts        # Anthropic API call (server-side)
+    submit/route.ts        # Form submission handler
+  layout.tsx               # Global layout, fonts, PWA meta tags
+components/
+  LocationStep.tsx
+  VibeSelector.tsx
+  LoadingScreen.tsx
+  VenueCard.tsx
+  ResultsGrid.tsx
+  PrideEventCard.tsx
+lib/
+  types.ts                 # TypeScript types
+  supabase.ts              # Supabase client
+public/
+  manifest.json            # PWA manifest
+.env.local                 # API keys (never commit)
+
+## ENVIRONMENT VARIABLES NEEDED
+ANTHROPIC_API_KEY=        (I'll give you this)
+NEXT_PUBLIC_SUPABASE_URL= (I'll set up Supabase and give you this)
+NEXT_PUBLIC_SUPABASE_ANON_KEY= (I'll give you this)
+
+## 4-DAY PLAN
+Day 1 (tonight): Scaffold project, get it deployed on Vercel with a live URL
+Day 2: Pride section, promoter submission form, Supabase connected
+Day 3: PWA setup, mobile polish, QR code ready
+Day 4: Outreach to Cincinnati venues and promoters
+
+---
+
+Let's start with Day 1. Please:
+1. Scaffold the full Next.js project with the file structure above
+2. Build the landing page, location input, vibe selector, loading screen, and results page
+3. Set up the /api/search route with the Anthropic API call
+4. Get it running locally so I can see it in my browser
+
+Ask me for the Anthropic API key when you're ready to test the AI search.
+
+Let's build this — Pride weekend is in 17 days! 🏳️‍🌈🔥
