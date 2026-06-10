@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 import { supabase } from "@/lib/supabase";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
+
+const resend = new Resend(process.env.RESEND_API_KEY || "placeholder-resend-key");
 
 const MAX_REQUESTS_PER_WINDOW = 5;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -64,5 +67,59 @@ export async function POST(request: Request) {
     );
   }
 
+  await sendNotificationEmail({
+    venueName,
+    type,
+    neighborhood,
+    city,
+    dateTime,
+    description,
+    vibeTags,
+    contactEmail,
+  });
+
   return NextResponse.json({ success: true });
+}
+
+interface NotificationDetails {
+  venueName: string;
+  type: string;
+  neighborhood: string;
+  city: string;
+  dateTime: string;
+  description: string;
+  vibeTags: string;
+  contactEmail: string;
+}
+
+async function sendNotificationEmail(details: NotificationDetails) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+  if (!apiKey || !adminEmail) return;
+
+  const adminUrl = `${siteUrl}/admin`;
+
+  try {
+    await resend.emails.send({
+      from: `Find Your Night <${fromEmail}>`,
+      to: adminEmail,
+      subject: `New submission: ${details.venueName}`,
+      html: `
+        <h2>New Submission: ${details.venueName}</h2>
+        <p><strong>Type:</strong> ${details.type}</p>
+        <p><strong>Neighborhood:</strong> ${details.neighborhood}</p>
+        <p><strong>City:</strong> ${details.city}</p>
+        <p><strong>Date & Time:</strong> ${details.dateTime}</p>
+        <p><strong>Description:</strong> ${details.description}</p>
+        <p><strong>Vibe Tags:</strong> ${details.vibeTags || "—"}</p>
+        <p><strong>Contact Email:</strong> ${details.contactEmail}</p>
+        <p><a href="${adminUrl}">Review in Admin Panel</a></p>
+      `,
+    });
+  } catch (err) {
+    console.error("Notification email error:", err);
+  }
 }
