@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+interface VenueSuggestion {
+  venue_name: string;
+  type: string;
+  neighborhood: string;
+}
 
 const VIBE_OPTIONS = [
   "Drinks & Bars",
@@ -28,9 +35,52 @@ export default function SubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [suggestions, setSuggestions] = useState<VenueSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   function update(field: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  useEffect(() => {
+    const query = form.venueName.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = setTimeout(async () => {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("venue_name, type, neighborhood")
+        .eq("status", "approved")
+        .ilike("venue_name", `%${query}%`)
+        .limit(5);
+
+      if (!cancelled && !error && data) {
+        const unique = Array.from(
+          new Map(data.map((v) => [v.venue_name, v])).values()
+        );
+        setSuggestions(unique);
+        setShowSuggestions(true);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [form.venueName]);
+
+  function selectSuggestion(suggestion: VenueSuggestion) {
+    setForm((f) => ({
+      ...f,
+      venueName: suggestion.venue_name,
+      type: suggestion.type,
+      neighborhood: suggestion.neighborhood,
+    }));
+    setShowSuggestions(false);
   }
 
   function toggleVibe(vibe: string) {
@@ -112,14 +162,39 @@ export default function SubmitPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full max-w-md">
-        <input
-          type="text"
-          placeholder="Venue / Event Name *"
-          value={form.venueName}
-          onChange={(e) => update("venueName", e.target.value)}
-          className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
-          maxLength={120}
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Venue / Event Name *"
+            value={form.venueName}
+            onChange={(e) => update("venueName", e.target.value)}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true);
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
+            maxLength={120}
+            autoComplete="off"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-10 top-full left-0 right-0 mt-1 glass-card overflow-hidden">
+              {suggestions.map((suggestion) => (
+                <li key={suggestion.venue_name}>
+                  <button
+                    type="button"
+                    onMouseDown={() => selectSuggestion(suggestion)}
+                    className="w-full text-left px-5 py-3 hover:bg-white/5 transition-colors"
+                  >
+                    <span className="block">{suggestion.venue_name}</span>
+                    <span className="block text-xs text-muted">
+                      {suggestion.type} · {suggestion.neighborhood}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <input
           type="text"
           placeholder="Type (e.g. Bar, Festival, Pop-up) *"
