@@ -33,7 +33,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "City and vibe are required" }, { status: 400 });
   }
 
-  const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  // Treat the "nightlife day" as starting at 2am, so late-night searches
+  // (e.g. 1:30am Saturday) are grouped with the prior evening (Friday night).
+  const nightlifeDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  const day = nightlifeDate.toLocaleDateString("en-US", { weekday: "long" });
 
   try {
     const venues = await getVenues(city.toLowerCase(), vibe.toLowerCase(), day);
