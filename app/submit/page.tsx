@@ -21,13 +21,26 @@ const VIBE_OPTIONS = [
   "Pride",
 ];
 
+const TIME_OPTIONS = (() => {
+  const times: string[] = [];
+  for (let minutes = 0; minutes < 24 * 60; minutes += 30) {
+    const hour24 = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const period = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+    times.push(`${hour12}:${minute.toString().padStart(2, "0")} ${period}`);
+  }
+  return times;
+})();
+
 export default function SubmitPage() {
   const [form, setForm] = useState({
     venueName: "",
     type: "",
     neighborhood: "",
     city: "",
-    dateTime: "",
+    eventDate: "",
+    eventTime: "",
     description: "",
     vibeTags: "",
     contactEmail: "",
@@ -104,7 +117,8 @@ export default function SubmitPage() {
       !form.type.trim() ||
       !form.neighborhood.trim() ||
       !form.city.trim() ||
-      !form.dateTime.trim() ||
+      !form.eventDate.trim() ||
+      !form.eventTime.trim() ||
       !form.description.trim() ||
       !form.contactEmail.trim()
     ) {
@@ -112,12 +126,20 @@ export default function SubmitPage() {
       return;
     }
 
+    const formattedDate = new Date(`${form.eventDate}T00:00:00`).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    const dateTime = `${formattedDate} at ${form.eventTime}`;
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, dateTime }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -219,14 +241,28 @@ export default function SubmitPage() {
           className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
           maxLength={100}
         />
-        <input
-          type="text"
-          placeholder="Date & Time *"
-          value={form.dateTime}
-          onChange={(e) => update("dateTime", e.target.value)}
-          className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
-          maxLength={100}
-        />
+        <div className="flex gap-3">
+          <input
+            type="date"
+            value={form.eventDate}
+            onChange={(e) => update("eventDate", e.target.value)}
+            className="glass-card w-1/2 px-5 py-4 outline-none focus:border-accent/60 text-white [color-scheme:dark]"
+          />
+          <select
+            value={form.eventTime}
+            onChange={(e) => update("eventTime", e.target.value)}
+            className="glass-card w-1/2 px-5 py-4 outline-none focus:border-accent/60 text-white [color-scheme:dark]"
+          >
+            <option value="" disabled>
+              Time *
+            </option>
+            {TIME_OPTIONS.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+        </div>
         <textarea
           placeholder="Description *"
           value={form.description}
