@@ -8,6 +8,14 @@ import { Vibe } from "@/lib/types";
 
 type Step = "landing" | "location" | "vibe";
 
+function getNightEnergy(hour: number): string {
+  if (hour >= 17 && hour < 20) return "the city is waking up";
+  if (hour >= 20 && hour < 22) return "the night is just getting started";
+  if (hour >= 22 || hour < 2) return "things are heating up";
+  if (hour >= 2 && hour < 5) return "last call energy";
+  return "set your plans for tonight";
+}
+
 export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [city, setCity] = useState("");
@@ -60,6 +68,14 @@ export default function Home() {
             What&apos;s the vibe?
           </h2>
           <p className="text-muted text-sm -mt-4">{city}</p>
+          <p className="flex items-center gap-2 text-sm text-muted -mt-4">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+            </span>
+            {new Date().toLocaleDateString("en-US", { weekday: "long" })} night ·{" "}
+            {getNightEnergy(new Date().getHours())}
+          </p>
           <VibeSelector onSelect={handleVibeSelect} />
         </div>
       )}

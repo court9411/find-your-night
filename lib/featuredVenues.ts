@@ -24,11 +24,15 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     submissionsQuery = submissionsQuery.ilike("vibe_tags", `%${label}%`);
   }
 
-  const pendingQuery = supabase
+  let pendingQuery = supabase
     .from("pending_events")
-    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city")
+    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category")
     .eq("status", "approved")
     .ilike("city", `%${cityToken}%`);
+
+  if (label && label !== "Surprise Me") {
+    pendingQuery = pendingQuery.eq("category", label);
+  }
 
   const [
     { data: submissionsData, error: submissionsError },
@@ -54,7 +58,12 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     featured: true,
   }));
 
-  const fromPending: Venue[] = (pendingData ?? []).map((row) => ({
+  const sortedPending = [...(pendingData ?? [])].sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return (a.display_order ?? 0) - (b.display_order ?? 0);
+  });
+
+  const mapPending = (row: (typeof sortedPending)[number]): Venue => ({
     name: row.event_name || row.venue_name,
     type: "Event",
     neighborhood: row.neighborhood ?? row.venue_name,
@@ -65,7 +74,11 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     price: mapPrice(row.price),
     tags: row.vibe_tags ?? [],
     featured: true,
-  }));
+  });
 
-  return [...fromSubmissions, ...fromPending];
+  // Pinned ("Feature This") events go to the very top of results.
+  const pinned = sortedPending.filter((row) => row.featured).map(mapPending);
+  const unpinned = sortedPending.filter((row) => !row.featured).map(mapPending);
+
+  return [...pinned, ...fromSubmissions, ...unpinned];
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { VIBE_CATEGORIES } from "@/lib/vibeCategories";
 
 interface PendingEvent {
   id: string;
@@ -16,6 +17,9 @@ interface PendingEvent {
   image_url: string | null;
   submitter_email: string;
   status: "pending" | "approved" | "rejected";
+  display_order: number;
+  featured: boolean;
+  category: string | null;
   created_at: string;
 }
 
@@ -99,6 +103,70 @@ export default function AdminDashboard() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function updateEventField(
+    id: string,
+    fields: Partial<Pick<PendingEvent, "featured" | "category" | "display_order">>
+  ) {
+    setUpdatingId(id);
+    try {
+      const res = await fetch("/api/admin/pending-events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...fields }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Failed to update");
+      }
+      setPendingEvents((prev) =>
+        prev ? prev.map((e) => (e.id === id ? { ...e, ...fields } : e)) : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function moveEvent(id: string, direction: "up" | "down") {
+    const list = filteredEvents;
+    const idx = list.findIndex((e) => e.id === id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= list.length) return;
+
+    const reordered = [...list];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+
+    const updates = reordered
+      .map((e, i) => ({ id: e.id, display_order: i }))
+      .filter((e, i) => e.display_order !== list[i].display_order);
+
+    setUpdatingId(id);
+    try {
+      await Promise.all(
+        updates.map((u) =>
+          fetch("/api/admin/pending-events", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(u),
+          })
+        )
+      );
+      const orderMap = new Map(updates.map((u) => [u.id, u.display_order]));
+      setPendingEvents((prev) =>
+        prev
+          ? prev
+              .map((e) => (orderMap.has(e.id) ? { ...e, display_order: orderMap.get(e.id)! } : e))
+              .sort((a, b) => a.display_order - b.display_order)
+          : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reorder");
     } finally {
       setUpdatingId(null);
     }
@@ -266,11 +334,32 @@ export default function AdminDashboard() {
               <p className="text-muted">No {filter === "all" ? "pending" : filter} events.</p>
             </div>
           ) : (
-            filteredEvents.map((event) => (
+            filteredEvents.map((event, idx) => (
               <div
                 key={event.id}
-                className="glass-card px-4 md:px-6 py-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between"
+                className={`glass-card px-4 md:px-6 py-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between ${
+                  event.featured ? "border border-accent/40" : ""
+                }`}
               >
+                <div className="flex md:flex-col gap-1 shrink-0 order-first">
+                  <button
+                    onClick={() => moveEvent(event.id, "up")}
+                    disabled={updatingId === event.id || idx === 0}
+                    className="px-2 py-1 rounded bg-white/5 border border-white/10 text-muted text-xs hover:border-white/30 disabled:opacity-30 transition-all"
+                    aria-label="Move up"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveEvent(event.id, "down")}
+                    disabled={updatingId === event.id || idx === filteredEvents.length - 1}
+                    className="px-2 py-1 rounded bg-white/5 border border-white/10 text-muted text-xs hover:border-white/30 disabled:opacity-30 transition-all"
+                    aria-label="Move down"
+                  >
+                    ▼
+                  </button>
+                </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
                     {event.image_url && (
@@ -302,6 +391,34 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                       )}
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <select
+                          value={event.category ?? ""}
+                          onChange={(e) =>
+                            updateEventField(event.id, { category: e.target.value || null })
+                          }
+                          disabled={updatingId === event.id}
+                          className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-white disabled:opacity-50"
+                        >
+                          <option value="">No category</option>
+                          {VIBE_CATEGORIES.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                        <label className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/10 text-xs cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={event.featured}
+                            onChange={(e) =>
+                              updateEventField(event.id, { featured: e.target.checked })
+                            }
+                            disabled={updatingId === event.id}
+                          />
+                          Feature This
+                        </label>
+                      </div>
                       <p className="text-xs text-muted mt-2">
                         Submitted: {event.submitter_email}
                       </p>

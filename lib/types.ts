@@ -16,6 +16,8 @@ export interface Vibe {
   label: string;
   emoji: string;
   prompt: string;
+  gradient?: string;
+  glow?: string;
 }
 
 export interface PrideEvent {
@@ -64,5 +66,8 @@ export interface PendingEvent {
   image_url: string | null;
   submitter_email: string;
   status: "pending" | "approved" | "rejected";
+  display_order: number;
+  featured: boolean;
+  category: string | null;
   created_at?: string;
 }
