@@ -9,6 +9,8 @@ export interface Venue {
   price: Price;
   tags: string[];
   featured?: boolean;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface Vibe {
@@ -40,6 +42,8 @@ export interface SubmissionPayload {
   description: string;
   vibeTags: string;
   contactEmail: string;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface ExtractedEventData {
@@ -48,9 +52,13 @@ export interface ExtractedEventData {
   startTime: string | null;
   venueName: string | null;
   address: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
   price: string | null;
   ticketLink: string | null;
   vibeTags: string[];
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface PendingEvent {
@@ -60,6 +68,8 @@ export interface PendingEvent {
   start_time: string;
   venue_name: string;
   address: string;
+  neighborhood?: string | null;
+  city?: string | null;
   price: string | null;
   ticket_link: string | null;
   vibe_tags: string[];
@@ -69,5 +79,7 @@ export interface PendingEvent {
   display_order: number;
   featured: boolean;
   category: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at?: string;
 }

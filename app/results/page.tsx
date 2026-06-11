@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LoadingScreen from "@/components/LoadingScreen";
 import VenueCard from "@/components/VenueCard";
 import SkeletonCard from "@/components/SkeletonCard";
+import VenueMap from "@/components/VenueMap";
 import { Venue } from "@/lib/types";
+
+type View = "list" | "map";
 
 const SKELETON_COUNT = 5;
 
@@ -21,6 +24,7 @@ function ResultsContent() {
   const [featuredVenues, setFeaturedVenues] = useState<Venue[] | null>(null);
   const [aiVenues, setAiVenues] = useState<Venue[] | null>(null);
   const [aiError, setAiError] = useState("");
+  const [view, setView] = useState<View>("list");
 
   useEffect(() => {
     if (!city || !vibe) {
@@ -102,9 +106,41 @@ function ResultsContent() {
       </div>
       <p className="text-muted text-sm -mt-4 w-full max-w-md">{city}</p>
 
+      {!showInitialLoading && (
+        <div className="flex items-center gap-2 w-full max-w-md -mt-2">
+          <button
+            onClick={() => setView("list")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              view === "list"
+                ? "bg-accent text-white"
+                : "bg-white/5 border border-card-border text-muted"
+            }`}
+          >
+            List
+          </button>
+          <button
+            onClick={() => setView("map")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              view === "map"
+                ? "bg-accent text-white"
+                : "bg-white/5 border border-card-border text-muted"
+            }`}
+          >
+            Map
+          </button>
+        </div>
+      )}
+
       {showInitialLoading && <LoadingScreen emoji={emoji} city={city} />}
 
-      {!showInitialLoading && (
+      {!showInitialLoading && view === "map" && (
+        <VenueMap
+          city={city}
+          venues={[...featuredVenues!, ...(aiVenues ?? [])]}
+        />
+      )}
+
+      {!showInitialLoading && view === "list" && (
         <div className="flex flex-col gap-4 w-full max-w-md">
           {featuredVenues!.map((venue, i) => (
             <VenueCard key={`${venue.name}-${i}`} venue={venue} index={i} />

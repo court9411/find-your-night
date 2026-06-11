@@ -16,7 +16,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   let submissionsQuery = supabase
     .from("submissions")
-    .select("venue_name, type, neighborhood, date_time, description, vibe_tags")
+    .select("venue_name, type, neighborhood, date_time, description, vibe_tags, lat, lng")
     .eq("status", "approved")
     .ilike("city", `%${cityToken}%`);
 
@@ -26,7 +26,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   let pendingQuery = supabase
     .from("pending_events")
-    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category")
+    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng")
     .eq("status", "approved")
     .ilike("city", `%${cityToken}%`);
 
@@ -56,6 +56,8 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
       ? row.vibe_tags.split(",").map((t: string) => t.trim()).filter(Boolean)
       : [],
     featured: true,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
   }));
 
   const sortedPending = [...(pendingData ?? [])].sort((a, b) => {
@@ -74,6 +76,8 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     price: mapPrice(row.price),
     tags: row.vibe_tags ?? [],
     featured: true,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
   });
 
   // Pinned ("Feature This") events go to the very top of results.

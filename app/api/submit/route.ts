@@ -38,6 +38,8 @@ export async function POST(request: Request) {
   const description = typeof body.description === "string" ? sanitize(body.description, 1000) : "";
   const vibeTags = typeof body.vibeTags === "string" ? sanitize(body.vibeTags, 200) : "";
   const contactEmail = typeof body.contactEmail === "string" ? sanitize(body.contactEmail, 254) : "";
+  const lat = typeof body.lat === "number" && Number.isFinite(body.lat) ? body.lat : null;
+  const lng = typeof body.lng === "number" && Number.isFinite(body.lng) ? body.lng : null;
 
   if (!venueName || !type || !neighborhood || !city || !dateTime || !description || !contactEmail) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -57,6 +59,8 @@ export async function POST(request: Request) {
     vibe_tags: vibeTags,
     contact_email: contactEmail,
     status: "pending",
+    lat,
+    lng,
   });
 
   if (error) {

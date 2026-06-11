@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ExtractedEventData } from "@/lib/types";
+import PlaceAutocompleteInput, { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 
 type Mode = "smart" | "manual";
 
@@ -243,6 +244,22 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
     updateEditedData("vibeTags", next);
   }
 
+  function handlePlaceSelected(place: PlaceDetails) {
+    setEditedData((prev) =>
+      prev
+        ? {
+            ...prev,
+            venueName: place.name || prev.venueName,
+            address: place.address || prev.address,
+            neighborhood: place.neighborhood || prev.neighborhood,
+            city: place.city || prev.city,
+            lat: place.lat,
+            lng: place.lng,
+          }
+        : prev
+    );
+  }
+
   // INPUT STAGE
   if (stage.type === "input") {
     return (
@@ -421,10 +438,11 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
             {/* Venue and Address */}
             <div>
               <label className="text-xs text-muted mb-1 block">Venue Name</label>
-              <input
-                type="text"
+              <PlaceAutocompleteInput
                 value={editedData?.venueName || ""}
-                onChange={(e) => updateEditedData("venueName", e.target.value)}
+                onChange={(value) => updateEditedData("venueName", value)}
+                onPlaceSelected={handlePlaceSelected}
+                placeholder="Start typing a venue..."
                 className={`w-full px-4 py-2 rounded-lg bg-white/5 border outline-none focus:border-accent/60 ${
                   missing.includes("venueName")
                     ? "border-orange-500/60 focus:border-orange-400"
@@ -433,6 +451,11 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
               />
               {missing.includes("venueName") && (
                 <p className="text-xs text-orange-400 mt-1">⚠ Required</p>
+              )}
+              {(editedData?.neighborhood || editedData?.city) && (
+                <p className="text-xs text-muted mt-1">
+                  {[editedData?.neighborhood, editedData?.city].filter(Boolean).join(" · ")}
+                </p>
               )}
             </div>
 
@@ -588,6 +611,10 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
     vibeTags: "",
     contactEmail: "",
   });
+  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({
+    lat: null,
+    lng: null,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -634,13 +661,23 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
   }, [form.venueName]);
 
   function selectSuggestion(suggestion: VenueSuggestion) {
-    console.log("Selected venue suggestion:", suggestion);
     setForm((f) => ({
       ...f,
       venueName: suggestion.venue_name,
       type: suggestion.type ?? "",
       neighborhood: suggestion.neighborhood ?? "",
     }));
+    setShowSuggestions(false);
+  }
+
+  function handlePlaceSelected(place: PlaceDetails) {
+    setForm((f) => ({
+      ...f,
+      venueName: place.name || f.venueName,
+      neighborhood: place.neighborhood || f.neighborhood,
+      city: place.city || f.city,
+    }));
+    setCoords({ lat: place.lat, lng: place.lng });
     setShowSuggestions(false);
   }
 
@@ -687,7 +724,7 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, dateTime }),
+        body: JSON.stringify({ ...form, dateTime, lat: coords.lat, lng: coords.lng }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -733,18 +770,12 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full max-w-md">
         <div className="relative">
-          <input
-            type="text"
-            placeholder="Venue / Event Name *"
+          <PlaceAutocompleteInput
             value={form.venueName}
-            onChange={(e) => update("venueName", e.target.value)}
-            onFocus={() => {
-              if (suggestions.length > 0) setShowSuggestions(true);
-            }}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            onChange={(value) => update("venueName", value)}
+            onPlaceSelected={handlePlaceSelected}
+            placeholder="Venue / Event Name *"
             className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
-            maxLength={120}
-            autoComplete="off"
           />
           {showSuggestions && suggestions.length > 0 && (
             <ul className="absolute z-10 top-full left-0 right-0 mt-1 glass-card overflow-hidden">

@@ -24,12 +24,16 @@ export async function POST(request: Request) {
         start_time: eventData.startTime,
         venue_name: eventData.venueName,
         address: eventData.address,
+        neighborhood: eventData.neighborhood || null,
+        city: eventData.city || null,
         price: eventData.price,
         ticket_link: eventData.ticketLink,
         vibe_tags: eventData.vibeTags || [],
         image_url: imageUrl,
         submitter_email: submitterEmail,
         status: isAutoApproved ? "approved" : "pending",
+        lat: eventData.lat ?? null,
+        lng: eventData.lng ?? null,
       })
       .select("id")
       .single();
