@@ -98,12 +98,19 @@ async function sendNotificationEmail(details: NotificationDetails) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-  if (!apiKey || !adminEmail) return;
+  if (!apiKey) {
+    console.error("Notification email skipped: RESEND_API_KEY is not set");
+    return;
+  }
+  if (!adminEmail) {
+    console.error("Notification email skipped: ADMIN_NOTIFICATION_EMAIL is not set");
+    return;
+  }
 
   const adminUrl = `${siteUrl}/admin`;
 
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: `Find Your Night <${fromEmail}>`,
       to: adminEmail,
       subject: `New submission: ${details.venueName}`,
@@ -119,7 +126,13 @@ async function sendNotificationEmail(details: NotificationDetails) {
         <p><a href="${adminUrl}">Review in Admin Panel</a></p>
       `,
     });
+
+    if (error) {
+      console.error("Notification email error (Resend API):", error);
+    } else {
+      console.log("Notification email sent:", data?.id);
+    }
   } catch (err) {
-    console.error("Notification email error:", err);
+    console.error("Notification email error (exception):", err);
   }
 }
