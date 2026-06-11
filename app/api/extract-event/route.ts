@@ -49,6 +49,27 @@ Important:
 
 Content to extract from:`;
 
+// Find a <meta> tag's content by name/property, regardless of attribute
+// order or quote style (e.g. og:image vs description).
+function extractMetaContent(
+  html: string,
+  key: string,
+  attr: "property" | "name" = "property"
+): string | null {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`<meta[^>]*\\b${attr}=["']${escapedKey}["'][^>]*\\bcontent=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]*\\bcontent=["']([^"']+)["'][^>]*\\b${attr}=["']${escapedKey}["']`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
 async function extractFromUrl(url: string): Promise<{
   content: string;
   ogImage: string | null;
@@ -68,21 +89,18 @@ async function extractFromUrl(url: string): Promise<{
 
     const html = await response.text();
 
-    // Extract og:image
-    const ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
-    const ogImage = ogImageMatch ? ogImageMatch[1] : null;
+    // Extract og:image (attribute order and quote style vary by site)
+    const ogImage = extractMetaContent(html, "og:image");
 
     // Extract title
     const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : "";
 
     // Extract meta description
-    const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i);
-    const metaDesc = descMatch ? descMatch[1] : "";
+    const metaDesc = extractMetaContent(html, "description", "name") || "";
 
     // Extract og:description
-    const ogDescMatch = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i);
-    const ogDesc = ogDescMatch ? ogDescMatch[1] : "";
+    const ogDesc = extractMetaContent(html, "og:description") || "";
 
     // Remove script and style tags, extract visible text
     const cleanHtml = html
