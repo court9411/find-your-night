@@ -1,6 +1,7 @@
 "use client";
 
 import { Vibe } from "@/lib/types";
+import { SEASONAL } from "@/lib/seasonal.config";
 
 export const VIBES: Vibe[] = [
   { id: "drinks", label: "Drinks & Bars", emoji: "🍸", prompt: "drinks and bars" },
@@ -18,6 +19,10 @@ interface VibeSelectorProps {
 }
 
 export default function VibeSelector({ onSelect }: VibeSelectorProps) {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const showSeasonal = SEASONAL.months.includes(month);
+
   return (
     <div className="grid grid-cols-2 gap-3 w-full max-w-md">
       {VIBES.map((vibe, i) => (
@@ -33,6 +38,29 @@ export default function VibeSelector({ onSelect }: VibeSelectorProps) {
           </span>
         </button>
       ))}
+
+      {showSeasonal && (
+        <a
+          href={SEASONAL.link}
+          className="rounded-2xl p-5 aspect-square flex flex-col items-start justify-center gap-2 animate-fadeUp text-white"
+          style={{ background: SEASONAL.gradient, animationDelay: `${VIBES.length * 60}ms` }}
+        >
+          <span className="text-2xl font-display">{SEASONAL.headline}</span>
+          <span className="text-sm opacity-90">{SEASONAL.subtext}</span>
+        </a>
+      )}
+
+      <a
+        href="/submit"
+        className="glass-card flex flex-row items-center justify-between p-5 aspect-square animate-fadeUp opacity-0 transition-transform hover:border-accent/50"
+        style={{ animationDelay: `${(VIBES.length + (showSeasonal ? 1 : 0)) * 60}ms` }}
+      >
+        <div className="flex flex-col items-start">
+          <span className="font-display text-lg">Hosting an event?</span>
+          <span className="text-sm text-muted">Post it here</span>
+        </div>
+        <span className="text-2xl">→</span>
+      </a>
     </div>
   );
 }

@@ -36,7 +36,7 @@ export default function Home() {
             FIND YOUR <span className="text-accent">NIGHT</span>
           </h1>
           <p className="text-muted text-lg max-w-sm">
-            Tell us your vibe. We&apos;ll find your spot — tonight.
+              Stay Connected In Real Life.
           </p>
           <button
             onClick={() => setStep("location")}
@@ -44,9 +44,6 @@ export default function Home() {
           >
             Get Started
           </button>
-          <a href="/pride" className="text-sm text-muted underline underline-offset-4">
-            🏳️‍🌈 Cincinnati Pride Weekend
-          </a>
         </div>
       )}
 
