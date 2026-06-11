@@ -2,14 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 // GET: List pending events
-async function GET(request: Request) {
+export async function GET() {
   try {
-    // Check auth
-    const authHeader = request.headers.get("cookie");
-    if (!authHeader?.includes("admin_authenticated=true")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { data, error } = await supabaseAdmin
       .from("pending_events")
       .select("*")
@@ -30,14 +24,8 @@ async function GET(request: Request) {
 }
 
 // PATCH: Update event status
-async function PATCH(request: Request) {
+export async function PATCH(request: Request) {
   try {
-    // Check auth
-    const authHeader = request.headers.get("cookie");
-    if (!authHeader?.includes("admin_authenticated=true")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { id, status } = await request.json();
 
     if (!id || !["approved", "rejected"].includes(status)) {
@@ -67,14 +55,8 @@ async function PATCH(request: Request) {
 }
 
 // DELETE: Remove event
-async function DELETE(request: Request) {
+export async function DELETE(request: Request) {
   try {
-    // Check auth
-    const authHeader = request.headers.get("cookie");
-    if (!authHeader?.includes("admin_authenticated=true")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { id } = await request.json();
 
     if (!id) {
@@ -102,5 +84,3 @@ async function DELETE(request: Request) {
     );
   }
 }
-
-export { GET, PATCH, DELETE };

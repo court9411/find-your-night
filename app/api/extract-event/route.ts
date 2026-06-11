@@ -108,7 +108,7 @@ async function extractFromUrl(url: string): Promise<{
 async function extractFromImage(base64Image: string, mimeType: string): Promise<string> {
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1024,
       messages: [
         {
@@ -151,7 +151,7 @@ async function extractFromImage(base64Image: string, mimeType: string): Promise<
 async function extractEventData(content: string): Promise<ExtractedEventData> {
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 1024,
       messages: [
         {
