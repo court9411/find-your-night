@@ -24,10 +24,10 @@ export async function GET() {
   }
 }
 
-// PATCH: Update event status, order, featured pin, or category
+// PATCH: Update event status, order, featured pin, category, or vibe tags
 export async function PATCH(request: Request) {
   try {
-    const { id, status, display_order, featured, category } = await request.json();
+    const { id, status, display_order, featured, category, vibe_tags } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -48,6 +48,7 @@ export async function PATCH(request: Request) {
     if (display_order !== undefined) update.display_order = display_order;
     if (featured !== undefined) update.featured = featured;
     if (category !== undefined) update.category = category;
+    if (vibe_tags !== undefined) update.vibe_tags = vibe_tags;
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json(

@@ -19,10 +19,12 @@ function getNightEnergy(hour: number): string {
 export default function Home() {
   const [step, setStep] = useState<Step>("landing");
   const [city, setCity] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const router = useRouter();
 
-  function handleCitySubmit(selectedCity: string) {
+  function handleCitySubmit(selectedCity: string, selectedCoords?: { lat: number; lng: number }) {
     setCity(selectedCity);
+    setCoords(selectedCoords ?? null);
     setStep("vibe");
   }
 
@@ -33,6 +35,10 @@ export default function Home() {
       label: vibe.label,
       emoji: vibe.emoji,
     });
+    if (coords) {
+      params.set("lat", String(coords.lat));
+      params.set("lng", String(coords.lng));
+    }
     router.push(`/results?${params.toString()}`);
   }
 

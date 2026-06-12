@@ -11,6 +11,7 @@ export interface Venue {
   featured?: boolean;
   lat?: number | null;
   lng?: number | null;
+  imageUrl?: string | null;
 }
 
 export interface Vibe {
@@ -20,17 +21,6 @@ export interface Vibe {
   prompt: string;
   gradient?: string;
   glow?: string;
-}
-
-export interface PrideEvent {
-  name: string;
-  type: string;
-  neighborhood: string;
-  date: string;
-  time: string;
-  description: string;
-  price: Price;
-  tags: string[];
 }
 
 export interface SubmissionPayload {
@@ -70,6 +60,7 @@ export interface PendingEvent {
   address: string;
   neighborhood?: string | null;
   city?: string | null;
+  description?: string | null;
   price: string | null;
   ticket_link: string | null;
   vibe_tags: string[];

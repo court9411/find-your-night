@@ -24,7 +24,7 @@ function ResultsContent() {
   const [featuredVenues, setFeaturedVenues] = useState<Venue[] | null>(null);
   const [aiVenues, setAiVenues] = useState<Venue[] | null>(null);
   const [aiError, setAiError] = useState("");
-  const [view, setView] = useState<View>("list");
+  const [view] = useState<View>("list");
 
   useEffect(() => {
     if (!city || !vibe) {
@@ -106,6 +106,7 @@ function ResultsContent() {
       </div>
       <p className="text-muted text-sm -mt-4 w-full max-w-md">{city}</p>
 
+      {/* List/Map toggle hidden until enough events have coordinates to make the map useful.
       {!showInitialLoading && (
         <div className="flex items-center gap-2 w-full max-w-md -mt-2">
           <button
@@ -130,6 +131,7 @@ function ResultsContent() {
           </button>
         </div>
       )}
+      */}
 
       {showInitialLoading && <LoadingScreen emoji={emoji} city={city} />}
 

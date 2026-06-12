@@ -39,3 +39,46 @@ export function loadGoogleMaps(): Promise<typeof google> {
 
   return loadPromise;
 }
+
+// Finds the first matching address component for the given types, in priority order.
+export function findAddressComponent(
+  components: google.maps.GeocoderAddressComponent[],
+  ...types: string[]
+): string {
+  for (const type of types) {
+    const match = components.find((c) => c.types.includes(type));
+    if (match) return match.long_name;
+  }
+  return "";
+}
+
+// Resolves a real city name from a set of reverse-geocode results, avoiding
+// county-level names (e.g. "Hamilton County") which aren't useful for venue searches.
+export function resolveCityFromGeocodeResults(
+  results: google.maps.GeocoderResult[]
+): string {
+  // Prefer an actual locality/postal town from any result, most specific first.
+  for (const result of results) {
+    const locality = findAddressComponent(
+      result.address_components,
+      "locality",
+      "postal_town",
+      "sublocality"
+    );
+    if (locality) return locality;
+  }
+
+  // Fall back to the county-level component, stripped of "County" so it
+  // isn't passed to the venue search verbatim.
+  for (const result of results) {
+    const county = findAddressComponent(
+      result.address_components,
+      "administrative_area_level_2"
+    );
+    if (county) {
+      return county.replace(/\s+County$/i, "").trim();
+    }
+  }
+
+  return "";
+}

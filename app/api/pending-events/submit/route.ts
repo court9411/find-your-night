@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "placeholder-resend-key"
 
 export async function POST(request: Request) {
   try {
-    const { eventData, submitterEmail, imageUrl, isAutoApproved } = await request.json();
+    const { eventData, submitterEmail, imageUrl, isAutoApproved, category } = await request.json();
 
     if (!eventData || !submitterEmail) {
       return NextResponse.json(
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
         image_url: imageUrl,
         submitter_email: submitterEmail,
         status: isAutoApproved ? "approved" : "pending",
+        category: category || null,
         lat: eventData.lat ?? null,
         lng: eventData.lng ?? null,
       })

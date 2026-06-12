@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { VIBE_CATEGORIES } from "@/lib/vibeCategories";
+import { EVENT_CATEGORIES } from "@/lib/vibeCategories";
 
 interface PendingEvent {
   id: string;
@@ -46,6 +46,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("pending");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
   const router = useRouter();
 
   async function loadPendingEvents() {
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
 
   async function updateEventField(
     id: string,
-    fields: Partial<Pick<PendingEvent, "featured" | "category" | "display_order">>
+    fields: Partial<Pick<PendingEvent, "featured" | "category" | "display_order" | "vibe_tags">>
   ) {
     setUpdatingId(id);
     try {
@@ -379,34 +380,67 @@ export default function AdminDashboard() {
                       <p className="text-xs text-muted mt-1">
                         {event.address}
                       </p>
-                      {event.vibe_tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {event.vibe_tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs"
+                      <div className="flex flex-wrap items-center gap-1 mt-2">
+                        {event.vibe_tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs"
+                          >
+                            {tag}
+                            <button
+                              onClick={() =>
+                                updateEventField(event.id, {
+                                  vibe_tags: event.vibe_tags.filter((t) => t !== tag),
+                                })
+                              }
+                              disabled={updatingId === event.id}
+                              aria-label={`Remove ${tag} tag`}
+                              className="text-muted hover:text-white disabled:opacity-50"
                             >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <select
-                          value={event.category ?? ""}
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          value={tagInputs[event.id] ?? ""}
                           onChange={(e) =>
-                            updateEventField(event.id, { category: e.target.value || null })
+                            setTagInputs((prev) => ({ ...prev, [event.id]: e.target.value }))
                           }
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter") return;
+                            e.preventDefault();
+                            const newTag = (tagInputs[event.id] ?? "").trim();
+                            if (!newTag || event.vibe_tags.includes(newTag)) return;
+                            updateEventField(event.id, {
+                              vibe_tags: [...event.vibe_tags, newTag],
+                            });
+                            setTagInputs((prev) => ({ ...prev, [event.id]: "" }));
+                          }}
                           disabled={updatingId === event.id}
-                          className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-white disabled:opacity-50"
-                        >
-                          <option value="">No category</option>
-                          {VIBE_CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Add tag…"
+                          className="px-2 py-1 w-24 bg-white/5 border border-white/10 rounded text-xs text-white placeholder:text-muted outline-none focus:border-accent/60 disabled:opacity-50"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <label className="flex items-center gap-1.5 text-xs text-muted">
+                          Category
+                          <select
+                            value={event.category ?? ""}
+                            onChange={(e) =>
+                              updateEventField(event.id, { category: e.target.value || null })
+                            }
+                            disabled={updatingId === event.id}
+                            className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-white disabled:opacity-50"
+                          >
+                            <option value="">No category</option>
+                            {EVENT_CATEGORIES.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         <label className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/10 text-xs cursor-pointer">
                           <input
                             type="checkbox"

@@ -1,61 +1,103 @@
 "use client";
 
 import { useState } from "react";
+import { loadGoogleMaps, resolveCityFromGeocodeResults } from "@/lib/googleMaps";
+import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 
 interface LocationStepProps {
-  onSubmit: (city: string) => void;
+  onSubmit: (city: string, coords?: { lat: number; lng: number }) => void;
 }
+
+const ZIP_CODE_REGEX = /^\d{5}$/;
 
 export default function LocationStep({ onSubmit }: LocationStepProps) {
   const [city, setCity] = useState("");
   const [locating, setLocating] = useState(false);
+  const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
 
-  function handleManualSubmit(e: React.FormEvent) {
+  function handleCitySelected(selection: CitySelection) {
+    setCity(selection.city);
+    setError("");
+    const coords =
+      selection.lat !== undefined && selection.lng !== undefined
+        ? { lat: selection.lat, lng: selection.lng }
+        : undefined;
+    onSubmit(selection.city, coords);
+  }
+
+  async function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = city.trim();
     if (!trimmed) {
       setError("Enter a city to continue");
       return;
     }
+
+    if (ZIP_CODE_REGEX.test(trimmed)) {
+      setResolving(true);
+      setError("");
+      try {
+        const g = await loadGoogleMaps();
+        const geocoder = new g.maps.Geocoder();
+        geocoder.geocode({ address: trimmed }, (results, status) => {
+          setResolving(false);
+          const resolvedCity =
+            status === "OK" && results
+              ? resolveCityFromGeocodeResults(results)
+              : "";
+          if (resolvedCity) {
+            onSubmit(resolvedCity);
+          } else {
+            setError("Couldn't find that zip code — try a city name instead");
+          }
+        });
+      } catch {
+        setResolving(false);
+        setError("Couldn't find that zip code — try a city name instead");
+      }
+      return;
+    }
+
     onSubmit(trimmed);
   }
 
   function handleUseLocation() {
     if (!navigator.geolocation) {
-      setError("Location isn't available on this browser — type your city below");
+      setError("No problem — just type your city below");
       return;
     }
     setLocating(true);
     setError("");
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const { latitude, longitude } = position.coords;
         try {
-          const { latitude, longitude } = position.coords;
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-            { headers: { Accept: "application/json" } }
+          const g = await loadGoogleMaps();
+          const geocoder = new g.maps.Geocoder();
+          geocoder.geocode(
+            { location: { lat: latitude, lng: longitude } },
+            (results, status) => {
+              setLocating(false);
+              const resolvedCity =
+                status === "OK" && results
+                  ? resolveCityFromGeocodeResults(results)
+                  : "";
+              if (resolvedCity) {
+                onSubmit(resolvedCity, { lat: latitude, lng: longitude });
+              } else {
+                setError("No problem — just type your city below");
+              }
+            }
           );
-          const data = await res.json();
-          const resolvedCity =
-            data?.address?.city ||
-            data?.address?.town ||
-            data?.address?.village ||
-            data?.address?.county;
-          if (resolvedCity) {
-            onSubmit(resolvedCity);
-          } else {
-            setError("Couldn't determine your city — type it below");
-          }
         } catch {
-          setError("Couldn't determine your city — type it below");
-        } finally {
           setLocating(false);
+          setError("No problem — just type your city below");
         }
       },
       () => {
         setLocating(false);
-        setError("Location access denied — type your city below");
+        setError("No problem — just type your city below");
       },
       { timeout: 8000 }
     );
@@ -78,22 +120,23 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
       </div>
 
       <form onSubmit={handleManualSubmit} className="flex flex-col gap-3">
-        <input
-          type="text"
+        <CityAutocompleteInput
           value={city}
-          onChange={(e) => {
-            setCity(e.target.value);
+          onChange={(value) => {
+            setCity(value);
             setError("");
           }}
-          placeholder="e.g. Cincinnati"
+          onCitySelected={handleCitySelected}
+          placeholder="e.g. Cincinnati or 45231"
           className="glass-card w-full px-5 py-4 text-lg outline-none focus:border-accent/60 placeholder:text-muted"
         />
         {error && <p className="text-sm text-accent">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded-2xl glass-card font-display text-xl tracking-wide py-4 transition-transform active:scale-95 hover:border-accent/50"
+          disabled={resolving}
+          className="w-full rounded-2xl glass-card font-display text-xl tracking-wide py-4 transition-transform active:scale-95 hover:border-accent/50 disabled:opacity-60"
         >
-          Continue
+          {resolving ? "Looking up..." : "Continue"}
         </button>
       </form>
     </div>

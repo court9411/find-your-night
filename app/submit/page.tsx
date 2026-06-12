@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ExtractedEventData } from "@/lib/types";
 import PlaceAutocompleteInput, { PlaceDetails } from "@/components/PlaceAutocompleteInput";
+import { EVENT_CATEGORIES } from "@/lib/vibeCategories";
 
 type Mode = "smart" | "manual";
 
@@ -78,6 +79,7 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
   const [submitterEmail, setSubmitterEmail] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
   const [editedData, setEditedData] = useState<ExtractedEventData | null>(null);
+  const [category, setCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -202,6 +204,7 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
           submitterEmail,
           imageUrl,
           isAutoApproved,
+          category: category || null,
         }),
       });
 
@@ -491,6 +494,25 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
                   className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
                 />
               </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="text-xs text-muted mb-1 block">
+                Where should we list this event?
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-white [color-scheme:dark]"
+              >
+                <option value="">No category</option>
+                {EVENT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Vibe Tags */}

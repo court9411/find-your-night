@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Price, Venue } from "@/lib/types";
+import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
 
 function mapPrice(price: string | null): Price {
   if (!price) return "$$";
@@ -14,6 +15,8 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
   const cityToken = city.split(",")[0].trim();
   if (!cityToken) return [];
 
+  await deleteExpiredEvents();
+
   let submissionsQuery = supabase
     .from("submissions")
     .select("venue_name, type, neighborhood, date_time, description, vibe_tags, lat, lng")
@@ -26,8 +29,9 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   let pendingQuery = supabase
     .from("pending_events")
-    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng")
+    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng, image_url")
     .eq("status", "approved")
+    .gte("date", todayDateString())
     .ilike("city", `%${cityToken}%`);
 
   if (label && label !== "Surprise Me") {
@@ -78,6 +82,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     featured: true,
     lat: row.lat ?? null,
     lng: row.lng ?? null,
+    imageUrl: row.image_url ?? null,
   });
 
   // Pinned ("Feature This") events go to the very top of results.
