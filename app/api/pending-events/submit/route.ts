@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "placeholder-resend-key"
 
 export async function POST(request: Request) {
   try {
-    const { eventData, submitterEmail, imageUrl, isAutoApproved, category } = await request.json();
+    const { eventData, submitterEmail, imageUrl, category } = await request.json();
 
     if (!eventData || !submitterEmail) {
       return NextResponse.json(
@@ -34,12 +34,13 @@ export async function POST(request: Request) {
         neighborhood: eventData.neighborhood || null,
         city: eventData.city.trim(),
         state: eventData.state || null,
+        description: eventData.description || null,
         price: eventData.price,
         ticket_link: eventData.ticketLink,
         vibe_tags: eventData.vibeTags || [],
         image_url: imageUrl,
         submitter_email: submitterEmail,
-        status: isAutoApproved ? "approved" : "pending",
+        status: "pending",
         category: category || null,
         lat: eventData.lat ?? null,
         lng: eventData.lng ?? null,
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    await sendNotificationEmail(eventData, submitterEmail, isAutoApproved);
+    await sendNotificationEmail(eventData, submitterEmail);
 
     return NextResponse.json({
       success: true,
@@ -75,8 +76,7 @@ export async function POST(request: Request) {
 
 async function sendNotificationEmail(
   eventData: ExtractedEventData,
-  submitterEmail: string,
-  isAutoApproved: boolean
+  submitterEmail: string
 ) {
   const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
@@ -108,7 +108,6 @@ async function sendNotificationEmail(
         <p><strong>Price:</strong> ${eventData.price ?? "—"}</p>
         <p><strong>Vibe Tags:</strong> ${eventData.vibeTags?.join(", ") || "—"}</p>
         <p><strong>Submitter Email:</strong> ${submitterEmail}</p>
-        <p><strong>Status:</strong> ${isAutoApproved ? "Auto-approved" : "Pending review"}</p>
         <p><a href="${adminUrl}">Review in Admin Panel</a></p>
       `,
     });

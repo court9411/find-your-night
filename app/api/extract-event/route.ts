@@ -12,6 +12,7 @@ interface ExtractedEventData {
   startTime: string | null;
   venueName: string | null;
   address: string | null;
+  description: string | null;
   price: string | null;
   ticketLink: string | null;
   vibeTags: string[];
@@ -36,6 +37,7 @@ const EXTRACTION_PROMPT = `You are an event information extractor. Extract event
 - startTime: string in 12-hour format (e.g. "7:00 PM") or null
 - venueName: string or null
 - address: string or null
+- description: a short 1-3 sentence summary of the event, or null
 - price: string (e.g. "$25", "FREE", "18+") or null
 - ticketLink: string or null
 - vibeTags: array of 2-4 strings from: drag show, live music, dance party, chill, rooftop, comedy, art, sports, food, networking

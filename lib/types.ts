@@ -46,6 +46,7 @@ export interface ExtractedEventData {
   neighborhood?: string | null;
   city?: string | null;
   state?: string | null;
+  description?: string | null;
   price: string | null;
   ticketLink: string | null;
   vibeTags: string[];
