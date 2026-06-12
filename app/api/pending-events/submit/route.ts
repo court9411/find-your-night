@@ -16,6 +16,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!eventData.city?.trim()) {
+      return NextResponse.json(
+        { error: "City is required" },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabaseAdmin
       .from("pending_events")
       .insert({
@@ -25,7 +32,8 @@ export async function POST(request: Request) {
         venue_name: eventData.venueName,
         address: eventData.address,
         neighborhood: eventData.neighborhood || null,
-        city: eventData.city || null,
+        city: eventData.city.trim(),
+        state: eventData.state || null,
         price: eventData.price,
         ticket_link: eventData.ticketLink,
         vibe_tags: eventData.vibeTags || [],

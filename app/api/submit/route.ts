@@ -34,6 +34,7 @@ export async function POST(request: Request) {
   const type = typeof body.type === "string" ? sanitize(body.type, 60) : "";
   const neighborhood = typeof body.neighborhood === "string" ? sanitize(body.neighborhood, 100) : "";
   const city = typeof body.city === "string" ? sanitize(body.city, 100) : "";
+  const state = typeof body.state === "string" ? sanitize(body.state, 10) : "";
   const dateTime = typeof body.dateTime === "string" ? sanitize(body.dateTime, 100) : "";
   const description = typeof body.description === "string" ? sanitize(body.description, 1000) : "";
   const vibeTags = typeof body.vibeTags === "string" ? sanitize(body.vibeTags, 200) : "";
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
     type,
     neighborhood,
     city,
+    state: state || null,
     date_time: dateTime,
     description,
     vibe_tags: vibeTags,

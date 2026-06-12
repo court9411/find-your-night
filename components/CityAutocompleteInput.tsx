@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { loadGoogleMaps, resolveCityFromGeocodeResults } from "@/lib/googleMaps";
+import { loadGoogleMaps, resolveCityFromGeocodeResults, resolveStateFromGeocodeResults } from "@/lib/googleMaps";
 
 export interface CitySelection {
   city: string;
+  state?: string;
   lat?: number;
   lng?: number;
 }
@@ -44,15 +45,15 @@ export default function CityAutocompleteInput({
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete!.getPlace();
           const components = place.address_components ?? [];
-          const cityName =
-            resolveCityFromGeocodeResults([
-              { address_components: components } as google.maps.GeocoderResult,
-            ]) || place.name || "";
+          const geocodeResult = { address_components: components } as google.maps.GeocoderResult;
+          const cityName = resolveCityFromGeocodeResults([geocodeResult]) || place.name || "";
+          const state = resolveStateFromGeocodeResults([geocodeResult]);
 
           if (!cityName) return;
 
           onCitySelectedRef.current({
             city: cityName,
+            state: state || undefined,
             lat: place.geometry?.location?.lat(),
             lng: place.geometry?.location?.lng(),
           });

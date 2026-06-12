@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { loadGoogleMaps } from "@/lib/googleMaps";
+import { loadGoogleMaps, findAddressComponentShort } from "@/lib/googleMaps";
 
 export interface PlaceDetails {
   name: string;
   address: string;
   neighborhood: string;
   city: string;
+  state: string;
   lat: number;
   lng: number;
 }
@@ -74,12 +75,14 @@ export default function PlaceAutocompleteInput({
             "postal_town",
             "administrative_area_level_2"
           );
+          const state = findAddressComponentShort(components, "administrative_area_level_1");
 
           onPlaceSelectedRef.current({
             name: place.name ?? "",
             address: place.formatted_address ?? "",
             neighborhood,
             city,
+            state,
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng(),
           });

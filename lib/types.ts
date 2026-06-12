@@ -28,6 +28,7 @@ export interface SubmissionPayload {
   type: string;
   neighborhood: string;
   city: string;
+  state?: string | null;
   dateTime: string;
   description: string;
   vibeTags: string;
@@ -44,6 +45,7 @@ export interface ExtractedEventData {
   address: string | null;
   neighborhood?: string | null;
   city?: string | null;
+  state?: string | null;
   price: string | null;
   ticketLink: string | null;
   vibeTags: string[];
@@ -61,7 +63,8 @@ export interface PendingEvent {
   venue_name: string;
   address: string;
   neighborhood?: string | null;
-  city?: string | null;
+  city: string;
+  state: string | null;
   description?: string | null;
   price: string | null;
   ticket_link: string | null;

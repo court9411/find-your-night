@@ -31,7 +31,7 @@ export default function EventListingCard({ event, index }: EventListingCardProps
             <h3 className="font-display text-2xl tracking-wide leading-tight">{event.event_name}</h3>
             <p className="text-sm text-muted">
               {event.is_private_location
-                ? event.neighborhood || "Location shared privately"
+                ? `${event.venue_name}${event.city ? ` · ${event.city}` : ""}`
                 : `${event.venue_name}${event.neighborhood ? ` · ${event.neighborhood}` : ""}`}
             </p>
           </div>
@@ -56,9 +56,14 @@ export default function EventListingCard({ event, index }: EventListingCardProps
           </div>
         )}
 
-        {event.vibe_tags?.length > 0 && (
+        {(event.is_private_location || event.vibe_tags?.length > 0) && (
           <div className="flex flex-wrap gap-2">
-            {event.vibe_tags.map((tag) => (
+            {event.is_private_location && (
+              <span className="text-xs px-2 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent">
+                📍 Private location
+              </span>
+            )}
+            {event.vibe_tags?.map((tag) => (
               <span
                 key={tag}
                 className="text-xs px-2 py-1 rounded-full bg-white/5 border border-card-border text-muted"

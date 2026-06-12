@@ -5,7 +5,10 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ExtractedEventData } from "@/lib/types";
 import PlaceAutocompleteInput, { PlaceDetails } from "@/components/PlaceAutocompleteInput";
+import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import { EVENT_CATEGORIES } from "@/lib/vibeCategories";
+
+const SECRET_LOCATION_NAME = "Secret Location";
 
 type Mode = "smart" | "manual";
 
@@ -91,6 +94,7 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
     if (!data.eventName?.trim()) missing.push("eventName");
     if (!data.date?.trim()) missing.push("date");
     if (!data.venueName?.trim()) missing.push("venueName");
+    if (!data.city?.trim()) missing.push("city");
     return missing;
   }
 
@@ -255,12 +259,34 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
             venueName: place.name || prev.venueName,
             address: place.address || prev.address,
             neighborhood: place.neighborhood || prev.neighborhood,
-            city: place.city || prev.city,
+            city: prev.city || place.city,
+            state: prev.state || place.state || null,
             lat: place.lat,
             lng: place.lng,
           }
         : prev
     );
+  }
+
+  function handleCitySelected(selection: CitySelection) {
+    setEditedData((prev) =>
+      prev
+        ? {
+            ...prev,
+            city: selection.city,
+            state: selection.state || null,
+          }
+        : prev
+    );
+  }
+
+  function togglePrivateLocation(checked: boolean) {
+    setEditedData((prev) => {
+      if (!prev) return prev;
+      const venueName =
+        checked && !prev.venueName?.trim() ? SECRET_LOCATION_NAME : prev.venueName;
+      return { ...prev, isPrivateLocation: checked, venueName };
+    });
   }
 
   // INPUT STAGE
@@ -455,21 +481,28 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
               {missing.includes("venueName") && (
                 <p className="text-xs text-orange-400 mt-1">⚠ Required</p>
               )}
-              {(editedData?.neighborhood || editedData?.city) && (
-                <p className="text-xs text-muted mt-1">
-                  {[editedData?.neighborhood, editedData?.city].filter(Boolean).join(" · ")}
-                </p>
+              {editedData?.neighborhood && (
+                <p className="text-xs text-muted mt-1">{editedData.neighborhood}</p>
               )}
             </div>
 
+            {/* City */}
             <div>
-              <label className="text-xs text-muted mb-1 block">Address</label>
-              <input
-                type="text"
-                value={editedData?.address || ""}
-                onChange={(e) => updateEditedData("address", e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
+              <label className="text-xs text-muted mb-1 block">City</label>
+              <CityAutocompleteInput
+                value={editedData?.city || ""}
+                onChange={(value) => updateEditedData("city", value)}
+                onCitySelected={handleCitySelected}
+                placeholder="Start typing a city..."
+                className={`w-full px-4 py-2 rounded-lg bg-white/5 border outline-none focus:border-accent/60 ${
+                  missing.includes("city")
+                    ? "border-orange-500/60 focus:border-orange-400"
+                    : "border-white/10"
+                }`}
               />
+              {missing.includes("city") && (
+                <p className="text-xs text-orange-400 mt-1">⚠ Required</p>
+              )}
             </div>
 
             {/* Private Location */}
@@ -478,14 +511,10 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
                 <input
                   type="checkbox"
                   checked={!!editedData?.isPrivateLocation}
-                  onChange={(e) =>
-                    setEditedData((prev) =>
-                      prev ? { ...prev, isPrivateLocation: e.target.checked } : prev
-                    )
-                  }
+                  onChange={(e) => togglePrivateLocation(e.target.checked)}
                   className="accent-accent"
                 />
-                Keep exact location private
+                Private location / revealed after RSVP
               </label>
               {editedData?.isPrivateLocation && (
                 <div>
@@ -498,11 +527,23 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
                     maxLength={200}
                   />
                   <p className="text-xs text-muted mt-1">
-                    The venue name and address won&apos;t be shown publicly. We&apos;ll display this note instead.
+                    The exact address won&apos;t be shown publicly. We&apos;ll show your city and this note instead.
                   </p>
                 </div>
               )}
             </div>
+
+            {!editedData?.isPrivateLocation && (
+              <div>
+                <label className="text-xs text-muted mb-1 block">Address</label>
+                <input
+                  type="text"
+                  value={editedData?.address || ""}
+                  onChange={(e) => updateEditedData("address", e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
+                />
+              </div>
+            )}
 
             {/* Price and Ticket Link */}
             <div className="grid grid-cols-2 gap-3">
@@ -659,6 +700,7 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
     type: "",
     neighborhood: "",
     city: "",
+    state: "",
     eventDate: "",
     eventTime: "",
     description: "",
@@ -729,10 +771,19 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
       ...f,
       venueName: place.name || f.venueName,
       neighborhood: place.neighborhood || f.neighborhood,
-      city: place.city || f.city,
+      city: f.city || place.city,
+      state: f.state || place.state || "",
     }));
     setCoords({ lat: place.lat, lng: place.lng });
     setShowSuggestions(false);
+  }
+
+  function handleCitySelected(selection: CitySelection) {
+    setForm((f) => ({
+      ...f,
+      city: selection.city,
+      state: selection.state || f.state,
+    }));
   }
 
   function toggleVibe(vibe: string) {
@@ -866,13 +917,12 @@ function ManualSubmitForm({ onSwitchToSmart }: { onSwitchToSmart: () => void }) 
           className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
           maxLength={100}
         />
-        <input
-          type="text"
-          placeholder="City *"
+        <CityAutocompleteInput
           value={form.city}
-          onChange={(e) => update("city", e.target.value)}
+          onChange={(value) => update("city", value)}
+          onCitySelected={handleCitySelected}
+          placeholder="City *"
           className="glass-card w-full px-5 py-4 outline-none focus:border-accent/60 placeholder:text-muted"
-          maxLength={100}
         />
         <div className="flex gap-3">
           <input

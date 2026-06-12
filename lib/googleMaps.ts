@@ -54,6 +54,29 @@ export function findAddressComponent(
   return "";
 }
 
+// Like findAddressComponent, but returns the short form (e.g. "OH" instead of "Ohio").
+export function findAddressComponentShort(
+  components: google.maps.GeocoderAddressComponent[],
+  ...types: string[]
+): string {
+  for (const type of types) {
+    const match = components.find((c) => c.types.includes(type));
+    if (match) return match.short_name;
+  }
+  return "";
+}
+
+// Resolves a US state (or equivalent) abbreviation from address components.
+export function resolveStateFromGeocodeResults(
+  results: google.maps.GeocoderResult[]
+): string {
+  for (const result of results) {
+    const state = findAddressComponentShort(result.address_components, "administrative_area_level_1");
+    if (state) return state;
+  }
+  return "";
+}
+
 // Resolves a real city name from a set of reverse-geocode results, avoiding
 // county-level names (e.g. "Hamilton County") which aren't useful for venue searches.
 export function resolveCityFromGeocodeResults(
