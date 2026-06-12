@@ -1,5 +1,7 @@
 let loadPromise: Promise<typeof google> | null = null;
 
+export const ZIP_CODE_REGEX = /^\d{5}$/;
+
 declare global {
   interface Window {
     google?: typeof google;
@@ -81,4 +83,23 @@ export function resolveCityFromGeocodeResults(
   }
 
   return "";
+}
+
+// Server-side reverse geocode of a 5-digit zip code to a city name, via the
+// Geocoding HTTP API. Used so direct/shared links with a zip in `?city=`
+// resolve to a real city before filtering events.
+export async function resolveCityFromZip(zip: string): Promise<string> {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return "";
+
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(zip)}&key=${apiKey}`
+    );
+    const data = await res.json();
+    if (data.status !== "OK" || !Array.isArray(data.results)) return "";
+    return resolveCityFromGeocodeResults(data.results as google.maps.GeocoderResult[]);
+  } catch {
+    return "";
+  }
 }

@@ -2,49 +2,104 @@ import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PendingEvent } from "@/lib/types";
 import EventListingCard from "@/components/EventListingCard";
+import CityFilterPicker from "@/components/CityFilterPicker";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
+import { SEASONAL_ENTRIES } from "@/lib/seasonal.config";
+import { resolveCityFromZip, ZIP_CODE_REGEX } from "@/lib/googleMaps";
 
 interface PageProps {
   params: { category: string };
+  searchParams: { city?: string };
 }
 
-export default async function CategoryEventsPage({ params }: PageProps) {
+export default async function CategoryEventsPage({ params, searchParams }: PageProps) {
   const category = decodeURIComponent(params.category);
+  const cityParam = searchParams.city?.trim();
+  // Match results page behavior: only compare the city name, not the state/country.
+  let cityToken = cityParam ? cityParam.split(",")[0].trim() : "";
+  // Direct/shared links may pass a zip code (e.g. ?city=45231) — resolve it to
+  // a real city name so it matches the city stored on events.
+  if (cityToken && ZIP_CODE_REGEX.test(cityToken)) {
+    const resolved = await resolveCityFromZip(cityToken);
+    if (resolved) cityToken = resolved;
+  }
+  // Seasonal categories (e.g. "July4th") use a friendlier display label for the heading.
+  const heading = SEASONAL_ENTRIES.find((entry) => entry.category === category)?.label ?? category;
 
   await deleteExpiredEvents();
 
-  const { data: events, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("pending_events")
     .select("*")
     .eq("status", "approved")
-    .eq("category", category)
+    .ilike("category", category)
     .gte("date", todayDateString())
     .order("featured", { ascending: false })
     .order("display_order", { ascending: true })
     .order("date", { ascending: true });
 
+  if (cityToken) {
+    query = query.ilike("city", `%${cityToken}%`);
+  }
+
+  const { data: events, error } = await query;
+
   if (error) {
     console.error("Category events fetch error:", error);
+  }
+
+  const hasEvents = !!events && events.length > 0;
+
+  // No city set: group events by city under subheadings.
+  const groupedByCity: { city: string; events: PendingEvent[] }[] = [];
+  if (!cityToken && hasEvents) {
+    const groups = new Map<string, PendingEvent[]>();
+    for (const event of events as PendingEvent[]) {
+      const key = event.city?.trim() || "Other";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(event);
+    }
+    groups.forEach((cityEvents, city) => {
+      groupedByCity.push({ city, events: cityEvents });
+    });
   }
 
   return (
     <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">
       <div className="flex items-center justify-between w-full max-w-md">
-        <h1 className="font-display text-4xl tracking-wide">{category}</h1>
+        <h1 className="font-display text-4xl tracking-wide">{heading}</h1>
         <Link href="/" className="text-sm text-muted underline underline-offset-4">
           Home
         </Link>
       </div>
       <p className="text-muted text-sm w-full max-w-md -mt-4">
-        Tonight&apos;s lineup for {category}
+        {cityToken ? `Tonight's lineup for ${heading} near ${cityToken}` : `Tonight's lineup for ${heading}`}
       </p>
 
-      {!events || events.length === 0 ? (
+      {!cityToken && (
+        <div className="flex flex-col gap-2 w-full max-w-md -mt-4">
+          <p className="text-muted text-xs">Showing all cities</p>
+          <CityFilterPicker category={category} />
+        </div>
+      )}
+
+      {!hasEvents ? (
         <p className="text-muted text-sm">No events yet — check back soon.</p>
-      ) : (
+      ) : cityToken ? (
         <div className="flex flex-col gap-4 w-full max-w-md">
           {(events as PendingEvent[]).map((event, i) => (
             <EventListingCard key={event.id} event={event} index={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6 w-full max-w-md">
+          {groupedByCity.map(({ city, events: cityEvents }) => (
+            <div key={city} className="flex flex-col gap-4">
+              <h2 className="font-display text-xl tracking-wide text-accent">{city}</h2>
+              {cityEvents.map((event, i) => (
+                <EventListingCard key={event.id} event={event} index={i} />
+              ))}
+            </div>
           ))}
         </div>
       )}

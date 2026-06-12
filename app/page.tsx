@@ -82,7 +82,7 @@ export default function Home() {
             {new Date().toLocaleDateString("en-US", { weekday: "long" })} night ·{" "}
             {getNightEnergy(new Date().getHours())}
           </p>
-          <VibeSelector onSelect={handleVibeSelect} />
+          <VibeSelector onSelect={handleVibeSelect} city={city} />
         </div>
       )}
     </main>

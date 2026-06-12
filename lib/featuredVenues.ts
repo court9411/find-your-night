@@ -35,7 +35,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     .ilike("city", `%${cityToken}%`);
 
   if (label && label !== "Surprise Me") {
-    pendingQuery = pendingQuery.eq("category", label);
+    pendingQuery = pendingQuery.ilike("category", label);
   }
 
   const [

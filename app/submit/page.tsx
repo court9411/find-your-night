@@ -472,6 +472,38 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
               />
             </div>
 
+            {/* Private Location */}
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!editedData?.isPrivateLocation}
+                  onChange={(e) =>
+                    setEditedData((prev) =>
+                      prev ? { ...prev, isPrivateLocation: e.target.checked } : prev
+                    )
+                  }
+                  className="accent-accent"
+                />
+                Keep exact location private
+              </label>
+              {editedData?.isPrivateLocation && (
+                <div>
+                  <input
+                    type="text"
+                    placeholder="e.g. DM us for the address"
+                    value={editedData?.privateLocationNote || ""}
+                    onChange={(e) => updateEditedData("privateLocationNote", e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
+                    maxLength={200}
+                  />
+                  <p className="text-xs text-muted mt-1">
+                    The venue name and address won&apos;t be shown publicly. We&apos;ll display this note instead.
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Price and Ticket Link */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -508,8 +540,8 @@ function SmartSubmitFlow({ onSwitchToManual }: { onSwitchToManual: () => void })
               >
                 <option value="">No category</option>
                 {EVENT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>

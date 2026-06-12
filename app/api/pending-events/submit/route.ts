@@ -35,6 +35,10 @@ export async function POST(request: Request) {
         category: category || null,
         lat: eventData.lat ?? null,
         lng: eventData.lng ?? null,
+        is_private_location: !!eventData.isPrivateLocation,
+        private_location_note: eventData.isPrivateLocation
+          ? eventData.privateLocationNote || null
+          : null,
       })
       .select("id")
       .single();

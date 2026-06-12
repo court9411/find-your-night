@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { storeEventImage } from "@/lib/eventImageStorage";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -230,16 +231,20 @@ export async function POST(request: Request) {
     }
 
     let content: string;
-    let ogImage: string | null = null;
+    let sourceImage: string | null = null;
+    let storedImageUrl: string | null = null;
 
     if (url) {
       const extracted = await extractFromUrl(url);
       content = extracted.content;
-      ogImage = extracted.ogImage;
+      sourceImage = extracted.ogImage;
+      if (sourceImage) {
+        storedImageUrl = await storeEventImage({ url: sourceImage });
+      }
     } else if (image) {
       // For images, send directly to Claude vision
       content = await extractFromImage(image, mimeType || "image/jpeg");
-      ogImage = `data:${mimeType || "image/jpeg"};base64,${image}`;
+      storedImageUrl = await storeEventImage({ base64: image, mimeType: mimeType || "image/jpeg" });
     } else {
       return NextResponse.json(
         { error: "Either 'url' or 'image' is required" },
@@ -253,7 +258,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       eventData,
-      ogImage,
+      ogImage: storedImageUrl,
     });
   } catch (error) {
     console.error("Extract event error:", error);

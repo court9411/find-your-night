@@ -49,6 +49,8 @@ export interface ExtractedEventData {
   vibeTags: string[];
   lat?: number | null;
   lng?: number | null;
+  isPrivateLocation?: boolean;
+  privateLocationNote?: string | null;
 }
 
 export interface PendingEvent {
@@ -72,5 +74,7 @@ export interface PendingEvent {
   category: string | null;
   lat: number | null;
   lng: number | null;
+  is_private_location: boolean;
+  private_location_note: string | null;
   created_at?: string;
 }

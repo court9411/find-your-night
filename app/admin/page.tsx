@@ -435,8 +435,8 @@ export default function AdminDashboard() {
                           >
                             <option value="">No category</option>
                             {EVENT_CATEGORIES.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
+                              <option key={c.value} value={c.value}>
+                                {c.label}
                               </option>
                             ))}
                           </select>

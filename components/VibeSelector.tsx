@@ -1,7 +1,7 @@
 "use client";
 
 import { Vibe } from "@/lib/types";
-import { SEASONAL } from "@/lib/seasonal.config";
+import { getActiveSeasonal } from "@/lib/seasonal.config";
 import {
   DrinksIcon,
   LiveMusicIcon,
@@ -94,23 +94,29 @@ const ICONS = [
 
 interface VibeSelectorProps {
   onSelect: (vibe: Vibe) => void;
+  city?: string;
 }
 
-export default function VibeSelector({ onSelect }: VibeSelectorProps) {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const showSeasonal = SEASONAL.months.includes(month);
+export default function VibeSelector({ onSelect, city }: VibeSelectorProps) {
+  const activeSeasonal = getActiveSeasonal();
+  const showSeasonal = activeSeasonal !== null;
+  const cityToken = city?.split(",")[0].trim();
+  const seasonalLink = activeSeasonal
+    ? cityToken
+      ? `${activeSeasonal.link}?city=${encodeURIComponent(cityToken)}`
+      : activeSeasonal.link
+    : "";
 
   return (
     <div className="flex flex-col gap-3 w-full max-w-md">
-      {showSeasonal && (
+      {showSeasonal && activeSeasonal && (
         <a
-          href={SEASONAL.link}
+          href={seasonalLink}
           className="w-full rounded-2xl p-5 flex flex-col items-start justify-center gap-2 animate-fadeUp text-white"
-          style={{ background: SEASONAL.gradient, minHeight: "140px" }}
+          style={{ background: activeSeasonal.gradient, minHeight: "140px" }}
         >
-          <span className="text-2xl font-display">{SEASONAL.headline}</span>
-          <span className="text-sm opacity-90">{SEASONAL.subtext}</span>
+          <span className="text-2xl font-display">{activeSeasonal.headline}</span>
+          <span className="text-sm opacity-90">{activeSeasonal.subtext}</span>
         </a>
       )}
 
