@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Venue } from "@/lib/types";
+import { formatEventDateLine } from "@/lib/formatEventDate";
 
 interface VenueCardProps {
   venue: Venue;
@@ -73,12 +74,22 @@ export default function VenueCard({ venue, index }: VenueCardProps) {
 
         <p className="text-sm leading-relaxed">{venue.description}</p>
 
-        <div className="rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">
-          <p className="text-xs uppercase tracking-wide text-accent font-semibold mb-1">
-            Why Tonight
-          </p>
-          <p className="text-sm">{venue.whyTonight}</p>
-        </div>
+        {venue.whyTonight ? (
+          <div className="rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">
+            <p className="text-xs uppercase tracking-wide text-accent font-semibold mb-1">
+              Why Tonight
+            </p>
+            <p className="text-sm">{venue.whyTonight}</p>
+          </div>
+        ) : (
+          (venue.eventDate || venue.eventTime) && (
+            <div className="rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">
+              <p className="text-sm font-semibold">
+                {formatEventDateLine(venue.eventDate, venue.eventTime)}
+              </p>
+            </div>
+          )
+        )}
 
         <div className="flex items-center justify-between">
           <span className="font-display text-lg tracking-wide text-accent">{venue.price}</span>

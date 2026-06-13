@@ -1,4 +1,5 @@
 import { PendingEvent } from "@/lib/types";
+import EventImage from "@/components/EventImage";
 
 interface EventListingCardProps {
   event: PendingEvent;
@@ -18,10 +19,10 @@ export default function EventListingCard({ event, index }: EventListingCardProps
       style={{ animationDelay: `${index * 100}ms` }}
     >
       {event.image_url && (
-        <img
+        <EventImage
           src={event.image_url}
           alt={event.event_name}
-          className="w-full aspect-video object-cover"
+          className="w-full max-h-[70vh] object-contain bg-black/30"
         />
       )}
 

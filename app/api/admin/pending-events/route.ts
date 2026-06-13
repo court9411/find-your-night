@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { sendEventApprovedEmail } from "@/lib/sendEventApprovedEmail";
 
 // GET: List pending events
 export async function GET() {
@@ -57,13 +58,29 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { error } = await supabaseAdmin
+    let previousStatus: string | undefined;
+    if (status === "approved") {
+      const { data: existing } = await supabaseAdmin
+        .from("pending_events")
+        .select("status")
+        .eq("id", id)
+        .single();
+      previousStatus = existing?.status;
+    }
+
+    const { data: updated, error } = await supabaseAdmin
       .from("pending_events")
       .update(update)
-      .eq("id", id);
+      .eq("id", id)
+      .select("id, event_name, submitter_email")
+      .single();
 
     if (error) {
       throw error;
+    }
+
+    if (status === "approved" && previousStatus !== "approved" && updated?.submitter_email) {
+      await sendEventApprovedEmail(updated.submitter_email, updated.event_name, updated.id);
     }
 
     return NextResponse.json({ success: true });

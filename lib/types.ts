@@ -12,6 +12,8 @@ export interface Venue {
   lat?: number | null;
   lng?: number | null;
   imageUrl?: string | null;
+  eventDate?: string | null;
+  eventTime?: string | null;
 }
 
 export interface Vibe {

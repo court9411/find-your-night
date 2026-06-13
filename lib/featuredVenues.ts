@@ -54,7 +54,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     type: row.type,
     neighborhood: row.neighborhood,
     description: row.description,
-    whyTonight: `Happening ${row.date_time}`,
+    whyTonight: "",
     price: "$$" as const,
     tags: row.vibe_tags
       ? row.vibe_tags.split(",").map((t: string) => t.trim()).filter(Boolean)
@@ -62,6 +62,8 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     featured: true,
     lat: row.lat ?? null,
     lng: row.lng ?? null,
+    eventDate: null,
+    eventTime: row.date_time,
   }));
 
   const sortedPending = [...(pendingData ?? [])].sort((a, b) => {
@@ -74,15 +76,15 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     type: "Event",
     neighborhood: row.neighborhood ?? row.venue_name,
     description: row.description ?? "",
-    whyTonight: row.end_time
-      ? `Happening ${row.date} from ${row.start_time} to ${row.end_time}`
-      : `Happening ${row.date} at ${row.start_time}`,
+    whyTonight: "",
     price: mapPrice(row.price),
     tags: row.vibe_tags ?? [],
     featured: true,
     lat: row.lat ?? null,
     lng: row.lng ?? null,
     imageUrl: row.image_url ?? null,
+    eventDate: row.date,
+    eventTime: row.end_time ? `${row.start_time} – ${row.end_time}` : row.start_time,
   });
 
   // Pinned ("Feature This") events go to the very top of results.

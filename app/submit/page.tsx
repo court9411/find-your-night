@@ -6,6 +6,7 @@ import { ExtractedEventData } from "@/lib/types";
 import { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import { CitySelection } from "@/components/CityAutocompleteInput";
 import EventReviewForm from "@/components/EventReviewForm";
+import { compressImage } from "@/lib/imageCompression";
 
 const SECRET_LOCATION_NAME = "Secret Location";
 
@@ -123,23 +124,18 @@ export default function SubmitPage() {
     handleExtract(url);
   }
 
-  function handleImageUpload(file: File) {
+  async function handleImageUpload(file: File) {
     if (!["image/jpeg", "image/png"].includes(file.type)) {
       setError("Please upload a JPG or PNG image");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB");
-      return;
+    try {
+      const { base64, mimeType } = await compressImage(file);
+      handleExtract("", base64, mimeType);
+    } catch {
+      setError("Failed to process image. Please try a different file.");
     }
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = (reader.result as string).split(",")[1];
-      handleExtract("", base64, file.type);
-    };
-    reader.readAsDataURL(file);
   }
 
   async function handleFinalSubmit() {
