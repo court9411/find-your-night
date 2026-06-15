@@ -25,6 +25,9 @@ ${neighborhoodLine}- Only suggest venues you are reasonably confident are real a
   operating in ${city}
 - Never repeat venues already shown (a list of existing names will be
   provided in the user message)
+- Vary which venues you surface and in what order — don't default to the
+  same top picks every time this is asked. Prioritize variety across
+  sessions while staying true to the requested vibe.
 
 OUTPUT FORMAT:
 Return a JSON array only — no preamble, no markdown fences. Each object:

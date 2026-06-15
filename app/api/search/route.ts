@@ -55,7 +55,8 @@ const getVenues = unstable_cache(
     const prompt = `You are a local nightlife guide. Suggest 5 real venues in ${city} for a ${day} night matching this vibe: "${vibe}".
 Return ONLY a valid JSON array with no markdown, no backticks, no explanation. Each item must have exactly these fields:
 name (string), type (string), neighborhood (string), description (string, 1-2 sentences), whyTonight (string), price (one of "$", "$$", "$$$"), tags (array of 2-4 short strings).
-For whyTonight, write 1-2 sentences explaining specifically why this venue is the perfect choice for tonight — mention the atmosphere, what kind of crowd to expect, a special quality about this time of week, or what makes it unique right now. Never just list the time or hours. Make it feel like a recommendation from a friend who knows the city.`;
+For whyTonight, write 1-2 sentences explaining specifically why this venue is the perfect choice for tonight — mention the atmosphere, what kind of crowd to expect, a special quality about this time of week, or what makes it unique right now. Never just list the time or hours. Make it feel like a recommendation from a friend who knows the city.
+Vary which venues you surface and in what order — don't default to the same top picks every time this is asked. Prioritize variety across sessions while staying true to the vibe and city.`;
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",

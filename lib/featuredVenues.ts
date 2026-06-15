@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { Price, Venue } from "@/lib/types";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
 import { getSupplementalVenues } from "@/lib/supplementalVenues";
+import { generateWhyTonight } from "@/lib/whyTonight";
+import { shuffle } from "@/lib/shuffle";
 
 const MIN_RESULTS = 5;
 
@@ -92,9 +94,25 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   // Pinned ("Feature This") events go to the very top of results.
   const pinned = sortedPending.filter((row) => row.featured).map(mapPending);
-  const unpinned = sortedPending.filter((row) => !row.featured).map(mapPending);
+  const unpinned = shuffle(sortedPending.filter((row) => !row.featured).map(mapPending));
 
-  const combined = [...pinned, ...fromSubmissions, ...unpinned];
+  const combined = [...pinned, ...shuffle(fromSubmissions), ...unpinned];
+
+  const needsWhyTonight = combined.filter((venue) => !venue.whyTonight);
+  if (needsWhyTonight.length > 0) {
+    const generated = await generateWhyTonight(
+      needsWhyTonight.map((venue) => ({
+        name: venue.name,
+        description: venue.description,
+        eventDate: venue.eventDate,
+        eventTime: venue.eventTime,
+        tags: venue.tags,
+      }))
+    );
+    needsWhyTonight.forEach((venue, i) => {
+      venue.whyTonight = generated[i];
+    });
+  }
 
   if (combined.length < MIN_RESULTS && label) {
     const existingNames = combined.map((venue) => venue.name);
