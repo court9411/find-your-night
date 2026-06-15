@@ -3,6 +3,17 @@
 // other categories. Keyed by the vibe's `label` (matches VIBE_CATEGORIES
 // and the `label` sent to /api/search and /api/featured).
 export const VIBE_BOUNDARIES: Record<string, string> = {
+  "Food & Drinks": `
+FOOD & DRINKS BOUNDARIES:
+- Surface restaurants and food-forward venues where the meal itself is the destination: sit-down dinner spots, brunch restaurants, chef-driven menus, restaurants known for a standout cuisine or dish, food halls.
+- Do NOT suggest bars, lounges, or clubs where alcohol is the primary draw — those belong to Drinks & Bars. Do NOT suggest late-night/post-bar quick bites, diners, or food trucks aimed at people leaving the bars — those belong to Late Night Eats. Food & Drinks is about a dinner-out experience, not a late-night bite.
+- A restaurant with a notable bar or cocktail program is fine to include if the food is still the main draw — lead the description with the food.`,
+
+  "Late Night Eats": `
+LATE NIGHT EATS BOUNDARIES:
+- Surface places good for a late-night or post-bar bite: diners, pizza spots, food trucks, and casual quick eats open late.
+- Do NOT suggest upscale sit-down dinner restaurants where a reservation or dining experience is the point — those belong to Food & Drinks.`,
+
   "Casual Fun": `
 CASUAL FUN BOUNDARIES:
 - Surface social, activity-based experiences where the activity is the main draw: trivia nights and game shows, bowling, escape rooms, arcades/barcades, comedy and improv shows, mini golf, axe throwing, paint nights/pottery/creative social experiences, board game cafes, karaoke.

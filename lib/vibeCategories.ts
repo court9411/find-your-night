@@ -5,6 +5,7 @@ import { formatDateRange, getSeasonalCategoryOptions } from "@/lib/seasonal.conf
 // components/VibeSelector.tsx and passed as `label` to /api/featured.
 export const VIBE_CATEGORIES = [
   "Drinks & Bars",
+  "Food & Drinks",
   "Live Music",
   "Fresh Air",
   "Late Night Eats",

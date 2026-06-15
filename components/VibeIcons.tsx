@@ -53,6 +53,18 @@ export function FreshAirIcon(props: IconProps) {
   );
 }
 
+export function FoodDrinksIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      {/* fork */}
+      <path d="M6 2v6a1.5 1.5 0 0 0 3 0V2M7.5 8v14" />
+      <path d="M6 2v3M9 2v3" />
+      {/* knife */}
+      <path d="M17 2c-2 0-3.5 2-3.5 5s1.5 5 3.5 5v9" />
+    </svg>
+  );
+}
+
 export function LateNightEatsIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

@@ -4,6 +4,7 @@ import { Vibe } from "@/lib/types";
 import { getActiveSeasonal } from "@/lib/seasonal.config";
 import {
   DrinksIcon,
+  FoodDrinksIcon,
   LiveMusicIcon,
   FreshAirIcon,
   LateNightEatsIcon,
@@ -21,6 +22,15 @@ export const VIBES: Vibe[] = [
     prompt: "drinks and bars",
     gradient: "linear-gradient(145deg, rgba(255,107,53,0.22), rgba(255,61,113,0.05) 70%)",
     glow: "rgba(255,107,53,0.25)",
+  },
+  {
+    id: "food-drinks",
+    label: "Food & Drinks",
+    emoji: "🍽️",
+    prompt:
+      "sit-down restaurants and food-forward dining experiences around Cincinnati — dinner spots, brunch, chef-driven menus, and restaurants worth the trip for the food itself",
+    gradient: "linear-gradient(145deg, rgba(255,61,113,0.22), rgba(255,176,32,0.05) 70%)",
+    glow: "rgba(255,61,113,0.25)",
   },
   {
     id: "live-music",
@@ -85,6 +95,7 @@ export const VIBES: Vibe[] = [
 
 const ICONS = [
   DrinksIcon,
+  FoodDrinksIcon,
   LiveMusicIcon,
   FreshAirIcon,
   LateNightEatsIcon,
