@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import LocationStep from "@/components/LocationStep";
 import VibeSelector from "@/components/VibeSelector";
 import { Vibe } from "@/lib/types";
 
 type Step = "landing" | "location" | "vibe";
+
+const CITY_STORAGE_KEY = "fyn:city";
+const COORDS_STORAGE_KEY = "fyn:coords";
 
 function getNightEnergy(hour: number): string {
   if (hour >= 17 && hour < 20) return "the city is waking up";
@@ -16,15 +19,45 @@ function getNightEnergy(hour: number): string {
   return "set your plans for tonight";
 }
 
-export default function Home() {
+function HomeContent() {
   const [step, setStep] = useState<Step>("landing");
   const [city, setCity] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("step") !== "vibe") return;
+
+    const storedCity = localStorage.getItem(CITY_STORAGE_KEY);
+    if (!storedCity) return;
+
+    setCity(storedCity);
+
+    const storedCoords = localStorage.getItem(COORDS_STORAGE_KEY);
+    if (storedCoords) {
+      try {
+        setCoords(JSON.parse(storedCoords));
+      } catch {
+        setCoords(null);
+      }
+    }
+
+    setStep("vibe");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleCitySubmit(selectedCity: string, selectedCoords?: { lat: number; lng: number }) {
     setCity(selectedCity);
     setCoords(selectedCoords ?? null);
+
+    localStorage.setItem(CITY_STORAGE_KEY, selectedCity);
+    if (selectedCoords) {
+      localStorage.setItem(COORDS_STORAGE_KEY, JSON.stringify(selectedCoords));
+    } else {
+      localStorage.removeItem(COORDS_STORAGE_KEY);
+    }
+
     setStep("vibe");
   }
 
@@ -50,7 +83,7 @@ export default function Home() {
             FIND YOUR <span className="text-accent">NIGHT</span>
           </h1>
           <p className="text-muted text-lg max-w-sm">
-              Stay Connected In Real Life.
+              Find the right night, every night.
           </p>
           <button
             onClick={() => setStep("location")}
@@ -86,5 +119,13 @@ export default function Home() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

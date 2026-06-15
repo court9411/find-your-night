@@ -7,6 +7,7 @@ import VenueCard from "@/components/VenueCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import VenueMap from "@/components/VenueMap";
 import { Venue } from "@/lib/types";
+import { shuffle } from "@/lib/shuffle";
 
 type View = "list" | "map";
 
@@ -46,7 +47,7 @@ function ResultsContent() {
         });
         const data = await res.json();
         if (!cancelled) {
-          setFeaturedVenues(res.ok ? data.venues ?? [] : []);
+          setFeaturedVenues(res.ok ? shuffle(data.venues ?? []) : []);
         }
       } catch {
         if (!cancelled) {
@@ -67,7 +68,7 @@ function ResultsContent() {
           throw new Error(data?.error ?? "Something went wrong");
         }
         if (!cancelled) {
-          setAiVenues(data.venues ?? []);
+          setAiVenues(shuffle(data.venues ?? []));
         }
       } catch (err) {
         if (!cancelled) {
@@ -98,7 +99,7 @@ function ResultsContent() {
           {emoji} {label}
         </h1>
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/?step=vibe")}
           className="text-sm text-muted underline underline-offset-4"
         >
           Start Over

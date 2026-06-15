@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import { Price, Venue } from "@/lib/types";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
+import { getSupplementalVenues } from "@/lib/supplementalVenues";
+
+const MIN_RESULTS = 5;
 
 function mapPrice(price: string | null): Price {
   if (!price) return "$$";
@@ -91,5 +94,18 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
   const pinned = sortedPending.filter((row) => row.featured).map(mapPending);
   const unpinned = sortedPending.filter((row) => !row.featured).map(mapPending);
 
-  return [...pinned, ...fromSubmissions, ...unpinned];
+  const combined = [...pinned, ...fromSubmissions, ...unpinned];
+
+  if (combined.length < MIN_RESULTS && label) {
+    const existingNames = combined.map((venue) => venue.name);
+    const supplemental = await getSupplementalVenues(
+      cityToken,
+      label,
+      MIN_RESULTS - combined.length,
+      existingNames
+    );
+    return [...combined, ...supplemental];
+  }
+
+  return combined;
 }

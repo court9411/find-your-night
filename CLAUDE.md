@@ -1,148 +1,46 @@
-# Find Your Night — Project Brief
+# Find Your Night — Claude Project Context
 
-## What This App Does
+This is the root context file for the Find Your Night project. When working in this project, always apply this context.
 
-A nightlife and experience discovery app for locals who don’t know what to do tonight.
-The user picks a vibe (drinks, live music, dancing, rooftop, etc.) and the app uses AI
-to surface real venues and experiences nearby that match. Clean, fast, built for mobile.
+## The App
+Find Your Night (find-your-night.vercel.app) is an AI-powered nightlife discovery app for Cincinnati — and eventually everywhere. All-inclusive by design: anyone should be able to open it and find a night that's right for them.
 
------
+**Launch strategy**: Start with Black Cincinnati. That's the community the founder knows, has relationships in, and can get real content from. Nail it there, then expand into other niches (LGBTQ+, foodies, live music crowd, etc.), then new cities. Eventually user profiles let the app understand each individual and give genuinely personalized recommendations — not a generic list, but "here's your night specifically."
 
-## Tech Stack
+Built by Courtney (solo founder).
 
-- **Framework**: Next.js 14 (App Router)
-- **Styling**: Tailwind CSS
-- **Database & Auth**: Supabase (user accounts, “who’s going” data)
-- **AI**: Anthropic Claude API (claude-sonnet-4-20250514)
+## Stack
+- **Framework**: Next.js (App Router)
+- **Database**: Supabase
+- **AI**: Anthropic API (Claude)
 - **Deployment**: Vercel
+- **Maps**: Google Maps Places API
+- **Dev environment**: Claude Code in VS Code
 
------
+## Current Priority
+Soft launch at Cincinnati Pride, June 26–28, 2026.
+Feature freeze: ~June 22. Remaining time = content loading, mobile testing, marketing.
 
-## Design System
+## Post-Launch Backlog (in rough priority order)
+1. Featured events rail on results page
+2. /submit in permanent nav
+3. Promoter profiles
+4. "Who's Going" social feature (avatar counts)
+5. User accounts (Supabase or Clerk)
 
-**Aesthetic**: Late-night city energy. Dark, bold, cinematic.
+## Submission Flow (built, deployed)
+Promoter pastes URL or uploads flyer → Claude API extracts structured event details → Promoter confirms in one tap → Stored in Supabase with pending/approved status → /admin review view
 
-**Colors**:
+## Skills Available
+This project has three custom skills. When relevant, Claude should consult them:
 
-- Background: #09090F (near black)
-- Primary accent: #FF6B35 (orange — like city lights)
-- Text: #FFFFFF
-- Muted text: rgba(255,255,255,0.4)
-- Card background: rgba(255,255,255,0.04)
-- Card border: rgba(255,255,255,0.08)
+- **fyn-marketing** (`skills/fyn-marketing/SKILL.md`) — brand voice, social templates, hashtags, campaign planning
+- **fyn-uiux** (`skills/fyn-uiux/SKILL.md`) — design tokens, component patterns, mobile rules, user flows
+- **fyn-venue-intel** (`skills/fyn-venue-intel/SKILL.md`) — research workflow for new venues/events, output formats, Cincinnati sources
+- **fyn-build-next** (`skills/fyn-build-next/SKILL.md`) — master strategic advisor; run this to get a prioritized list of Claude skills and app features to build next, evaluated against the full company vision
 
-**Fonts** (Google Fonts):
-
-- Display/headings: “Bebas Neue” — bold, uppercase, cinematic
-- Body: “Outfit” — clean, modern, weights 300–700
-
-**Background effect**: Subtle radial gradients suggesting city lights/bokeh
-
-**Cards**: Rounded (16px), glass-effect, subtle border, animate in with fadeUp on load
-
------
-
-## Core User Flow
-
-1. **Landing screen** — App name “FIND YOUR NIGHT”, tagline, location button
-1. **Location** — Browser geolocation. If denied, show text input for manual city entry
-1. **Vibe selector** — 8 cards the user taps to pick their mood:
-- 🍸 Drinks & Bars
-- 🎵 Live Music
-- 🕺 Night Out (clubs, dancing)
-- 🍕 Late Night Eats
-- 🌃 Rooftop Vibes
-- 🎮 Casual Fun (arcades, bowling)
-- 🎭 Arts & Events
-- 🎲 Surprise Me
-1. **Loading screen** — animated, shows selected vibe emoji + “Scanning the city…”
-1. **Results** — 5 venue cards showing: name, type, neighborhood, description, why tonight, price range, tags
-
------
-
-## AI Integration
-
-Call the Anthropic API server-side (Next.js API route at `/api/search`).
-NEVER expose the API key to the frontend.
-
-**Prompt pattern**:
-
-```
-You are a local nightlife guide. Suggest 5 real venues in [city] 
-for a [day] night matching this vibe: "[vibe]".
-Return ONLY a JSON array with: name, type, neighborhood, 
-description, whyTonight, price ($|$$|$$$), tags.
-```
-
------
-
-## MVP Features (Build First)
-
-- [x] Landing page with location detection + manual city fallback
-- [x] Vibe selector (8 options)
-- [x] AI-powered venue search via API route
-- [x] Results page with venue cards
-- [ ] Save a spot (bookmark/heart button)
-- [ ] Share a spot (native share sheet)
-
------
-
-## Phase 2 Features (Build Next)
-
-- **User accounts** via Supabase Auth (email or Google login)
-- **“Who’s Going”** — users tap “I’m Going” on a venue, see how many others are going tonight
-- **Saved spots** synced to user profile
-- **Venue profiles** — dedicated page per venue with map, hours, vibe tags
-- **Push notifications** — “It’s Friday, here’s tonight’s top pick near you”
-
------
-
-## Phase 3 Features (Future)
-
-- **Host dashboard** — venues claim their profile, post open invite events, specials
-- **Social layer** — follow friends, see where they’re going
-- **Preference learning** — app learns your taste over time
-- **Capacitor wrapper** — iOS & Android app store builds from same codebase
-
------
-
-## File Structure to Create
-
-```
-findyournight/
-├── app/
-│   ├── page.tsx              # Landing + vibe selector
-│   ├── results/page.tsx      # Results page
-│   ├── api/
-│   │   └── search/route.ts   # Anthropic API call (server-side)
-│   └── layout.tsx            # Global layout, fonts
-├── components/
-│   ├── LocationStep.tsx
-│   ├── VibeSelector.tsx
-│   ├── LoadingScreen.tsx
-│   ├── VenueCard.tsx
-│   └── ResultsGrid.tsx
-├── lib/
-│   └── types.ts              # TypeScript types
-├── .env.local                # ANTHROPIC_API_KEY (never commit this)
-└── CLAUDE.md                 # This file
-```
-
------
-
-## Environment Variables Needed
-
-```
-ANTHROPIC_API_KEY=your_key_here
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-```
-
------
-
-## Important Notes
-
-- Mobile-first design — most users will be on their phone
-- Keep it fast — results should load in under 3 seconds
-- The vibe is everything — copy, animations, and design should feel like a night out
-- When in doubt, make it darker and bolder
+## Ground Rules
+- Mobile-first in all UI decisions
+- LGBTQ+-inclusive by default, not as an afterthought
+- Always check: does this add friction to a promoter or user? If yes, simplify.
+- Prefer shipping over perfecting pre-launch

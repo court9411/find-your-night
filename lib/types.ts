@@ -14,6 +14,8 @@ export interface Venue {
   imageUrl?: string | null;
   eventDate?: string | null;
   eventTime?: string | null;
+  blackOwned?: boolean | null;
+  source?: string;
 }
 
 export interface Vibe {

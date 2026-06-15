@@ -80,7 +80,7 @@ async function sendNotificationEmail(
 ) {
   const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   if (!apiKey) {
