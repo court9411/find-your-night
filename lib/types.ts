@@ -11,6 +11,7 @@ export interface Venue {
   featured?: boolean;
   lat?: number | null;
   lng?: number | null;
+  distanceMiles?: number;
   imageUrl?: string | null;
   eventDate?: string | null;
   eventTime?: string | null;

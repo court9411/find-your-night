@@ -10,6 +10,7 @@ type Step = "landing" | "location" | "vibe";
 
 const CITY_STORAGE_KEY = "fyn:city";
 const COORDS_STORAGE_KEY = "fyn:coords";
+const PRECISE_STORAGE_KEY = "fyn:precise";
 
 function getNightEnergy(hour: number): string {
   if (hour >= 17 && hour < 20) return "the city is waking up";
@@ -23,6 +24,7 @@ function HomeContent() {
   const [step, setStep] = useState<Step>("landing");
   const [city, setCity] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [precise, setPrecise] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -43,13 +45,20 @@ function HomeContent() {
       }
     }
 
+    setPrecise(localStorage.getItem(PRECISE_STORAGE_KEY) === "1");
+
     setStep("vibe");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleCitySubmit(selectedCity: string, selectedCoords?: { lat: number; lng: number }) {
+  function handleCitySubmit(
+    selectedCity: string,
+    selectedCoords?: { lat: number; lng: number },
+    selectedPrecise?: boolean
+  ) {
     setCity(selectedCity);
     setCoords(selectedCoords ?? null);
+    setPrecise(Boolean(selectedPrecise));
 
     localStorage.setItem(CITY_STORAGE_KEY, selectedCity);
     if (selectedCoords) {
@@ -57,6 +66,7 @@ function HomeContent() {
     } else {
       localStorage.removeItem(COORDS_STORAGE_KEY);
     }
+    localStorage.setItem(PRECISE_STORAGE_KEY, selectedPrecise ? "1" : "0");
 
     setStep("vibe");
   }
@@ -71,6 +81,7 @@ function HomeContent() {
     if (coords) {
       params.set("lat", String(coords.lat));
       params.set("lng", String(coords.lng));
+      if (precise) params.set("precise", "1");
     }
     router.push(`/results?${params.toString()}`);
   }

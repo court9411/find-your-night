@@ -5,7 +5,7 @@ import { loadGoogleMaps, resolveCityFromGeocodeResults } from "@/lib/googleMaps"
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 
 interface LocationStepProps {
-  onSubmit: (city: string, coords?: { lat: number; lng: number }) => void;
+  onSubmit: (city: string, coords?: { lat: number; lng: number }, precise?: boolean) => void;
 }
 
 const ZIP_CODE_REGEX = /^\d{5}$/;
@@ -23,7 +23,9 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
       selection.lat !== undefined && selection.lng !== undefined
         ? { lat: selection.lat, lng: selection.lng }
         : undefined;
-    onSubmit(selection.city, coords);
+    // Coordinates here are the city center from Places, not the user's
+    // precise location.
+    onSubmit(selection.city, coords, false);
   }
 
   async function handleManualSubmit(e: React.FormEvent) {
@@ -47,7 +49,9 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
               ? resolveCityFromGeocodeResults(results)
               : "";
           if (resolvedCity) {
-            onSubmit(resolvedCity);
+            const location = results?.[0]?.geometry?.location;
+            const coords = location ? { lat: location.lat(), lng: location.lng() } : undefined;
+            onSubmit(resolvedCity, coords, false);
           } else {
             setError("Couldn't find that zip code — try a city name instead");
           }
@@ -59,7 +63,20 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
       return;
     }
 
-    onSubmit(trimmed);
+    setResolving(true);
+    try {
+      const g = await loadGoogleMaps();
+      const geocoder = new g.maps.Geocoder();
+      geocoder.geocode({ address: trimmed }, (results, status) => {
+        setResolving(false);
+        const location = status === "OK" ? results?.[0]?.geometry?.location : undefined;
+        const coords = location ? { lat: location.lat(), lng: location.lng() } : undefined;
+        onSubmit(trimmed, coords, false);
+      });
+    } catch {
+      setResolving(false);
+      onSubmit(trimmed);
+    }
   }
 
   function handleUseLocation() {
@@ -84,7 +101,7 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
                   ? resolveCityFromGeocodeResults(results)
                   : "";
               if (resolvedCity) {
-                onSubmit(resolvedCity, { lat: latitude, lng: longitude });
+                onSubmit(resolvedCity, { lat: latitude, lng: longitude }, true);
               } else {
                 setError("No problem — just type your city below");
               }

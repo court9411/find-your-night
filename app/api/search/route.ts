@@ -57,8 +57,9 @@ const getVenues = unstable_cache(
   async (city: string, vibe: string, day: string, boundaries: string): Promise<Venue[]> => {
     const prompt = `You are a local guide for things to do in ${city}. Suggest 5 real places or events in ${city} for a ${day} night matching this vibe: "${vibe}".
 Return ONLY a valid JSON array with no markdown, no backticks, no explanation. Each item must have exactly these fields:
-name (string), type (string), neighborhood (string), description (string, 1-2 sentences), whyTonight (string), price (one of "$", "$$", "$$$"), tags (array of 2-4 short strings).
+name (string), type (string), neighborhood (string), description (string, 1-2 sentences), whyTonight (string), price (one of "$", "$$", "$$$"), tags (array of 2-4 short strings), lat (number or null), lng (number or null).
 For whyTonight, write 1-2 sentences explaining specifically why this is the perfect choice for tonight — mention the atmosphere, what kind of crowd to expect, a special quality about this time of week, or what makes it unique right now. Never just list the time or hours. Make it feel like a recommendation from a friend who knows the city.
+For lat/lng, give your best approximate coordinates for the venue's real location. If you aren't reasonably confident, return null for both rather than guessing wildly.
 Vary which venues you surface and in what order — don't default to the same top picks every time this is asked. Prioritize variety across sessions while staying true to the vibe and city.${boundaries}`;
 
     const message = await anthropic.messages.create({

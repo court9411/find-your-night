@@ -7,7 +7,7 @@ import VenueCard from "@/components/VenueCard";
 import SkeletonCard from "@/components/SkeletonCard";
 import VenueMap from "@/components/VenueMap";
 import { Venue } from "@/lib/types";
-import { shuffle } from "@/lib/shuffle";
+import { sortByProximity, Coords } from "@/lib/geo";
 
 type View = "list" | "map";
 
@@ -21,6 +21,14 @@ function ResultsContent() {
   const vibe = params.get("vibe") ?? "";
   const label = params.get("label") ?? "Your Vibe";
   const emoji = params.get("emoji") ?? "🌙";
+
+  const latParam = params.get("lat");
+  const lngParam = params.get("lng");
+  const userCoords: Coords | null =
+    latParam !== null && lngParam !== null
+      ? { lat: Number(latParam), lng: Number(lngParam) }
+      : null;
+  const isPrecise = params.get("precise") === "1";
 
   const [featuredVenues, setFeaturedVenues] = useState<Venue[] | null>(null);
   const [aiVenues, setAiVenues] = useState<Venue[] | null>(null);
@@ -47,7 +55,7 @@ function ResultsContent() {
         });
         const data = await res.json();
         if (!cancelled) {
-          setFeaturedVenues(res.ok ? shuffle(data.venues ?? []) : []);
+          setFeaturedVenues(res.ok ? sortByProximity(data.venues ?? [], userCoords) : []);
         }
       } catch {
         if (!cancelled) {
@@ -68,7 +76,7 @@ function ResultsContent() {
           throw new Error(data?.error ?? "Something went wrong");
         }
         if (!cancelled) {
-          setAiVenues(shuffle(data.venues ?? []));
+          setAiVenues(sortByProximity(data.venues ?? [], userCoords));
         }
       } catch (err) {
         if (!cancelled) {
@@ -83,7 +91,8 @@ function ResultsContent() {
     return () => {
       cancelled = true;
     };
-  }, [city, vibe, label, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city, vibe, label, router, latParam, lngParam]);
 
   const showInitialLoading = featuredVenues === null;
   const noResults =
@@ -146,7 +155,7 @@ function ResultsContent() {
       {!showInitialLoading && view === "list" && (
         <div className="flex flex-col gap-4 w-full max-w-md">
           {featuredVenues!.map((venue, i) => (
-            <VenueCard key={`${venue.name}-${i}`} venue={venue} index={i} />
+            <VenueCard key={`${venue.name}-${i}`} venue={venue} index={i} showDistance={isPrecise} />
           ))}
 
           {aiVenues === null &&
@@ -161,6 +170,7 @@ function ResultsContent() {
                 key={`${venue.name}-${i}`}
                 venue={venue}
                 index={featuredVenues!.length + i}
+                showDistance={isPrecise}
               />
             ))}
 

@@ -1,11 +1,38 @@
 import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Price, Venue } from "@/lib/types";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
 import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { generateWhyTonight } from "@/lib/whyTonight";
+import { geocodeAddress } from "@/lib/geocode";
 import { shuffle } from "@/lib/shuffle";
 
 const MIN_RESULTS = 5;
+
+// Geocodes and persists lat/lng for rows that don't have coordinates yet,
+// so future requests for the same venue/event don't re-geocode. Mutates
+// each row's lat/lng in place when geocoding succeeds.
+async function backfillCoords<T extends { id: string; lat: number | null; lng: number | null }>(
+  table: "submissions" | "pending_events",
+  rows: T[],
+  buildQuery: (row: T) => string | null
+): Promise<void> {
+  await Promise.all(
+    rows.map(async (row) => {
+      if (row.lat != null && row.lng != null) return;
+      const query = buildQuery(row);
+      if (!query) return;
+
+      const coords = await geocodeAddress(query);
+      if (!coords) return;
+
+      row.lat = coords.lat;
+      row.lng = coords.lng;
+      const { error } = await supabaseAdmin.from(table).update({ lat: coords.lat, lng: coords.lng }).eq("id", row.id);
+      if (error) console.error(`Failed to persist geocoded coords for ${table}:`, error);
+    })
+  );
+}
 
 function mapPrice(price: string | null): Price {
   if (!price) return "$$";
@@ -24,7 +51,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   let submissionsQuery = supabase
     .from("submissions")
-    .select("venue_name, type, neighborhood, date_time, description, vibe_tags, lat, lng")
+    .select("id, venue_name, type, neighborhood, city, date_time, description, vibe_tags, lat, lng")
     .eq("status", "approved")
     .ilike("city", `%${cityToken}%`);
 
@@ -34,7 +61,7 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   let pendingQuery = supabase
     .from("pending_events")
-    .select("event_name, venue_name, neighborhood, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng, image_url")
+    .select("id, event_name, venue_name, neighborhood, address, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng, image_url")
     .eq("status", "approved")
     .gte("date", todayDateString())
     .ilike("city", `%${cityToken}%`);
@@ -53,6 +80,15 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
 
   if (submissionsError) console.error("Featured venues fetch error (submissions):", submissionsError);
   if (pendingError) console.error("Featured venues fetch error (pending_events):", pendingError);
+
+  await Promise.all([
+    backfillCoords("submissions", submissionsData ?? [], (row) =>
+      [row.venue_name, row.neighborhood, row.city].filter(Boolean).join(", ") || null
+    ),
+    backfillCoords("pending_events", pendingData ?? [], (row) =>
+      row.address || [row.venue_name, row.neighborhood, row.city].filter(Boolean).join(", ") || null
+    ),
+  ]);
 
   const fromSubmissions: Venue[] = (submissionsData ?? []).map((row) => ({
     name: row.venue_name,

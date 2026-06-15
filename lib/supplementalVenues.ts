@@ -43,8 +43,13 @@ Return a JSON array only — no preamble, no markdown fences. Each object:
   "vibes": ["tag1", "tag2", "tag3"],
   "priceRange": "$" | "$$" | "$$$",
   "blackOwned": true | false | null,
+  "lat": [approximate latitude as a number, or null if unsure],
+  "lng": [approximate longitude as a number, or null if unsure],
   "source": "ai-suggested"
-}`;
+}
+For lat/lng, give your best approximate coordinates for the venue's real
+location. If you aren't reasonably confident, return null for both rather
+than guessing wildly.`;
 }
 
 interface SupplementalVenueResponse {
@@ -56,6 +61,8 @@ interface SupplementalVenueResponse {
   vibes?: string[];
   priceRange?: "$" | "$$" | "$$$";
   blackOwned?: boolean | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export async function getSupplementalVenues(
@@ -102,6 +109,8 @@ Return only the JSON array.`;
       price: item.priceRange ?? "$$",
       tags: item.vibes ?? [],
       blackOwned: item.blackOwned ?? null,
+      lat: typeof item.lat === "number" ? item.lat : null,
+      lng: typeof item.lng === "number" ? item.lng : null,
       source: "ai-suggested",
     }));
   } catch (err) {

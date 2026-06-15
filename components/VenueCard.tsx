@@ -7,9 +7,10 @@ import { formatEventDateLine } from "@/lib/formatEventDate";
 interface VenueCardProps {
   venue: Venue;
   index: number;
+  showDistance?: boolean;
 }
 
-export default function VenueCard({ venue, index }: VenueCardProps) {
+export default function VenueCard({ venue, index, showDistance }: VenueCardProps) {
   const [saved, setSaved] = useState(false);
 
   async function handleShare() {
@@ -52,6 +53,9 @@ export default function VenueCard({ venue, index }: VenueCardProps) {
             <h3 className="font-display text-2xl tracking-wide leading-tight">{venue.name}</h3>
             <p className="text-sm text-muted">
               {venue.type} · {venue.neighborhood}
+              {showDistance && venue.distanceMiles !== undefined && (
+                <> · {venue.distanceMiles.toFixed(1)} mi away</>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
