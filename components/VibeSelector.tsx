@@ -5,7 +5,7 @@ import { getActiveSeasonal } from "@/lib/seasonal.config";
 import {
   DrinksIcon,
   LiveMusicIcon,
-  NightOutIcon,
+  FreshAirIcon,
   LateNightEatsIcon,
   RooftopIcon,
   CasualFunIcon,
@@ -31,12 +31,13 @@ export const VIBES: Vibe[] = [
     glow: "rgba(123,92,255,0.25)",
   },
   {
-    id: "night-out",
-    label: "Night Out",
-    emoji: "🕺",
-    prompt: "clubs and dancing",
-    gradient: "linear-gradient(145deg, rgba(255,61,196,0.22), rgba(123,92,255,0.05) 70%)",
-    glow: "rgba(255,61,196,0.25)",
+    id: "fresh-air",
+    label: "Fresh Air",
+    emoji: "🌳",
+    prompt:
+      "outdoor parks, trails, and active experiences around Cincinnati — hiking, biking, kayaking, outdoor fitness, and nature day trips",
+    gradient: "linear-gradient(145deg, rgba(60,255,176,0.22), rgba(58,141,255,0.05) 70%)",
+    glow: "rgba(60,255,176,0.25)",
   },
   {
     id: "late-night-eats",
@@ -58,9 +59,10 @@ export const VIBES: Vibe[] = [
     id: "casual-fun",
     label: "Casual Fun",
     emoji: "🎮",
-    prompt: "arcades, bowling, and casual fun activities",
-    gradient: "linear-gradient(145deg, rgba(60,255,176,0.20), rgba(58,141,255,0.05) 70%)",
-    glow: "rgba(60,255,176,0.22)",
+    prompt:
+      "activity-based social fun like trivia nights, bowling, escape rooms, arcades, comedy shows, mini golf, axe throwing, paint nights, board game cafes, and karaoke — the activity is the point, not the drinks",
+    gradient: "linear-gradient(145deg, rgba(255,61,196,0.22), rgba(255,176,32,0.05) 70%)",
+    glow: "rgba(255,61,196,0.25)",
   },
   {
     id: "arts-events",
@@ -84,7 +86,7 @@ export const VIBES: Vibe[] = [
 const ICONS = [
   DrinksIcon,
   LiveMusicIcon,
-  NightOutIcon,
+  FreshAirIcon,
   LateNightEatsIcon,
   RooftopIcon,
   CasualFunIcon,

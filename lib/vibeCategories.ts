@@ -6,7 +6,7 @@ import { formatDateRange, getSeasonalCategoryOptions } from "@/lib/seasonal.conf
 export const VIBE_CATEGORIES = [
   "Drinks & Bars",
   "Live Music",
-  "Night Out",
+  "Fresh Air",
   "Late Night Eats",
   "Rooftop Vibes",
   "Casual Fun",

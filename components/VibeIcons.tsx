@@ -39,15 +39,16 @@ export function LiveMusicIcon(props: IconProps) {
   );
 }
 
-export function NightOutIcon(props: IconProps) {
+export function FreshAirIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      {/* disco ball */}
-      <circle cx="12" cy="11" r="4.5" />
-      <path d="M12 6.5V4" />
-      <path d="M7.5 11h9M12 6.5v9M9 8l6 6M15 8l-6 6" />
-      {/* light rays */}
-      <path d="M5.4 6.4 3.8 4.8M18.6 6.4 20.2 4.8M5.4 15.6 3.8 17.2M18.6 15.6 20.2 17.2M12 15.5V19" />
+      {/* sun */}
+      <circle cx="12" cy="5.5" r="2.2" />
+      <path d="M12 1.5v1.2M8.6 3.1l.8.9M15.4 3.1l-.8.9" />
+      {/* mountains */}
+      <path d="M2 20 8 10l3.5 5.5L14 12l8 8Z" />
+      {/* trail marker dots */}
+      <path d="M2 20h20" />
     </svg>
   );
 }

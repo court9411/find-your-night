@@ -1,20 +1,22 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Venue } from "@/lib/types";
+import { VIBE_BOUNDARIES } from "@/lib/vibeBoundaries";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const CINCINNATI_NEIGHBORHOODS =
   "Over-the-Rhine (OTR), Walnut Hills, Avondale, Bond Hill, Northside, Mt. Adams, The Banks, Covington KY, Newport KY, Clifton/Ludlow Ave";
 
-function buildSystemPrompt(city: string): string {
+function buildSystemPrompt(city: string, vibeLabel: string): string {
   const isCincinnati = /cincinnati/i.test(city);
   const neighborhoodLine = isCincinnati
     ? `- Pull from these ${city} neighborhoods: ${CINCINNATI_NEIGHBORHOODS}\n`
     : `- Pull from real, well-known neighborhoods/areas within ${city}\n`;
+  const boundaries = VIBE_BOUNDARIES[vibeLabel] ?? "";
 
   return `You are the venue intelligence engine for Find Your Night, a nightlife
-discovery app for ${city}. Your job is to suggest real ${city}
-venues that match the requested vibe.
+and things-to-do discovery app for ${city}. Your job is to suggest real
+${city} venues or activities that match the requested vibe.
 
 PRIORITIES:
 - Prioritize Black-owned venues and spaces with strong Black community
@@ -28,12 +30,13 @@ ${neighborhoodLine}- Only suggest venues you are reasonably confident are real a
 - Vary which venues you surface and in what order — don't default to the
   same top picks every time this is asked. Prioritize variety across
   sessions while staying true to the requested vibe.
+${boundaries}
 
 OUTPUT FORMAT:
 Return a JSON array only — no preamble, no markdown fences. Each object:
 {
   "name": "Venue Name",
-  "type": "Bar / Club / Lounge / Rooftop / Dive Bar / etc.",
+  "type": "Bar / Club / Lounge / Rooftop / Dive Bar / Park / Trail / Activity Venue / etc.",
   "neighborhood": "Neighborhood name",
   "description": "2-3 sentence vibe description written like a recommendation from someone who actually goes there. Specific, not generic.",
   "whyTonight": "1-2 sentences on why this specific venue is worth going to on [DAY_OF_WEEK] night specifically.",
@@ -74,7 +77,7 @@ Return only the JSON array.`;
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
-      system: buildSystemPrompt(city),
+      system: buildSystemPrompt(city, vibeLabel),
       messages: [{ role: "user", content: userMessage }],
     });
 

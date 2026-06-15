@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 import { Venue } from "@/lib/types";
+import { VIBE_BOUNDARIES } from "@/lib/vibeBoundaries";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
 
   const city = typeof body.city === "string" ? body.city.trim().slice(0, 100) : "";
   const vibe = typeof body.vibe === "string" ? body.vibe.trim().slice(0, 100) : "";
+  const label = typeof body.label === "string" ? body.label.trim().slice(0, 100) : "";
 
   if (!city || !vibe) {
     return NextResponse.json({ error: "City and vibe are required" }, { status: 400 });
@@ -37,9 +39,10 @@ export async function POST(request: Request) {
   // (e.g. 1:30am Saturday) are grouped with the prior evening (Friday night).
   const nightlifeDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
   const day = nightlifeDate.toLocaleDateString("en-US", { weekday: "long" });
+  const boundaries = VIBE_BOUNDARIES[label] ?? "";
 
   try {
-    const venues = await getVenues(city.toLowerCase(), vibe.toLowerCase(), day);
+    const venues = await getVenues(city.toLowerCase(), vibe.toLowerCase(), day, boundaries);
     return NextResponse.json({ venues });
   } catch (error) {
     console.error("Search API error:", error);
@@ -51,12 +54,12 @@ export async function POST(request: Request) {
 }
 
 const getVenues = unstable_cache(
-  async (city: string, vibe: string, day: string): Promise<Venue[]> => {
-    const prompt = `You are a local nightlife guide. Suggest 5 real venues in ${city} for a ${day} night matching this vibe: "${vibe}".
+  async (city: string, vibe: string, day: string, boundaries: string): Promise<Venue[]> => {
+    const prompt = `You are a local guide for things to do in ${city}. Suggest 5 real places or events in ${city} for a ${day} night matching this vibe: "${vibe}".
 Return ONLY a valid JSON array with no markdown, no backticks, no explanation. Each item must have exactly these fields:
 name (string), type (string), neighborhood (string), description (string, 1-2 sentences), whyTonight (string), price (one of "$", "$$", "$$$"), tags (array of 2-4 short strings).
-For whyTonight, write 1-2 sentences explaining specifically why this venue is the perfect choice for tonight — mention the atmosphere, what kind of crowd to expect, a special quality about this time of week, or what makes it unique right now. Never just list the time or hours. Make it feel like a recommendation from a friend who knows the city.
-Vary which venues you surface and in what order — don't default to the same top picks every time this is asked. Prioritize variety across sessions while staying true to the vibe and city.`;
+For whyTonight, write 1-2 sentences explaining specifically why this is the perfect choice for tonight — mention the atmosphere, what kind of crowd to expect, a special quality about this time of week, or what makes it unique right now. Never just list the time or hours. Make it feel like a recommendation from a friend who knows the city.
+Vary which venues you surface and in what order — don't default to the same top picks every time this is asked. Prioritize variety across sessions while staying true to the vibe and city.${boundaries}`;
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
