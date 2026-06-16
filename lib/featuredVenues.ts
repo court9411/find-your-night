@@ -9,6 +9,12 @@ import { shuffle } from "@/lib/shuffle";
 
 const MIN_RESULTS = 5;
 
+function nDaysFromNow(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 // Geocodes and persists lat/lng for rows that don't have coordinates yet,
 // so future requests for the same venue/event don't re-geocode. Mutates
 // each row's lat/lng in place when geocoding succeeds.
@@ -43,6 +49,42 @@ function mapPrice(price: string | null): Price {
   return "$$";
 }
 
+const SEASONAL_CATEGORIES = ["Juneteenth", "Pride", "July4th"];
+
+async function fetchPendingEvents(cityToken: string, label: string, maxDays: number) {
+  let q = supabase
+    .from("pending_events")
+    .select("id, event_name, venue_name, neighborhood, address, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng, image_url")
+    .eq("status", "approved")
+    .gte("date", todayDateString())
+    .lte("date", nDaysFromNow(maxDays))
+    .order("date", { ascending: true })
+    .order("start_time", { ascending: true })
+    .ilike("city", `%${cityToken}%`);
+
+  const isSeasonalLabel = SEASONAL_CATEGORIES.some(
+    (c) => c.toLowerCase() === label?.toLowerCase()
+  );
+
+  if (isSeasonalLabel) {
+    // User clicked a seasonal chip — show only that category
+    q = q.ilike("category", label);
+  } else if (label && label !== "Surprise Me") {
+    // Vibe search — filter to the vibe and exclude seasonal categories
+    q = q.ilike("category", label);
+    for (const cat of SEASONAL_CATEGORIES) {
+      q = q.not("category", "ilike", cat);
+    }
+  } else {
+    // General search / Surprise Me — exclude seasonal categories
+    for (const cat of SEASONAL_CATEGORIES) {
+      q = q.not("category", "ilike", cat);
+    }
+  }
+
+  return q;
+}
+
 export async function getFeaturedVenues(city: string, label: string): Promise<Venue[]> {
   const cityToken = city.split(",")[0].trim();
   if (!cityToken) return [];
@@ -59,21 +101,22 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     submissionsQuery = submissionsQuery.ilike("vibe_tags", `%${label}%`);
   }
 
-  let pendingQuery = supabase
-    .from("pending_events")
-    .select("id, event_name, venue_name, neighborhood, address, description, date, start_time, end_time, price, vibe_tags, city, display_order, featured, category, lat, lng, image_url")
-    .eq("status", "approved")
-    .gte("date", todayDateString())
-    .ilike("city", `%${cityToken}%`);
+  // Run submissions and first pending query in parallel; fall back to 14 days only if needed
+  const [{ data: submissionsData, error: submissionsError }, first7] = await Promise.all([
+    submissionsQuery,
+    fetchPendingEvents(cityToken, label, 7),
+  ]);
 
-  if (label && label !== "Surprise Me") {
-    pendingQuery = pendingQuery.ilike("category", label);
+  let pendingData = first7.data;
+  let pendingError = first7.error;
+
+  if ((pendingData?.length ?? 0) < 3) {
+    const fallback = await fetchPendingEvents(cityToken, label, 14);
+    if (!fallback.error) {
+      pendingData = fallback.data;
+      pendingError = null;
+    }
   }
-
-  const [
-    { data: submissionsData, error: submissionsError },
-    { data: pendingData, error: pendingError },
-  ] = await Promise.all([submissionsQuery, pendingQuery]);
 
   console.log("Featured venues - submissions query:", { cityToken, label, data: submissionsData, error: submissionsError });
   console.log("Featured venues - pending_events query:", { cityToken, data: pendingData, error: pendingError });

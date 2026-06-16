@@ -8,13 +8,29 @@ const CINCINNATI_NEIGHBORHOODS =
   "Over-the-Rhine (OTR), Walnut Hills, Avondale, Bond Hill, Northside, Mt. Adams, The Banks, Covington KY, Newport KY, Clifton/Ludlow Ave";
 
 function buildSystemPrompt(city: string, vibeLabel: string): string {
+  const today = new Date();
+  const currentDate = today.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const plusSeven = new Date(today);
+  plusSeven.setDate(today.getDate() + 7);
+  const plusSevenDate = plusSeven.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
   const isCincinnati = /cincinnati/i.test(city);
   const neighborhoodLine = isCincinnati
     ? `- Pull from these ${city} neighborhoods: ${CINCINNATI_NEIGHBORHOODS}\n`
     : `- Pull from real, well-known neighborhoods/areas within ${city}\n`;
   const boundaries = VIBE_BOUNDARIES[vibeLabel] ?? "";
 
-  return `You are the venue intelligence engine for Find Your Night, a nightlife
+  return `Today is ${currentDate}. Only suggest events happening today through ${plusSevenDate}. Do not suggest events in the past or more than 7 days away.
+
+You are the venue intelligence engine for Find Your Night, a nightlife
 and things-to-do discovery app for ${city}. Your job is to suggest real
 ${city} venues or activities that match the requested vibe.
 
@@ -25,6 +41,7 @@ PRIORITIES:
   other" not just "bar"
 ${neighborhoodLine}- Only suggest venues you are reasonably confident are real and currently
   operating in ${city}
+- Only suggest venues that are realistically open and busy on a ${new Date().toLocaleDateString("en-US", { weekday: "long" })} night. Skip venues that are typically closed today.
 - Never repeat venues already shown (a list of existing names will be
   provided in the user message)
 - Vary which venues you surface and in what order — don't default to the
