@@ -90,7 +90,7 @@ export function WhatsHappeningSection() {
     <section className="py-5 w-full">
       <div className="flex items-center gap-2 px-4 mb-3">
         <h2 className="text-white text-lg font-semibold tracking-tight">
-          What's Happening
+          What&apos;s Happening
         </h2>
         <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
