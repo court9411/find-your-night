@@ -6,6 +6,7 @@ import CityFilterPicker from "@/components/CityFilterPicker";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
 import { SEASONAL_ENTRIES } from "@/lib/seasonal.config";
 import { resolveCityFromZip, ZIP_CODE_REGEX } from "@/lib/googleMaps";
+import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 
 interface PageProps {
   params: { category: string };
@@ -65,34 +66,36 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
   }
 
   return (
-    <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">
-      <div className="flex items-center justify-between w-full max-w-md">
+    <main className="flex flex-col items-center min-h-screen py-12 gap-6">
+      <div className="flex items-center justify-between w-full max-w-md px-6">
         <h1 className="font-display text-4xl tracking-wide">{heading}</h1>
         <Link href="/" className="text-sm text-muted underline underline-offset-4">
           Home
         </Link>
       </div>
-      <p className="text-muted text-sm w-full max-w-md -mt-4">
+      <p className="text-muted text-sm w-full max-w-md -mt-4 px-6">
         {cityToken ? `Tonight's lineup for ${heading} near ${cityToken}` : `Tonight's lineup for ${heading}`}
       </p>
 
       {!cityToken && (
-        <div className="flex flex-col gap-2 w-full max-w-md -mt-4">
+        <div className="flex flex-col gap-2 w-full max-w-md -mt-4 px-6">
           <p className="text-muted text-xs">Showing all cities</p>
           <CityFilterPicker category={category} />
         </div>
       )}
 
+      <WhatsHappeningSection />
+
       {!hasEvents ? (
-        <p className="text-muted text-sm">No events yet — check back soon.</p>
+        <p className="text-muted text-sm px-6">No events yet — check back soon.</p>
       ) : cityToken ? (
-        <div className="flex flex-col gap-4 w-full max-w-md">
+        <div className="flex flex-col gap-4 w-full max-w-md px-6">
           {(events as PendingEvent[]).map((event, i) => (
             <EventListingCard key={event.id} event={event} index={i} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-6 w-full max-w-md">
+        <div className="flex flex-col gap-6 w-full max-w-md px-6">
           {groupedByCity.map(({ city, events: cityEvents }) => (
             <div key={city} className="flex flex-col gap-4">
               <h2 className="font-display text-xl tracking-wide text-accent">{city}</h2>
