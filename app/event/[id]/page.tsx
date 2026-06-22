@@ -32,15 +32,17 @@ export default async function EventPage({ params }: PageProps) {
         </Link>
       </div>
 
-      <div className="glass-card overflow-hidden flex flex-col gap-3 w-full max-w-md border-accent/20 animate-fadeUp opacity-0">
-        {e.image_url && (
+      {e.image_url && (
+        <div className="w-full max-w-md rounded-2xl overflow-hidden animate-fadeUp opacity-0">
           <EventImage
             src={e.image_url}
             alt={e.event_name}
-            className="w-full max-h-[70vh] object-contain bg-black/30"
+            className="w-full h-auto block"
           />
-        )}
+        </div>
+      )}
 
+      <div className="glass-card flex flex-col gap-3 w-full max-w-md border-accent/20 animate-fadeUp opacity-0">
         <div className="p-5 flex flex-col gap-3">
           <h1 className="font-display text-3xl tracking-wide leading-tight">{e.event_name}</h1>
 
@@ -101,4 +103,5 @@ export default async function EventPage({ params }: PageProps) {
       </div>
     </main>
   );
+
 }

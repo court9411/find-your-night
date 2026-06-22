@@ -40,7 +40,7 @@ export default function EventImage({ src, alt, className }: EventImageProps) {
           <img
             src={src}
             alt={alt}
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className="max-w-[92vw] max-h-[92vh] object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

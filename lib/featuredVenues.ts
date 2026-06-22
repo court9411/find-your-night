@@ -2,12 +2,9 @@ import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Price, Venue } from "@/lib/types";
 import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
-import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { generateWhyTonight } from "@/lib/whyTonight";
 import { geocodeAddress } from "@/lib/geocode";
 import { shuffle } from "@/lib/shuffle";
-
-const MIN_RESULTS = 5;
 
 function nDaysFromNow(n: number): string {
   const d = new Date();
@@ -191,17 +188,6 @@ export async function getFeaturedVenues(city: string, label: string): Promise<Ve
     needsWhyTonight.forEach((venue, i) => {
       venue.whyTonight = generated[i];
     });
-  }
-
-  if (combined.length < MIN_RESULTS && label) {
-    const existingNames = combined.map((venue) => venue.name);
-    const supplemental = await getSupplementalVenues(
-      cityToken,
-      label,
-      MIN_RESULTS - combined.length,
-      existingNames
-    );
-    return [...combined, ...supplemental];
   }
 
   return combined;
