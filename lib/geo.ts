@@ -7,8 +7,8 @@ export interface Coords {
 }
 
 const EARTH_RADIUS_MILES = 3958.8;
-const NEAR_MILES = 5;
-const MID_MILES = 15;
+const NEAR_MILES = 3;
+const MID_MILES = 5;
 
 export function haversineMiles(a: Coords, b: Coords): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;

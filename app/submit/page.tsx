@@ -44,7 +44,6 @@ export default function SubmitPage() {
   const [submitterEmail, setSubmitterEmail] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
   const [editedData, setEditedData] = useState<ExtractedEventData | null>(null);
-  const [category, setCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +63,6 @@ export default function SubmitPage() {
     setExtracted(null);
     setEditedData(null);
     setImageUrl(null);
-    setCategory("");
     setError("");
   }
 
@@ -166,7 +164,6 @@ export default function SubmitPage() {
           eventData: data,
           submitterEmail,
           imageUrl,
-          category: category || null,
         }),
       });
 
@@ -359,14 +356,12 @@ export default function SubmitPage() {
           data={editedData}
           missing={missing}
           imageUrl={imageUrl}
-          category={category}
           submitterEmail={submitterEmail}
           onFieldChange={updateEditedData}
           onPlaceSelected={handlePlaceSelected}
           onCitySelected={handleCitySelected}
           onTogglePrivateLocation={togglePrivateLocation}
           onToggleVibeTag={toggleVibeTag}
-          onCategoryChange={setCategory}
           onEmailChange={setSubmitterEmail}
         />
 

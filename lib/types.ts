@@ -17,6 +17,9 @@ export interface Venue {
   eventTime?: string | null;
   blackOwned?: boolean | null;
   source?: string;
+  address?: string | null;
+  hours?: string | null;
+  happyHour?: string | null;
 }
 
 export interface Vibe {
@@ -85,5 +88,6 @@ export interface PendingEvent {
   lng: number | null;
   is_private_location: boolean;
   private_location_note: string | null;
+  like_count: number;
   created_at?: string;
 }

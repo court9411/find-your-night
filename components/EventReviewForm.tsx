@@ -3,7 +3,6 @@
 import { ExtractedEventData } from "@/lib/types";
 import PlaceAutocompleteInput, { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
-import { EVENT_CATEGORIES } from "@/lib/vibeCategories";
 
 export const VALID_VIBE_TAGS = [
   "drag show",
@@ -34,14 +33,12 @@ interface EventReviewFormProps {
   data: ExtractedEventData | null;
   missing: string[];
   imageUrl?: string | null;
-  category: string;
   submitterEmail: string;
   onFieldChange: (field: keyof ExtractedEventData, value: string | string[]) => void;
   onPlaceSelected: (place: PlaceDetails) => void;
   onCitySelected: (selection: CitySelection) => void;
   onTogglePrivateLocation: (checked: boolean) => void;
   onToggleVibeTag: (tag: string) => void;
-  onCategoryChange: (category: string) => void;
   onEmailChange: (email: string) => void;
 }
 
@@ -49,14 +46,12 @@ export default function EventReviewForm({
   data,
   missing,
   imageUrl,
-  category,
   submitterEmail,
   onFieldChange,
   onPlaceSelected,
   onCitySelected,
   onTogglePrivateLocation,
   onToggleVibeTag,
-  onCategoryChange,
   onEmailChange,
 }: EventReviewFormProps) {
   const fieldClass = (field: string) =>
@@ -75,7 +70,7 @@ export default function EventReviewForm({
             <img
               src={imageUrl}
               alt="Event"
-              className="w-full h-40 object-cover rounded-lg"
+              className="w-full max-h-40 object-contain rounded-lg bg-black/20"
             />
           </div>
         )}
@@ -97,24 +92,24 @@ export default function EventReviewForm({
 
           {/* Date and Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="text-xs text-muted mb-1 block">Date</label>
               <input
                 type="date"
                 value={data?.date || ""}
                 onChange={(e) => onFieldChange("date", e.target.value)}
-                className={`${fieldClass("date")} text-white [color-scheme:dark]`}
+                className={`${fieldClass("date")} min-w-0 text-base text-white [color-scheme:dark]`}
               />
               {missing.includes("date") && (
                 <p className="text-xs text-orange-400 mt-1">⚠ Required</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs text-muted mb-1 block">Start Time</label>
               <select
                 value={data?.startTime || ""}
                 onChange={(e) => onFieldChange("startTime", e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-white [color-scheme:dark]"
+                className="w-full min-w-0 px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-base text-white [color-scheme:dark]"
               >
                 <option value="">Select time</option>
                 {TIME_OPTIONS.map((time) => (
@@ -232,25 +227,6 @@ export default function EventReviewForm({
                 className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
               />
             </div>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="text-xs text-muted mb-1 block">
-              Where should we list this event?
-            </label>
-            <select
-              value={category}
-              onChange={(e) => onCategoryChange(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-white [color-scheme:dark]"
-            >
-              <option value="">No category</option>
-              {EVENT_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Vibe Tags */}

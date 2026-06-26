@@ -30,13 +30,30 @@ function formatTime(time: string | null): string {
   return `${display}:${m} ${ampm}`
 }
 
-export function WhatsHappeningSection() {
+// "Tomorrow", or "Sat 6/28" for anything further out.
+function formatDateLabel(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 1) return 'Tomorrow'
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'short' })
+  const monthDay = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })
+  return `${weekday} ${monthDay}`
+}
+
+export function FuturePlansSection() {
   const [events, setEvents] = useState<PromoterEvent[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchEvents() {
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
+      const weekOut = new Date(today)
+      weekOut.setDate(weekOut.getDate() + 7)
+      const weekOutStr = weekOut.toISOString().split('T')[0]
 
       const { data, error } = await supabase
         .from('pending_events')
@@ -45,10 +62,12 @@ export function WhatsHappeningSection() {
         )
         .eq('source', 'promoter')
         .eq('status', 'approved')
-        .eq('date', today)
+        .gt('date', todayStr)
+        .lte('date', weekOutStr)
         .not('image_url', 'is', null)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
         .order('like_count', { ascending: false })
-        .order('created_at', { ascending: false })
         .limit(20)
 
       if (!error && data) {
@@ -62,7 +81,7 @@ export function WhatsHappeningSection() {
 
   const handleCardClick = (index: number) => {
     sessionStorage.setItem(
-      'fyn_underground_queue',
+      'fyn_future_queue',
       JSON.stringify({ ids: events.map((e) => e.id), index })
     )
   }
@@ -71,8 +90,7 @@ export function WhatsHappeningSection() {
     return (
       <div className="py-5 w-full">
         <div className="flex items-center gap-2 px-4 mb-3">
-          <div className="h-5 w-36 bg-zinc-800 rounded-lg animate-pulse" />
-          <div className="h-2.5 w-2.5 rounded-full bg-zinc-800 animate-pulse" />
+          <div className="h-5 w-32 bg-zinc-800 rounded-lg animate-pulse" />
         </div>
         <div className="flex gap-3 overflow-hidden px-4">
           {[1, 2, 3].map((i) => (
@@ -91,14 +109,9 @@ export function WhatsHappeningSection() {
   return (
     <section className="py-5 w-full">
       <div className="flex items-center gap-2 px-4 mb-3">
-        <h2 className="text-white text-lg font-semibold tracking-tight">
-          What&apos;s Happening
-        </h2>
-        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-        </span>
-        <span className="text-zinc-600 text-xs font-medium">Promo Events</span>
+        <h2 className="text-white text-lg font-semibold tracking-tight">Future Plans</h2>
+        <span aria-hidden className="text-base leading-none">📅</span>
+        <span className="text-zinc-600 text-xs font-medium">next 7 days</span>
       </div>
 
       <div
@@ -122,6 +135,9 @@ export function WhatsHappeningSection() {
                   sizes="176px"
                   unoptimized
                 />
+                <span className="absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-white">
+                  {formatDateLabel(event.date)}
+                </span>
               </div>
               <div className="p-2.5">
                 <p className="text-white text-xs font-semibold truncate leading-snug">

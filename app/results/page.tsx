@@ -2,56 +2,16 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { VIBES } from "@/components/VibeSelector";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
-
-type RailId = "now" | "tonight" | "late";
-
-function parseTimeToMinutes(timeStr: string | null | undefined): number | null {
-  if (!timeStr) return null;
-  const m = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM|am|pm)?/);
-  if (!m) return null;
-  let h = parseInt(m[1], 10);
-  const min = parseInt(m[2] ?? "0", 10);
-  const period = m[3]?.toUpperCase();
-  if (period === "PM" && h !== 12) h += 12;
-  if (period === "AM" && h === 12) h = 0;
-  return h * 60 + min;
-}
-
-function assignRail(venue: Venue): RailId {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const parts = venue.eventTime ? venue.eventTime.split(/\s*[–\-]\s*/) : [];
-  const startMinutes = parseTimeToMinutes(parts[0]);
-  const endMinutes = parts[1] ? parseTimeToMinutes(parts[1]) : null;
-
-  // Future-date events are never "happening now"
-  const isToday = !venue.eventDate || venue.eventDate === todayStr;
-
-  if (startMinutes !== null) {
-    const effectiveEnd = endMinutes ?? startMinutes + 120;
-    if (isToday && nowMinutes >= startMinutes && nowMinutes < effectiveEnd) return "now";
-    if (startMinutes >= 22 * 60 || startMinutes < 2 * 60) return "late";
-    return "tonight";
-  }
-
-  const t = (venue.type ?? "").toLowerCase();
-  if (/late.?night|after.?hour/.test(t)) return "late";
-  return "tonight";
-}
+import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
+import { FuturePlansSection } from "@/components/FuturePlansSection";
 
 function TonightContent() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const q = params.get("q") ?? "";
-  const vibeId = params.get("vibe") ?? "";
-  const vibeLabel = params.get("label") ?? "";
   const latParam = params.get("lat");
   const lngParam = params.get("lng");
   const isPrecise = params.get("precise") === "1";
@@ -61,18 +21,16 @@ function TonightContent() {
       ? { lat: Number(latParam), lng: Number(lngParam) }
       : null;
 
-  const breadcrumbLabel = q || vibeLabel || "Tonight";
-
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    if (!q && !vibeId) {
+    if (!userCoords) {
       router.replace("/");
       return;
     }
+    const coords = userCoords;
 
     let cancelled = false;
     setLoading(true);
@@ -81,51 +39,31 @@ function TonightContent() {
 
     async function fetchAll() {
       try {
-        // Resolve vibe — check by ID first, then fall back to prompt text for old-format URLs
-        const vibe =
-          VIBES.find((v) => v.id === vibeId) ??
-          VIBES.find((v) => v.prompt.toLowerCase() === vibeId.toLowerCase()) ??
-          null;
-
-        // Fire both fetches simultaneously
-        const featuredPromise = fetch("/api/featured", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city: "Cincinnati", label: vibeLabel || "" }),
-        });
-        const searchPromise = fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            q
-              ? { q, lat: userCoords?.lat ?? null, lng: userCoords?.lng ?? null }
-              : { vibe: vibe?.prompt ?? vibeId, label: vibeLabel }
-          ),
-        });
-
-        // Phase 1 — show featured venues as soon as the DB query returns (~300ms)
-        const featuredRes = await featuredPromise;
+        const [submittedRes, barsRes] = await Promise.all([
+          fetch("/api/featured", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ city: "Cincinnati" }),
+          }),
+          fetch("/api/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ label: "Drinks & Bars", lat: coords.lat, lng: coords.lng }),
+          }),
+        ]);
         if (cancelled) return;
-        const featuredData = await featuredRes.json();
-        if (cancelled) return;
-        const featured: Venue[] = featuredRes.ok ? (featuredData.venues ?? []) : [];
 
-        sessionStorage.setItem(RESULTS_KEY, JSON.stringify(featured));
+        const submittedData = await submittedRes.json();
+        const barsData = await barsRes.json();
+        if (cancelled) return;
+
+        const submitted: Venue[] = submittedRes.ok ? (submittedData.venues ?? []) : [];
+        const bars: Venue[] = barsRes.ok ? (barsData.venues ?? []) : [];
+
+        const sorted = sortByProximity([...submitted, ...bars], coords);
+        sessionStorage.setItem(RESULTS_KEY, JSON.stringify(sorted));
         sessionStorage.setItem(RESULT_BACK_KEY, `/results?${params.toString()}`);
-        setVenues(featured);
-        setLoading(false);
-        setSearching(true);
-
-        // Phase 2 — merge AI results when they arrive (~3–5s)
-        const searchRes = await searchPromise;
-        if (cancelled) return;
-        const searchData = await searchRes.json();
-        if (cancelled) return;
-        const ai: Venue[] = searchRes.ok ? (searchData.venues ?? []) : [];
-
-        const combined = sortByProximity([...featured, ...ai], userCoords);
-        sessionStorage.setItem(RESULTS_KEY, JSON.stringify(combined));
-        setVenues(combined);
+        setVenues(sorted);
       } catch (err) {
         if (!cancelled) {
           setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
@@ -133,7 +71,6 @@ function TonightContent() {
       } finally {
         if (!cancelled) {
           setLoading(false);
-          setSearching(false);
         }
       }
     }
@@ -143,27 +80,11 @@ function TonightContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, vibeId, vibeLabel, latParam, lngParam]);
+  }, [latParam, lngParam]);
 
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
   }
-
-  const featured = venues?.[0] ?? null;
-  const rest = venues?.slice(1) ?? [];
-
-  // Distribute rest into time rails, keeping original index in the full venues array
-  const railItems: Record<RailId, Array<{ venue: Venue; index: number }>> = {
-    now: [],
-    tonight: [],
-    late: [],
-  };
-  rest.forEach((v, i) => {
-    railItems[assignRail(v)].push({ venue: v, index: i + 1 });
-  });
-
-  const hasRails =
-    railItems.now.length > 0 || railItems.tonight.length > 0 || railItems.late.length > 0;
 
   return (
     <main className="flex flex-col min-h-screen pb-12">
@@ -175,7 +96,7 @@ function TonightContent() {
             className="flex items-center gap-1 text-muted text-sm mb-1 active:opacity-70"
           >
             <span aria-hidden>←</span>
-            <span className="truncate max-w-[200px]">{breadcrumbLabel}</span>
+            <span>Back</span>
           </button>
           <h1 className="font-display text-4xl tracking-wide">Tonight</h1>
         </div>
@@ -202,7 +123,6 @@ function TonightContent() {
       {/* Loading skeleton */}
       {loading && (
         <div className="flex flex-col gap-4 px-5 mt-2">
-          <div className="glass-card h-52 animate-pulse rounded-2xl" />
           <div className="h-5 w-32 bg-white/10 rounded-full animate-pulse" />
           <div className="flex gap-3 overflow-hidden">
             {[0, 1, 2].map((i) => (
@@ -233,142 +153,35 @@ function TonightContent() {
       {!loading && !errorMsg && venues !== null && venues.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-3 min-h-[40vh] px-5 text-center">
           <span className="text-5xl">🌙</span>
-          <p className="text-muted">No spots found. Try a different search.</p>
-          <button
-            onClick={() => router.push("/")}
-            className="text-accent text-sm underline underline-offset-4"
-          >
-            Start over
-          </button>
+          <p className="text-muted">No spots found nearby yet.</p>
         </div>
       )}
 
       {/* Results */}
-      {!loading && !errorMsg && featured && (
+      {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
-          {/* Featured card — top result */}
-          <div className="px-5">
+          <div>
+            <h3 className="font-display text-xl tracking-wide px-5 mb-3">Tonight</h3>
             <div
-              className="glass-card overflow-hidden cursor-pointer active:scale-[0.99] transition-transform"
-              onClick={() => toStory(0)}
+              className="flex gap-3 overflow-x-auto px-5 pb-1"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {featured.imageUrl && (
-                <img
-                  src={featured.imageUrl}
-                  alt={featured.name}
-                  className="w-full h-48 object-cover"
+              {venues.map((venue, index) => (
+                <RailCard
+                  key={`${venue.name}-${index}`}
+                  venue={venue}
+                  onClick={() => toStory(index)}
+                  showDistance={isPrecise}
                 />
-              )}
-              <div className="p-5 flex flex-col gap-2">
-                {featured.featured && (
-                  <span className="inline-block text-xs px-2 py-1 rounded-full bg-accent text-white font-semibold tracking-wide w-fit mb-0.5">
-                    🌟 Local Event
-                  </span>
-                )}
-                <h2 className="font-display text-2xl tracking-wide leading-tight">
-                  {featured.name}
-                </h2>
-                <p className="text-sm text-muted">
-                  {featured.type} · {featured.neighborhood} · {featured.price}
-                </p>
-                {featured.whyTonight && (
-                  <p className="text-sm text-muted/80 leading-relaxed line-clamp-2">
-                    {featured.whyTonight}
-                  </p>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toStory(0);
-                  }}
-                  className="mt-2 rounded-xl bg-accent text-white text-sm font-semibold py-2.5 px-4 w-fit active:scale-95 transition-transform"
-                >
-                  See details
-                </button>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Time rails */}
-          {hasRails && (
-            <div className="flex flex-col gap-6">
-              {railItems.now.length > 0 && (
-                <TimeRail
-                  railId="now"
-                  label="Happening now"
-                  items={railItems.now}
-                  onSelect={(index) => toStory(index)}
-                  showDistance={isPrecise}
-                />
-              )}
-              {railItems.tonight.length > 0 && (
-                <TimeRail
-                  railId="tonight"
-                  label="Tonight"
-                  items={railItems.tonight}
-                  onSelect={(index) => toStory(index)}
-                  showDistance={isPrecise}
-                />
-              )}
-              {railItems.late.length > 0 && (
-                <TimeRail
-                  railId="late"
-                  label="Late night"
-                  items={railItems.late}
-                  onSelect={(index) => toStory(index)}
-                  showDistance={isPrecise}
-                />
-              )}
-            </div>
-          )}
-
-          {/* AI results loading indicator */}
-          {searching && (
-            <p className="text-center text-xs text-muted/40 py-2 animate-pulse px-5">
-              Finding more spots…
-            </p>
-          )}
+          <WhatsHappeningSection />
+          <FuturePlansSection />
         </div>
       )}
     </main>
-  );
-}
-
-interface TimeRailProps {
-  railId: RailId;
-  label: string;
-  items: Array<{ venue: Venue; index: number }>;
-  onSelect: (index: number) => void;
-  showDistance: boolean;
-}
-
-function TimeRail({ railId, label, items, onSelect, showDistance }: TimeRailProps) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 px-5 mb-3">
-        {railId === "now" && (
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
-          </span>
-        )}
-        <h3 className="font-display text-xl tracking-wide">{label}</h3>
-      </div>
-      {/* Horizontal scrolling rail */}
-      <div
-        className="flex gap-3 overflow-x-auto px-5 pb-1"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {items.map(({ venue, index }) => (
-          <RailCard
-            key={`${venue.name}-${index}`}
-            venue={venue}
-            onClick={() => onSelect(index)}
-            showDistance={showDistance}
-          />
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -387,7 +200,11 @@ function RailCard({
       className="flex-none w-44 rounded-2xl border border-card-border bg-card overflow-hidden cursor-pointer active:scale-95 transition-transform"
     >
       {venue.imageUrl && (
-        <img src={venue.imageUrl} alt={venue.name} className="w-full h-28 object-cover" />
+        <img
+          src={venue.imageUrl}
+          alt={venue.name}
+          className="w-full h-28 object-contain bg-black/20"
+        />
       )}
       <div className="p-3 flex flex-col gap-0.5">
         <p className="font-display text-base tracking-wide leading-tight line-clamp-1">

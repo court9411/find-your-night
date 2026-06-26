@@ -160,6 +160,39 @@ export default function StoryView() {
           )}
         </div>
 
+        {/* Address / Hours / Happy Hour */}
+        {(venue.address || venue.hours || venue.happyHour) && (
+          <div className="rounded-xl bg-white/5 border border-card-border px-4 py-3 flex flex-col gap-2">
+            {venue.address && (
+              <a
+                href={
+                  venue.lat != null && venue.lng != null
+                    ? `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`
+                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2 text-sm text-accent underline underline-offset-4"
+              >
+                <span aria-hidden>📍</span>
+                <span>{venue.address}</span>
+              </a>
+            )}
+            {venue.hours && (
+              <p className="flex items-start gap-2 text-sm text-muted">
+                <span aria-hidden>🕒</span>
+                <span>{venue.hours}</span>
+              </p>
+            )}
+            {venue.happyHour && (
+              <p className="flex items-start gap-2 text-sm text-muted">
+                <span aria-hidden>🍹</span>
+                <span>Happy hour: {venue.happyHour}</span>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* WHY TONIGHT */}
         {venue.whyTonight && (
           <div className="rounded-xl border-l-2 border-accent bg-accent/10 px-4 py-3">

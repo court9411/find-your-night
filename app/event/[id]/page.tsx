@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PendingEvent } from "@/lib/types";
 import { formatEventDateLine } from "@/lib/formatEventDate";
 import EventImage from "@/components/EventImage";
+import EventLikeShare from "@/components/EventLikeShare";
 
 interface PageProps {
   params: { id: string };
@@ -99,6 +100,12 @@ export default async function EventPage({ params }: PageProps) {
               Tickets / Details
             </a>
           )}
+
+          <EventLikeShare
+            eventId={e.id as string}
+            eventName={e.event_name}
+            initialLikeCount={e.like_count ?? 0}
+          />
         </div>
       </div>
     </main>

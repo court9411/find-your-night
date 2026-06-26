@@ -2,49 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { SVGProps } from "react";
-import { VIBES } from "@/components/VibeSelector";
-import { getActiveSeasonal } from "@/lib/seasonal.config";
 import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
-import {
-  DrinksIcon,
-  FoodDrinksIcon,
-  LiveMusicIcon,
-  FreshAirIcon,
-  LateNightEatsIcon,
-  RooftopIcon,
-  CasualFunIcon,
-  ArtsEventsIcon,
-  SurpriseMeIcon,
-} from "@/components/VibeIcons";
-
-type IconComp = (props: SVGProps<SVGSVGElement>) => JSX.Element;
-
-const VIBE_ICON_MAP: Record<string, IconComp> = {
-  drinks: DrinksIcon,
-  "food-drinks": FoodDrinksIcon,
-  "live-music": LiveMusicIcon,
-  "fresh-air": FreshAirIcon,
-  "late-night-eats": LateNightEatsIcon,
-  rooftop: RooftopIcon,
-  "casual-fun": CasualFunIcon,
-  "arts-events": ArtsEventsIcon,
-  "surprise-me": SurpriseMeIcon,
-};
-
-// Grid order per spec. Seasonal slot is injected at index 3.
-const GRID_IDS = [
-  "drinks",
-  "food-drinks",
-  "live-music",
-  // seasonal slot at position 3
-  "casual-fun",
-  "fresh-air",
-  "late-night-eats",
-  "rooftop",
-  "arts-events",
-  "surprise-me",
-];
+import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 
 const FALLBACK_COORDS = { lat: 39.1031, lng: -84.512 };
 const GEO_COORDS_KEY = "fyn:geoCoords";
@@ -58,8 +17,6 @@ export default function JustAsk() {
   const [areaName, setAreaName] = useState<string | null>(null);
   const [precise, setPrecise] = useState(false);
   const [showGeoNote, setShowGeoNote] = useState(false);
-
-  const seasonal = getActiveSeasonal();
 
   useEffect(() => {
     if (typeof window === "undefined" || !navigator.geolocation) return;
@@ -115,8 +72,18 @@ export default function JustAsk() {
     );
   }, []);
 
-  function buildParams(extra: Record<string, string>) {
-    const p = new URLSearchParams(extra);
+  function handleCitySelected(selection: CitySelection) {
+    if (selection.lat === undefined || selection.lng === undefined) return;
+    const c = { lat: selection.lat, lng: selection.lng };
+    setCoords(c);
+    setPrecise(true);
+    setAreaName(selection.city);
+    sessionStorage.setItem(GEO_COORDS_KEY, JSON.stringify(c));
+    sessionStorage.setItem(GEO_AREA_KEY, selection.city);
+  }
+
+  function buildParams() {
+    const p = new URLSearchParams();
     p.set("lat", String(coords.lat));
     p.set("lng", String(coords.lng));
     if (precise) p.set("precise", "1");
@@ -124,19 +91,7 @@ export default function JustAsk() {
   }
 
   function submit() {
-    router.push(`/results?${buildParams({ q: query.trim() || "what's good tonight" })}`);
-  }
-
-  // Build 10-slot grid (9 vibes + seasonal slot at position 3)
-  const slots: Array<{ kind: "vibe"; id: string } | { kind: "seasonal" }> = [];
-  let vi = 0;
-  const total = seasonal ? 10 : 9;
-  for (let i = 0; i < total; i++) {
-    if (i === 3 && seasonal) {
-      slots.push({ kind: "seasonal" });
-    } else {
-      slots.push({ kind: "vibe", id: GRID_IDS[vi++] });
-    }
+    router.push(`/results?${buildParams()}`);
   }
 
   const proximityLabel =
@@ -148,15 +103,14 @@ export default function JustAsk() {
         <h1 className="font-display text-5xl sm:text-6xl tracking-wide text-center">
           Find Your <span className="text-accent">Night.</span>
         </h1>
-        <p className="text-muted text-sm text-center -mt-1">What are you in the mood for?</p>
+        <p className="text-muted text-sm text-center -mt-1">Where are you tonight?</p>
 
-        {/* Free-text search input */}
-        <input
-          type="text"
+        {/* Location input */}
+        <CityAutocompleteInput
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Date night, live music, dive bar in Norwood…"
+          onChange={setQuery}
+          onCitySelected={handleCitySelected}
+          placeholder="Enter your neighborhood, city, or zip…"
           className="w-full rounded-2xl bg-white/[0.06] border border-card-border px-4 py-3 text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/50 transition-colors"
         />
 
@@ -182,56 +136,6 @@ export default function JustAsk() {
             <circle cx="12" cy="10" r="3" />
           </svg>
           <span>{proximityLabel}</span>
-        </div>
-
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted/50 -mb-1">
-          or pick a vibe
-        </p>
-
-        {/* 2-column vibe chip grid — all 10 chips visible at 375px */}
-        <div className="grid grid-cols-2 gap-2 w-full">
-          {slots.map((slot) => {
-            if (slot.kind === "seasonal" && seasonal) {
-              return (
-                <a
-                  key="seasonal"
-                  href={seasonal.link}
-                  className="flex items-center gap-2 rounded-xl border border-accent/60 bg-accent/10 px-3 py-2.5 active:scale-95 transition-transform"
-                >
-                  <span className="text-sm leading-none">{seasonal.emoji}</span>
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-white leading-tight">
-                    Seasonal
-                  </span>
-                </a>
-              );
-            }
-            if (slot.kind === "vibe") {
-              const vibe = VIBES.find((v) => v.id === slot.id);
-              if (!vibe) return null;
-              const Icon = VIBE_ICON_MAP[vibe.id];
-              return (
-                <button
-                  key={vibe.id}
-                  onClick={() =>
-                    router.push(
-                      `/results?${buildParams({
-                        vibe: vibe.id,
-                        label: vibe.label,
-                        emoji: vibe.emoji,
-                      })}`
-                    )
-                  }
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 active:scale-95 transition-transform text-left"
-                >
-                  {Icon && <Icon className="w-4 h-4 text-white/70 shrink-0" />}
-                  <span className="text-[11px] font-bold uppercase tracking-wide leading-tight">
-                    {vibe.label}
-                  </span>
-                </button>
-              );
-            }
-            return null;
-          })}
         </div>
 
         <button

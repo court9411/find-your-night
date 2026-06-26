@@ -1,0 +1,102 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const ANON_ID_KEY = "fyn:anonId";
+const LIKED_EVENTS_KEY = "fyn:likedEvents";
+
+function getAnonId(): string {
+  let id = localStorage.getItem(ANON_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(ANON_ID_KEY, id);
+  }
+  return id;
+}
+
+function getLikedEventIds(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(LIKED_EVENTS_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+interface EventLikeShareProps {
+  eventId: string;
+  eventName: string;
+  initialLikeCount: number;
+}
+
+export default function EventLikeShare({ eventId, eventName, initialLikeCount }: EventLikeShareProps) {
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [liked, setLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  useEffect(() => {
+    setLiked(getLikedEventIds().includes(eventId));
+  }, [eventId]);
+
+  async function handleLike() {
+    if (liked || liking) return;
+    setLiking(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anonId: getAnonId() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLikeCount(data.likeCount);
+        setLiked(true);
+        const likedIds = getLikedEventIds();
+        localStorage.setItem(LIKED_EVENTS_KEY, JSON.stringify([...likedIds, eventId]));
+      }
+    } catch {
+      // silently ignore — like is non-critical
+    } finally {
+      setLiking(false);
+    }
+  }
+
+  async function handleShare() {
+    const shareData = { title: eventName, url: window.location.href };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // user cancelled share
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  }
+
+  return (
+    <div className="flex gap-3">
+      <button
+        onClick={handleLike}
+        disabled={liked || liking}
+        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
+          liked
+            ? "bg-accent text-white"
+            : "bg-accent/20 border border-accent/30 text-accent disabled:opacity-60"
+        }`}
+      >
+        <span>{liked ? "❤️" : "🤍"}</span>
+        <span>{likeCount > 0 ? likeCount : "Like"}</span>
+      </button>
+      <button
+        onClick={handleShare}
+        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-card-border py-3 text-sm font-semibold text-muted active:scale-95 transition-transform"
+      >
+        <span>📤</span>
+        <span>{shared ? "Copied!" : "Share"}</span>
+      </button>
+    </div>
+  );
+}

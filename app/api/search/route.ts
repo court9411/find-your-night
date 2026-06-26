@@ -4,9 +4,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Price, Venue } from "@/lib/types";
-import { generateWhyTonight } from "@/lib/whyTonight";
 import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { shuffle } from "@/lib/shuffle";
+import { haversineMiles, Coords } from "@/lib/geo";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -98,53 +98,116 @@ interface DbVenue {
   rating: number | null;
   price_level: number | null;
   vibe_tags: string[] | null;
+  black_owned: boolean | null;
+  source: string | null;
+  neighborhood: string | null;
+  why_tonight: string | null;
+  special_nights: { day: string; note: string }[] | null;
+  hours: string | null;
+  happy_hour: string | null;
 }
 
-async function searchVenuesByVibe(label: string): Promise<Venue[]> {
+// Returns today's special-night note for a venue, if it has one for the
+// current day of week (e.g. "Live blues, half-off wine" on a Wednesday).
+// An exact day match (e.g. "Thursday") wins over a "Daily" fallback entry.
+function todaysSpecialNote(row: DbVenue, today: string): string | null {
+  const nights = row.special_nights ?? [];
+  const exact = nights.find((entry) => entry.day === today);
+  if (exact) return exact.note;
+  return nights.find((entry) => entry.day === "Daily")?.note ?? null;
+}
+
+// Google Places types that actually mean "this is a bar/nightclub" — used
+// instead of vibe_tags for "Drinks & Bars" because the AI-assigned tags
+// (e.g. "after-work", "day-drink") turned out loose enough that Starbucks,
+// McDonald's, and Panera Bread were qualifying as bars.
+const REQUIRED_TYPES: Record<string, string[]> = {
+  "Drinks & Bars": ["bar", "night_club"],
+};
+
+// Venues with one of these types are restaurants first, even if Google
+// also tags them "bar" (e.g. a steakhouse or sushi spot with a bar) —
+// excluded from "Drinks & Bars" so it stays actual bars/clubs only.
+const EXCLUDED_TYPES_IF_RESTAURANT_LIKE = ["restaurant", "meal_takeaway"];
+
+async function searchVenuesByVibe(label: string, userCoords: Coords | null): Promise<Venue[]> {
   const tags = VIBE_TAG_MAP[label] ?? [];
+  const requiredTypes = REQUIRED_TYPES[label];
 
   let query = supabaseAdmin
     .from("venues")
-    .select("place_id, name, address, lat, lng, types, rating, price_level, vibe_tags")
-    .order("rating", { ascending: false, nullsFirst: false })
-    .limit(14);
+    .select(
+      "place_id, name, address, lat, lng, types, rating, price_level, vibe_tags, black_owned, source, neighborhood, why_tonight, special_nights, hours, happy_hour"
+    );
 
-  if (tags.length > 0) {
+  if (requiredTypes) {
+    query = query.overlaps("types", requiredTypes);
+  } else if (tags.length > 0) {
     query = query.overlaps("vibe_tags", tags);
   }
 
   const { data, error } = await query;
   if (error) throw error;
 
-  const rows: DbVenue[] = data ?? [];
+  let rows: DbVenue[] = data ?? [];
+  if (requiredTypes) {
+    // Curated rows are human-vetted as real bars/clubs even when Google
+    // also tags them "restaurant" (e.g. a bar & grill) — only apply the
+    // restaurant-exclusion heuristic to the unverified Google-only rows.
+    rows = rows.filter(
+      (row) =>
+        row.source === "curated" ||
+        !row.types?.some((t) => EXCLUDED_TYPES_IF_RESTAURANT_LIKE.includes(t))
+    );
+  }
   if (rows.length === 0) return [];
 
-  // Keep top 4 anchors, shuffle the rest for variety across sessions
-  const anchors = rows.slice(0, 4);
-  const rest = shuffle(rows.slice(4));
-  const selected = [...anchors, ...rest].slice(0, 8);
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
-  const venues: Venue[] = selected.map((row) => ({
-    name: row.name,
-    type: deriveType(row.types),
-    neighborhood: extractNeighborhood(row.address),
-    description: "",
-    whyTonight: "",
-    price: mapPriceLevel(row.price_level),
-    tags: row.vibe_tags ?? [],
-    lat: row.lat,
-    lng: row.lng,
-  }));
+  let selected: DbVenue[];
+  if (userCoords) {
+    // Sort by actual distance from the user so nearby spots always win,
+    // rather than by rating across the whole metro area — except a venue
+    // with a special night happening today floats to the top regardless,
+    // since that's a rarer and more worth-surfacing signal than proximity.
+    const withDistance = rows.map((row) => ({
+      row,
+      hasTodayNote: todaysSpecialNote(row, today) !== null,
+      distance:
+        row.lat != null && row.lng != null
+          ? haversineMiles(userCoords, { lat: row.lat, lng: row.lng })
+          : Infinity,
+    }));
+    withDistance.sort((a, b) => {
+      if (a.hasTodayNote !== b.hasTodayNote) return a.hasTodayNote ? -1 : 1;
+      return a.distance - b.distance;
+    });
+    selected = withDistance.slice(0, 8).map((v) => v.row);
+  } else {
+    // No location available — fall back to top-rated, shuffled for variety.
+    const byRating = [...rows].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    const anchors = byRating.slice(0, 4);
+    const rest = shuffle(byRating.slice(4));
+    selected = [...anchors, ...rest].slice(0, 8);
+  }
 
-  // Batch-generate whyTonight via Haiku
-  const whyInputs = venues.map((v) => ({
-    name: v.name,
-    description: v.type,
-    tags: v.tags,
-  }));
-  const whyResults = await generateWhyTonight(whyInputs);
-  venues.forEach((v, i) => {
-    v.whyTonight = whyResults[i] ?? "";
+  const venues: Venue[] = selected.map((row) => {
+    const todayNote = todaysSpecialNote(row, today);
+    return {
+      name: row.name,
+      type: deriveType(row.types),
+      neighborhood: row.neighborhood || extractNeighborhood(row.address),
+      description: "",
+      whyTonight: todayNote ? `${todayNote} — tonight's the night to go.` : row.why_tonight ?? "",
+      price: mapPriceLevel(row.price_level),
+      tags: row.vibe_tags ?? [],
+      blackOwned: row.black_owned ?? null,
+      address: row.address,
+      hours: row.hours,
+      happyHour: row.happy_hour,
+      lat: row.lat,
+      lng: row.lng,
+    };
   });
 
   return venues;
@@ -237,6 +300,8 @@ export async function POST(request: Request) {
 
   const q = typeof body.q === "string" ? body.q.trim().slice(0, 200) : "";
   const label = typeof body.label === "string" ? body.label.trim().slice(0, 100) : "";
+  const userCoords: Coords | null =
+    typeof body.lat === "number" && typeof body.lng === "number" ? { lat: body.lat, lng: body.lng } : null;
 
   const nightlifeDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
   const day = nightlifeDate.toLocaleDateString("en-US", { weekday: "long" });
@@ -254,7 +319,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ venues });
     } else if (label) {
       // Vibe-based search — query venues table directly
-      let venues = await searchVenuesByVibe(label);
+      let venues = await searchVenuesByVibe(label, userCoords);
 
       // Fall back to AI if DB doesn't have enough results for this vibe
       if (venues.length < MIN_DB_RESULTS) {
