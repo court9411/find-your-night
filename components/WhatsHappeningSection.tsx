@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { getCincyDateString } from '@/lib/cincyDate'
 
 interface PromoterEvent {
   id: string
@@ -36,7 +37,7 @@ export function WhatsHappeningSection() {
 
   useEffect(() => {
     async function fetchEvents() {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getCincyDateString()
 
       const { data, error } = await supabase
         .from('pending_events')
@@ -99,6 +100,9 @@ export function WhatsHappeningSection() {
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
         </span>
         <span className="text-zinc-600 text-xs font-medium">Promo Events</span>
+        <Link href="/events" className="ml-auto text-accent text-xs font-medium shrink-0">
+          See more →
+        </Link>
       </div>
 
       <div

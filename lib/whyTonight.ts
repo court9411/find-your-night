@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getCincyWeekday } from "./cincyDate";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -18,7 +19,7 @@ function dayOfWeek(eventDate?: string | null): string {
       return parsed.toLocaleDateString("en-US", { weekday: "long" });
     }
   }
-  return new Date().toLocaleDateString("en-US", { weekday: "long" });
+  return getCincyWeekday();
 }
 
 function fallbackWhyTonight(event: WhyTonightInput): string {

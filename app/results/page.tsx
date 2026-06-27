@@ -8,6 +8,8 @@ import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
 
+const INITIAL_TONIGHT_COUNT = 8;
+
 function TonightContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -24,6 +26,7 @@ function TonightContent() {
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showAllTonight, setShowAllTonight] = useState(false);
 
   useEffect(() => {
     if (!userCoords) {
@@ -85,6 +88,9 @@ function TonightContent() {
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
   }
+
+  const visibleVenues = venues && (showAllTonight ? venues : venues.slice(0, INITIAL_TONIGHT_COUNT));
+  const hasMoreVenues = !!venues && venues.length > INITIAL_TONIGHT_COUNT && !showAllTonight;
 
   return (
     <main className="flex flex-col min-h-screen pb-12">
@@ -166,7 +172,7 @@ function TonightContent() {
               className="flex gap-3 overflow-x-auto px-5 pb-1"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {venues.map((venue, index) => (
+              {visibleVenues!.map((venue, index) => (
                 <RailCard
                   key={`${venue.name}-${index}`}
                   venue={venue}
@@ -174,6 +180,15 @@ function TonightContent() {
                   showDistance={isPrecise}
                 />
               ))}
+              {hasMoreVenues && (
+                <button
+                  onClick={() => setShowAllTonight(true)}
+                  className="flex-none w-28 rounded-2xl border border-card-border bg-card flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span className="text-2xl">→</span>
+                  <span className="text-xs text-accent font-semibold">See more</span>
+                </button>
+              )}
             </div>
           </div>
 

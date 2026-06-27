@@ -7,12 +7,14 @@ import { Price, Venue } from "@/lib/types";
 import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { shuffle } from "@/lib/shuffle";
 import { haversineMiles, Coords } from "@/lib/geo";
+import { getCincyWeekday } from "@/lib/cincyDate";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const MAX_REQUESTS_PER_WINDOW = 20;
 const WINDOW_MS = 60 * 60 * 1000;
 const MIN_DB_RESULTS = 4;
+const MAX_DB_RESULTS = 20;
 
 // Maps each vibe label to relevant vibe_tags in the venues table
 const VIBE_TAG_MAP: Record<string, string[]> = {
@@ -162,7 +164,7 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
   }
   if (rows.length === 0) return [];
 
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const today = getCincyWeekday();
 
   let selected: DbVenue[];
   if (userCoords) {
@@ -182,13 +184,13 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
       if (a.hasTodayNote !== b.hasTodayNote) return a.hasTodayNote ? -1 : 1;
       return a.distance - b.distance;
     });
-    selected = withDistance.slice(0, 8).map((v) => v.row);
+    selected = withDistance.slice(0, MAX_DB_RESULTS).map((v) => v.row);
   } else {
     // No location available — fall back to top-rated, shuffled for variety.
     const byRating = [...rows].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     const anchors = byRating.slice(0, 4);
     const rest = shuffle(byRating.slice(4));
-    selected = [...anchors, ...rest].slice(0, 8);
+    selected = [...anchors, ...rest].slice(0, MAX_DB_RESULTS);
   }
 
   const venues: Venue[] = selected.map((row) => {
@@ -304,7 +306,7 @@ export async function POST(request: Request) {
     typeof body.lat === "number" && typeof body.lng === "number" ? { lat: body.lat, lng: body.lng } : null;
 
   const nightlifeDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
-  const day = nightlifeDate.toLocaleDateString("en-US", { weekday: "long" });
+  const day = getCincyWeekday(nightlifeDate);
 
   try {
     if (q) {

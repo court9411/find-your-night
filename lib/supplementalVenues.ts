@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Venue } from "@/lib/types";
 import { VIBE_BOUNDARIES } from "@/lib/vibeBoundaries";
+import { getCincyWeekday, getCincyLongDate } from "@/lib/cincyDate";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -8,19 +9,8 @@ const CINCINNATI_NEIGHBORHOODS =
   "Over-the-Rhine (OTR), Walnut Hills, Avondale, Bond Hill, Northside, Mt. Adams, The Banks, Covington KY, Newport KY, Clifton/Ludlow Ave";
 
 function buildSystemPrompt(city: string, vibeLabel: string): string {
-  const today = new Date();
-  const currentDate = today.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  const plusSeven = new Date(today);
-  plusSeven.setDate(today.getDate() + 7);
-  const plusSevenDate = plusSeven.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const currentDate = getCincyLongDate();
+  const plusSevenDate = getCincyLongDate(7);
 
   const isCincinnati = /cincinnati/i.test(city);
   const neighborhoodLine = isCincinnati
@@ -41,7 +31,7 @@ PRIORITIES:
   other" not just "bar"
 ${neighborhoodLine}- Only suggest venues you are reasonably confident are real and currently
   operating in ${city}
-- Only suggest venues that are realistically open and busy on a ${new Date().toLocaleDateString("en-US", { weekday: "long" })} night. Skip venues that are typically closed today.
+- Only suggest venues that are realistically open and busy on a ${getCincyWeekday()} night. Skip venues that are typically closed today.
 - Never repeat venues already shown (a list of existing names will be
   provided in the user message)
 - Vary which venues you surface and in what order — don't default to the
@@ -90,7 +80,7 @@ export async function getSupplementalVenues(
 ): Promise<Venue[]> {
   if (count <= 0) return [];
 
-  const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const day = getCincyWeekday();
   const userMessage = `Suggest ${count} venues for the vibe: ${vibeLabel} in ${city}.
 Today is ${day}. Do not suggest any of these already-shown venues: ${
     existingNames.length ? existingNames.join(", ") : "none"

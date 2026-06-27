@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { getCincyDateString, addDaysToDateString } from '@/lib/cincyDate'
 
 interface PromoterEvent {
   id: string
@@ -49,11 +50,8 @@ export function FuturePlansSection() {
 
   useEffect(() => {
     async function fetchEvents() {
-      const today = new Date()
-      const todayStr = today.toISOString().split('T')[0]
-      const weekOut = new Date(today)
-      weekOut.setDate(weekOut.getDate() + 7)
-      const weekOutStr = weekOut.toISOString().split('T')[0]
+      const todayStr = getCincyDateString()
+      const weekOutStr = addDaysToDateString(todayStr, 7)
 
       const { data, error } = await supabase
         .from('pending_events')
@@ -112,6 +110,9 @@ export function FuturePlansSection() {
         <h2 className="text-white text-lg font-semibold tracking-tight">Future Plans</h2>
         <span aria-hidden className="text-base leading-none">📅</span>
         <span className="text-zinc-600 text-xs font-medium">next 7 days</span>
+        <Link href="/events" className="ml-auto text-accent text-xs font-medium shrink-0">
+          See more →
+        </Link>
       </div>
 
       <div
