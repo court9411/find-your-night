@@ -12,13 +12,17 @@ const config: Config = {
         background: "#09090F",
         foreground: "#FFFFFF",
         muted: "rgba(255,255,255,0.4)",
-        accent: "#FF6B35",
+        accent: {
+          DEFAULT: "#22C55E",
+          hover: "#4ADE80",
+          dim: "#052e16",
+        },
         card: "rgba(255,255,255,0.04)",
         "card-border": "rgba(255,255,255,0.08)",
       },
       fontFamily: {
-        display: ["var(--font-bebas)", "sans-serif"],
-        body: ["var(--font-outfit)", "sans-serif"],
+        display: ["var(--font-syne)", "sans-serif"],
+        body: ["var(--font-inter)", "sans-serif"],
       },
       keyframes: {
         fadeUp: {

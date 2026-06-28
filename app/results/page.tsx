@@ -104,7 +104,7 @@ function TonightContent() {
             <span aria-hidden>←</span>
             <span>Back</span>
           </button>
-          <h1 className="font-display text-4xl tracking-wide">Tonight</h1>
+          <h1 className="font-display font-extrabold text-4xl tracking-tight">Tonight</h1>
         </div>
         <button
           onClick={() => router.push("/profile")}
@@ -167,7 +167,7 @@ function TonightContent() {
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
           <div>
-            <h3 className="font-display text-xl tracking-wide px-5 mb-3">Tonight</h3>
+            <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3">Tonight</h3>
             <div
               className="flex gap-3 overflow-x-auto px-5 pb-1"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}

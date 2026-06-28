@@ -100,7 +100,7 @@ export default function JustAsk() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-5 py-8">
       <div className="w-full max-w-sm flex flex-col items-center gap-4">
-        <h1 className="font-display text-5xl sm:text-6xl tracking-wide text-center">
+        <h1 className="font-display font-extrabold text-5xl sm:text-6xl tracking-tight text-center">
           Find Your <span className="text-accent">Night.</span>
         </h1>
         <p className="text-muted text-sm text-center -mt-1">Where are you tonight?</p>
@@ -140,7 +140,7 @@ export default function JustAsk() {
 
         <button
           onClick={submit}
-          className="w-full rounded-2xl bg-accent text-white font-display text-xl tracking-wide py-3.5 active:scale-[0.98] transition-transform mt-1"
+          className="w-full rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-xl tracking-wide py-3.5 active:scale-[0.98] transition-transform mt-1"
         >
           Find My Night
         </button>

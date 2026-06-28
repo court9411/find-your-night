@@ -107,7 +107,7 @@ export function FuturePlansSection() {
   return (
     <section className="py-5 w-full">
       <div className="flex items-center gap-2 px-4 mb-3">
-        <h2 className="text-white text-lg font-semibold tracking-tight">Future Plans</h2>
+        <h2 className="font-display font-bold text-white text-lg tracking-tight">Future Plans</h2>
         <span aria-hidden className="text-base leading-none">📅</span>
         <span className="text-zinc-600 text-xs font-medium">next 7 days</span>
         <Link href="/events" className="ml-auto text-accent text-xs font-medium shrink-0">
@@ -136,7 +136,7 @@ export function FuturePlansSection() {
                   sizes="176px"
                   unoptimized
                 />
-                <span className="absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-white">
+                <span className="absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-black">
                   {formatDateLabel(event.date)}
                 </span>
               </div>

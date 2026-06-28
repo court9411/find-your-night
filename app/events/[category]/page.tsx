@@ -68,7 +68,7 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
   return (
     <main className="flex flex-col items-center min-h-screen py-12 gap-6">
       <div className="flex items-center justify-between w-full max-w-md px-6">
-        <h1 className="font-display text-4xl tracking-wide">{heading}</h1>
+        <h1 className="font-display font-extrabold text-4xl tracking-tight">{heading}</h1>
         <Link href="/" className="text-sm text-muted underline underline-offset-4">
           Home
         </Link>
@@ -98,7 +98,7 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
         <div className="flex flex-col gap-6 w-full max-w-md px-6">
           {groupedByCity.map(({ city, events: cityEvents }) => (
             <div key={city} className="flex flex-col gap-4">
-              <h2 className="font-display text-xl tracking-wide text-accent">{city}</h2>
+              <h2 className="font-display font-bold text-xl tracking-wide text-accent">{city}</h2>
               {cityEvents.map((event, i) => (
                 <EventListingCard key={event.id} event={event} index={i} />
               ))}

@@ -240,7 +240,7 @@ export default function EventReviewForm({
                   onClick={() => onToggleVibeTag(tag)}
                   className={`px-3 py-1 rounded-full text-sm transition-all ${
                     data?.vibeTags?.includes(tag)
-                      ? "bg-accent text-white"
+                      ? "bg-accent text-black"
                       : "bg-white/5 border border-white/10 text-muted hover:border-accent/60"
                   }`}
                 >

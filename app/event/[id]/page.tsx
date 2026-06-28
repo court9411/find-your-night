@@ -45,7 +45,7 @@ export default async function EventPage({ params }: PageProps) {
 
       <div className="glass-card flex flex-col gap-3 w-full max-w-md border-accent/20 animate-fadeUp opacity-0">
         <div className="p-5 flex flex-col gap-3">
-          <h1 className="font-display text-3xl tracking-wide leading-tight">{e.event_name}</h1>
+          <h1 className="font-display font-extrabold text-3xl tracking-tight leading-tight">{e.event_name}</h1>
 
           <p className="text-sm text-muted">
             {e.is_private_location
@@ -74,14 +74,14 @@ export default async function EventPage({ params }: PageProps) {
             {(e.is_private_location || e.vibe_tags?.length > 0) && (
               <div className="flex flex-wrap gap-2 justify-end">
                 {e.is_private_location && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent">
+                  <span className="text-xs px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/30 font-body font-semibold">
                     📍 Private location
                   </span>
                 )}
                 {e.vibe_tags?.map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs px-2 py-1 rounded-full bg-white/5 border border-card-border text-muted"
+                    className="text-xs px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/30 font-body font-semibold"
                   >
                     {tag}
                   </span>

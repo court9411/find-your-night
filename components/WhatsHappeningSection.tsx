@@ -92,12 +92,12 @@ export function WhatsHappeningSection() {
   return (
     <section className="py-5 w-full">
       <div className="flex items-center gap-2 px-4 mb-3">
-        <h2 className="text-white text-lg font-semibold tracking-tight">
+        <h2 className="font-display font-bold text-white text-lg tracking-tight">
           What&apos;s Happening
         </h2>
         <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
         </span>
         <span className="text-zinc-600 text-xs font-medium">Promo Events</span>
         <Link href="/events" className="ml-auto text-accent text-xs font-medium shrink-0">

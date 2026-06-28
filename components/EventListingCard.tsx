@@ -29,7 +29,7 @@ export default function EventListingCard({ event, index }: EventListingCardProps
       <div className="p-5 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-display text-2xl tracking-wide leading-tight">{event.event_name}</h3>
+            <h3 className="font-display font-bold text-2xl tracking-wide leading-tight">{event.event_name}</h3>
             <p className="text-sm text-muted">
               {event.is_private_location
                 ? `${event.venue_name}${event.city ? ` · ${event.city}` : ""}`
@@ -60,14 +60,14 @@ export default function EventListingCard({ event, index }: EventListingCardProps
         {(event.is_private_location || event.vibe_tags?.length > 0) && (
           <div className="flex flex-wrap gap-2">
             {event.is_private_location && (
-              <span className="text-xs px-2 py-1 rounded-full bg-accent/10 border border-accent/30 text-accent">
+              <span className="text-xs px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/30 font-body font-semibold">
                 📍 Private location
               </span>
             )}
             {event.vibe_tags?.map((tag) => (
               <span
                 key={tag}
-                className="text-xs px-2 py-1 rounded-full bg-white/5 border border-card-border text-muted"
+                className="text-xs px-2 py-1 rounded-full bg-accent/10 text-accent border border-accent/30 font-body font-semibold"
               >
                 {tag}
               </span>

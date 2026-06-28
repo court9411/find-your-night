@@ -83,7 +83,7 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
         disabled={liked || liking}
         className={`flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
           liked
-            ? "bg-accent text-white"
+            ? "bg-accent text-black"
             : "bg-accent/20 border border-accent/30 text-accent disabled:opacity-60"
         }`}
       >

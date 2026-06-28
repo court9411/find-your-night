@@ -32,7 +32,7 @@ export default async function AllEventsPage() {
   return (
     <main className="flex flex-col items-center min-h-screen py-12 gap-6">
       <div className="flex items-center justify-between w-full max-w-md px-6">
-        <h1 className="font-display text-4xl tracking-wide">All Events</h1>
+        <h1 className="font-display font-extrabold text-4xl tracking-tight">All Events</h1>
         <Link href="/results" className="text-sm text-muted underline underline-offset-4">
           Back
         </Link>
@@ -44,7 +44,7 @@ export default async function AllEventsPage() {
         <div className="flex flex-col gap-8 w-full max-w-md px-6">
           {tonight.length > 0 && (
             <div className="flex flex-col gap-4">
-              <h2 className="font-display text-xl tracking-wide text-accent">Tonight</h2>
+              <h2 className="font-display font-bold text-xl tracking-wide text-accent">Tonight</h2>
               {tonight.map((event, i) => (
                 <EventListingCard key={event.id} event={event} index={i} />
               ))}
@@ -53,7 +53,7 @@ export default async function AllEventsPage() {
 
           {upcoming.length > 0 && (
             <div className="flex flex-col gap-4">
-              <h2 className="font-display text-xl tracking-wide text-accent">Coming Up</h2>
+              <h2 className="font-display font-bold text-xl tracking-wide text-accent">Coming Up</h2>
               {upcoming.map((event, i) => (
                 <EventListingCard key={event.id} event={event} index={i} />
               ))}

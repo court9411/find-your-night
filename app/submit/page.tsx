@@ -248,7 +248,7 @@ export default function SubmitPage() {
     return (
       <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-8">
         <div className="flex items-center justify-between w-full max-w-md">
-          <h1 className="font-display text-4xl tracking-wide">Submit Event</h1>
+          <h1 className="font-display font-extrabold text-4xl tracking-tight">Submit Event</h1>
           <Link href="/" className="text-sm text-muted underline underline-offset-4">
             Home
           </Link>
@@ -276,7 +276,7 @@ export default function SubmitPage() {
           />
           <button
             type="submit"
-            className="rounded-2xl bg-accent text-white font-display text-lg tracking-wide px-6 py-3 transition-transform active:scale-95"
+            className="rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-lg tracking-wide px-6 py-3 transition-transform active:scale-95"
           >
             Paste Event Link
           </button>
@@ -322,7 +322,7 @@ export default function SubmitPage() {
     return (
       <main className="flex flex-col items-center justify-center min-h-screen px-6 py-12 gap-6 text-center">
         <div className="animate-spin text-6xl">📋</div>
-        <h1 className="font-display text-4xl tracking-wide">Analyzing…</h1>
+        <h1 className="font-display font-extrabold text-4xl tracking-tight">Analyzing…</h1>
         <p className="text-muted max-w-sm">
           Extracting event details from your link or image.
         </p>
@@ -337,7 +337,7 @@ export default function SubmitPage() {
     return (
       <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-8">
         <div className="flex items-center justify-between w-full max-w-2xl">
-          <h1 className="font-display text-4xl tracking-wide">Review Event</h1>
+          <h1 className="font-display font-extrabold text-4xl tracking-tight">Review Event</h1>
           <button
             onClick={resetToStart}
             className="text-sm text-muted underline underline-offset-4 hover:text-white"
@@ -376,7 +376,7 @@ export default function SubmitPage() {
           <button
             onClick={handleFinalSubmit}
             disabled={submitting}
-            className="flex-1 rounded-2xl bg-accent text-white font-display text-lg tracking-wide px-6 py-3 transition-transform active:scale-95 disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-lg tracking-wide px-6 py-3 transition-transform active:scale-95 disabled:opacity-50"
           >
             {submitting ? "Submitting..." : "Submit Event"}
           </button>
@@ -390,7 +390,7 @@ export default function SubmitPage() {
     return (
       <main className="flex flex-col items-center justify-center min-h-screen px-6 py-12 gap-6 text-center">
         <span className="text-6xl">📬</span>
-        <h1 className="font-display text-4xl tracking-wide">Pending Review</h1>
+        <h1 className="font-display font-extrabold text-4xl tracking-tight">Pending Review</h1>
         <p className="text-muted max-w-sm">
           Your event is under review. We&apos;ll approve it within 24 hours.
         </p>
@@ -415,7 +415,7 @@ export default function SubmitPage() {
 
         <Link
           href="/"
-          className="rounded-2xl bg-accent text-white font-display text-lg tracking-wide px-8 py-3 transition-transform active:scale-95"
+          className="rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-lg tracking-wide px-8 py-3 transition-transform active:scale-95"
         >
           Back Home
         </Link>

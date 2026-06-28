@@ -56,7 +56,7 @@ export default function StoryView() {
         <p className="text-muted">Session expired. Go back and search again.</p>
         <button
           onClick={() => router.push("/")}
-          className="rounded-2xl bg-accent text-white font-display text-xl tracking-wide px-8 py-3"
+          className="rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-xl tracking-wide px-8 py-3"
         >
           Start over
         </button>
@@ -143,11 +143,11 @@ export default function StoryView() {
         {/* Name + meta */}
         <div>
           {venue.featured && (
-            <span className="inline-block text-xs px-2 py-1 rounded-full bg-accent text-white font-semibold tracking-wide mb-2">
+            <span className="inline-block text-xs px-2 py-1 rounded-full bg-accent text-black font-semibold tracking-wide mb-2">
               🌟 Local Event
             </span>
           )}
-          <h1 className="font-display text-3xl sm:text-4xl tracking-wide leading-tight">
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight leading-tight">
             {venue.name}
           </h1>
           <p className="text-sm text-muted mt-1">
@@ -214,7 +214,7 @@ export default function StoryView() {
             {venue.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-xs px-2.5 py-1 rounded-full bg-white/5 border border-card-border text-muted"
+                className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/30 font-body font-semibold"
               >
                 {tag}
               </span>
@@ -235,7 +235,7 @@ export default function StoryView() {
             onClick={() => setSaved((s) => !s)}
             className={`flex-1 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
               saved
-                ? "bg-accent text-white"
+                ? "bg-accent text-black"
                 : "bg-accent/20 border border-accent/30 text-accent"
             }`}
           >

@@ -125,7 +125,7 @@ export default function LocationStep({ onSubmit }: LocationStepProps) {
       <button
         onClick={handleUseLocation}
         disabled={locating}
-        className="w-full rounded-2xl bg-accent text-white font-display text-2xl tracking-wide py-4 transition-transform active:scale-95 disabled:opacity-60"
+        className="w-full rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-2xl tracking-wide py-4 transition-transform active:scale-95 disabled:opacity-60"
       >
         {locating ? "Locating..." : "Use My Location"}
       </button>
