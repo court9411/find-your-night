@@ -7,6 +7,7 @@ import { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import { CitySelection } from "@/components/CityAutocompleteInput";
 import EventReviewForm from "@/components/EventReviewForm";
 import { compressImage } from "@/lib/imageCompression";
+import { track } from "@/lib/analytics";
 
 const SECRET_LOCATION_NAME = "Secret Location";
 
@@ -59,6 +60,7 @@ export default function SubmitPage() {
   }
 
   function resetToStart() {
+    if (stage === "preview") track("submit_abandoned", { stage: "preview" });
     setStage("input");
     setExtracted(null);
     setEditedData(null);
@@ -77,6 +79,7 @@ export default function SubmitPage() {
   async function handleExtract(url: string, imageBase64?: string, mimeType?: string) {
     setStage("extracting");
     setError("");
+    track("submit_started", { method: imageBase64 ? "image" : "url" });
 
     try {
       const payload = imageBase64
@@ -103,6 +106,7 @@ export default function SubmitPage() {
       setError(
         err instanceof Error ? err.message : "Failed to extract event data"
       );
+      track("submit_abandoned", { stage: "extracting" });
       setStage("input");
     }
   }
@@ -178,6 +182,7 @@ export default function SubmitPage() {
         eventName: data.eventName || "Your Event",
       });
 
+      track("submit_completed", { event_name: data.eventName, venue_name: data.venueName });
       setStage("success");
     } catch (err) {
       setError(

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { getCincyDateString } from '@/lib/cincyDate'
+import { track } from '@/lib/analytics'
 
 interface PromoterEvent {
   id: string
@@ -61,11 +62,17 @@ export function WhatsHappeningSection() {
     fetchEvents()
   }, [])
 
-  const handleCardClick = (index: number) => {
+  const handleCardClick = (event: PromoterEvent, index: number) => {
     sessionStorage.setItem(
       'fyn_underground_queue',
       JSON.stringify({ ids: events.map((e) => e.id), index })
     )
+    track('event_card_clicked', {
+      event_id: event.id,
+      event_name: event.event_name,
+      position_in_carousel: index,
+      section: 'tonight',
+    })
   }
 
   if (loading) {
@@ -113,7 +120,7 @@ export function WhatsHappeningSection() {
           <Link
             key={event.id}
             href={`/event/${event.id}`}
-            onClick={() => handleCardClick(index)}
+            onClick={() => handleCardClick(event, index)}
             className="flex-shrink-0 active:scale-95 transition-transform duration-100"
           >
             <div className="w-44 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800/60">

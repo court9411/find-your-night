@@ -1,5 +1,6 @@
 import { PendingEvent } from "@/lib/types";
 import EventImage from "@/components/EventImage";
+import SaveButton from "@/components/SaveButton";
 
 interface EventListingCardProps {
   event: PendingEvent;
@@ -28,7 +29,7 @@ export default function EventListingCard({ event, index }: EventListingCardProps
 
       <div className="p-5 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <h3 className="font-display font-bold text-2xl tracking-wide leading-tight">{event.event_name}</h3>
             <p className="text-sm text-muted">
               {event.is_private_location
@@ -36,11 +37,16 @@ export default function EventListingCard({ event, index }: EventListingCardProps
                 : `${event.venue_name}${event.neighborhood ? ` · ${event.neighborhood}` : ""}`}
             </p>
           </div>
-          {event.price && (
-            <span className="font-display text-lg tracking-wide text-accent shrink-0">
-              {event.price}
-            </span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {event.price && (
+              <span className="font-display text-lg tracking-wide text-accent">
+                {event.price}
+              </span>
+            )}
+            {event.id && (
+              <SaveButton itemType="event" itemId={event.id} />
+            )}
+          </div>
         </div>
 
         <div className="rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">

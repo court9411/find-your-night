@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 const ANON_ID_KEY = "fyn:anonId";
 const LIKED_EVENTS_KEY = "fyn:likedEvents";
@@ -53,6 +54,7 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
         setLiked(true);
         const likedIds = getLikedEventIds();
         localStorage.setItem(LIKED_EVENTS_KEY, JSON.stringify([...likedIds, eventId]));
+        track("event_liked", { event_id: eventId, event_name: eventName, total_likes: data.likeCount });
       }
     } catch {
       // silently ignore — like is non-critical
@@ -66,11 +68,13 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        track("event_shared", { event_id: eventId, event_name: eventName, share_method: "native" });
       } catch {
         // user cancelled share
       }
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href);
+      track("event_shared", { event_id: eventId, event_name: eventName, share_method: "clipboard" });
       setShared(true);
       setTimeout(() => setShared(false), 2000);
     }
