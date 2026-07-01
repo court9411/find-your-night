@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
+import { track } from "@/lib/analytics";
 
 const FALLBACK_COORDS = { lat: 39.1031, lng: -84.512 };
 const GEO_COORDS_KEY = "fyn:geoCoords";
@@ -43,6 +44,7 @@ export default function JustAsk() {
         setPrecise(true);
         setShowGeoNote(false);
         sessionStorage.setItem(GEO_COORDS_KEY, JSON.stringify(c));
+        track("location_granted", { source: "geolocation" });
 
         // Reverse geocode to get area name for the proximity chip
         try {
@@ -67,6 +69,7 @@ export default function JustAsk() {
       () => {
         setShowGeoNote(false);
         sessionStorage.setItem(GEO_DENIED_KEY, "1");
+        track("location_denied");
       },
       { timeout: 8000 }
     );
@@ -80,6 +83,7 @@ export default function JustAsk() {
     setAreaName(selection.city);
     sessionStorage.setItem(GEO_COORDS_KEY, JSON.stringify(c));
     sessionStorage.setItem(GEO_AREA_KEY, selection.city);
+    track("location_granted", { source: "city_picker", city: selection.city });
   }
 
   function buildParams() {

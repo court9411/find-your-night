@@ -209,6 +209,7 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
       happyHour: row.happy_hour,
       lat: row.lat,
       lng: row.lng,
+      placeId: row.place_id ?? null,
     };
   });
 

@@ -7,6 +7,7 @@ import { sortByProximity, Coords } from "@/lib/geo";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
+import { track } from "@/lib/analytics";
 
 const INITIAL_TONIGHT_COUNT = 8;
 
@@ -67,6 +68,7 @@ function TonightContent() {
         sessionStorage.setItem(RESULTS_KEY, JSON.stringify(sorted));
         sessionStorage.setItem(RESULT_BACK_KEY, `/results?${params.toString()}`);
         setVenues(sorted);
+        track("results_viewed", { venue_count: sorted.length, precise_location: isPrecise });
       } catch (err) {
         if (!cancelled) {
           setErrorMsg(err instanceof Error ? err.message : "Something went wrong");

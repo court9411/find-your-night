@@ -5,6 +5,8 @@ import { PendingEvent } from "@/lib/types";
 import { formatEventDateLine } from "@/lib/formatEventDate";
 import EventImage from "@/components/EventImage";
 import EventLikeShare from "@/components/EventLikeShare";
+import EventDetailTracker from "@/components/EventDetailTracker";
+import TicketLink from "@/components/TicketLink";
 
 interface PageProps {
   params: { id: string };
@@ -27,6 +29,7 @@ export default async function EventPage({ params }: PageProps) {
 
   return (
     <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">
+      <EventDetailTracker eventId={e.id as string} eventName={e.event_name} vibeTags={e.vibe_tags ?? []} />
       <div className="flex items-center justify-between w-full max-w-md">
         <Link href="/" className="text-sm text-muted underline underline-offset-4">
           Home
@@ -91,14 +94,12 @@ export default async function EventPage({ params }: PageProps) {
           </div>
 
           {e.ticket_link && (
-            <a
+            <TicketLink
               href={e.ticket_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-accent underline underline-offset-4"
-            >
-              Tickets / Details
-            </a>
+              eventId={e.id as string}
+              eventName={e.event_name}
+              hasPrice={!!e.price}
+            />
           )}
 
           <EventLikeShare

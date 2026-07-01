@@ -20,6 +20,7 @@ export interface Venue {
   address?: string | null;
   hours?: string | null;
   happyHour?: string | null;
+  placeId?: string | null;
 }
 
 export interface Vibe {
