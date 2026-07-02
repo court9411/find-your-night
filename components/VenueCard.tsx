@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Venue } from "@/lib/types";
 import { formatEventDateLine } from "@/lib/formatEventDate";
+import SaveButton from "@/components/SaveButton";
 
 interface VenueCardProps {
   venue: Venue;
@@ -11,8 +11,6 @@ interface VenueCardProps {
 }
 
 export default function VenueCard({ venue, index, showDistance }: VenueCardProps) {
-  const [saved, setSaved] = useState(false);
-
   async function handleShare() {
     const shareData = {
       title: venue.name,
@@ -58,14 +56,8 @@ export default function VenueCard({ venue, index, showDistance }: VenueCardProps
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setSaved((s) => !s)}
-              aria-label="Save spot"
-              className="text-2xl transition-transform active:scale-90"
-            >
-              {saved ? "❤️" : "🤍"}
-            </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {venue.placeId && <SaveButton itemType="venue" itemId={venue.placeId} />}
             <button
               onClick={handleShare}
               aria-label="Share spot"

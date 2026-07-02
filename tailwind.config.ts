@@ -33,10 +33,23 @@ const config: Config = {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "1" },
         },
+        saveBounce: {
+          "0%": { transform: "scale(1)" },
+          "40%": { transform: "scale(1.3)" },
+          "70%": { transform: "scale(0.92)" },
+          "100%": { transform: "scale(1)" },
+        },
+        toastPop: {
+          "0%": { opacity: "0", transform: "translate(-50%, 4px) scale(0.9)" },
+          "15%": { opacity: "1", transform: "translate(-50%, 0) scale(1)" },
+          "100%": { opacity: "1", transform: "translate(-50%, 0) scale(1)" },
+        },
       },
       animation: {
         fadeUp: "fadeUp 0.6s ease-out forwards",
         scan: "scan 1.6s ease-in-out infinite",
+        saveBounce: "saveBounce 0.42s ease-out",
+        toastPop: "toastPop 0.25s ease-out forwards",
       },
     },
   },
