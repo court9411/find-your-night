@@ -47,22 +47,24 @@ export function useSaveState(itemType: ItemType, itemId: string) {
 
     try {
       if (next) {
-        await fetch("/api/interactions", {
+        const res = await fetch("/api/interactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemType, itemId, interactionType: "saved" }),
         });
+        if (!res.ok) throw new Error(`Save failed: ${res.status}`);
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 1800);
       } else {
-        await fetch("/api/interactions", {
+        const res = await fetch("/api/interactions", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemType, itemId }),
         });
+        if (!res.ok) throw new Error(`Unsave failed: ${res.status}`);
       }
     } catch {
-      setSaved(!next); // revert on error
+      setSaved(!next); // revert — the server never confirmed the change
     } finally {
       setLoading(false);
     }

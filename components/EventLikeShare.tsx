@@ -81,26 +81,31 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
   }
 
   return (
-    <div className="flex gap-3">
-      <button
-        onClick={handleLike}
-        disabled={liked || liking}
-        className={`flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
-          liked
-            ? "bg-accent text-black"
-            : "bg-accent/20 border border-accent/30 text-accent disabled:opacity-60"
-        }`}
-      >
-        <span>{liked ? "❤️" : "🤍"}</span>
-        <span>{likeCount > 0 ? likeCount : "Like"}</span>
-      </button>
-      <button
-        onClick={handleShare}
-        className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-card-border py-3 text-sm font-semibold text-muted active:scale-95 transition-transform"
-      >
-        <span>📤</span>
-        <span>{shared ? "Copied!" : "Share"}</span>
-      </button>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex gap-3">
+        <button
+          onClick={handleLike}
+          disabled={liked || liking}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
+            liked
+              ? "bg-accent text-black"
+              : "bg-accent/20 border border-accent/30 text-accent disabled:opacity-60"
+          }`}
+        >
+          <span>{liked ? "❤️" : "🤍"}</span>
+          <span>{likeCount > 0 ? likeCount : "Like"}</span>
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex-1 flex items-center justify-center gap-2 rounded-2xl border border-card-border py-3 text-sm font-semibold text-muted active:scale-95 transition-transform"
+        >
+          <span>📤</span>
+          <span>{shared ? "Copied!" : "Share"}</span>
+        </button>
+      </div>
+      <p className="text-[11px] text-muted/50 text-center">
+        We&apos;ll use likes to help rank events — tap the bookmark above to save this to your profile.
+      </p>
     </div>
   );
 }
