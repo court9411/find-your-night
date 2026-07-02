@@ -83,8 +83,12 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
               : "bg-accent/20 border border-accent/30 text-accent disabled:opacity-60"
           }`}
         >
-          <span>{liked ? "❤️" : "🤍"}</span>
-          <span>{likeCount > 0 ? likeCount : "Like"}</span>
+          <span key={liked ? "liked" : "unliked"} className={liked ? "animate-saveBounce" : ""}>
+            {liked ? "❤️" : "🤍"}
+          </span>
+          <span key={likeCount} className={liked ? "animate-saveBounce" : ""}>
+            {likeCount > 0 ? likeCount : "Like"}
+          </span>
         </button>
         <button
           onClick={handleShare}
