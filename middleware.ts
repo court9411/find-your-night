@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   // Must stay untouched per project constraints.
   const isAdminRoute =
     (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) ||
-    pathname.startsWith("/api/admin/");
+    (pathname.startsWith("/api/admin/") && pathname !== "/api/admin/login");
 
   if (isAdminRoute) {
     const session = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
