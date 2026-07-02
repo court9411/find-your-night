@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
-import { getCincyDateString } from '@/lib/cincyDate'
+import { getTonightDateString } from '@/lib/cincyDate'
 import { track } from '@/lib/analytics'
 
 interface PromoterEvent {
@@ -38,7 +38,7 @@ export function WhatsHappeningSection() {
 
   useEffect(() => {
     async function fetchEvents() {
-      const today = getCincyDateString()
+      const today = getTonightDateString()
 
       const { data, error } = await supabase
         .from('pending_events')

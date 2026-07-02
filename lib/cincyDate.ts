@@ -24,6 +24,15 @@ export function getCincyDateString(date: Date = new Date()): string {
   return `${lookup.year}-${lookup.month}-${lookup.day}`;
 }
 
+/**
+ * Returns "today"'s date string for "tonight" purposes — stays on last
+ * night's date until 4am, since a night out doesn't end at midnight.
+ */
+export function getTonightDateString(date: Date = new Date()): string {
+  const shifted = new Date(date.getTime() - 4 * 60 * 60 * 1000);
+  return getCincyDateString(shifted);
+}
+
 /** Returns today's weekday name (e.g. "Friday") in Cincinnati local time. */
 export function getCincyWeekday(date: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-US", {
