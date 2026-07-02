@@ -4,6 +4,7 @@ import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { Suspense, useEffect } from "react";
 import PostHogPageView from "./PostHogPageView";
+import { getAnonId } from "@/lib/anon";
 
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -15,9 +16,9 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       capture_pageleave: true,
       persistence: "localStorage",
     });
-    // Link existing anonymous browser ID so pre-auth actions are attributed
-    const anonId = localStorage.getItem("fyn:anonId");
-    if (anonId) posthog.identify(anonId);
+    // Link the device's anonymous ID (created if this is a first visit) so
+    // pre-auth actions, including onboarding, are attributed consistently.
+    posthog.identify(getAnonId());
   }, []);
 
   return (

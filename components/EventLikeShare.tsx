@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
+import { getAnonId } from "@/lib/anon";
 
-const ANON_ID_KEY = "fyn:anonId";
 const LIKED_EVENTS_KEY = "fyn:likedEvents";
-
-function getAnonId(): string {
-  let id = localStorage.getItem(ANON_ID_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(ANON_ID_KEY, id);
-  }
-  return id;
-}
 
 function getLikedEventIds(): string[] {
   try {

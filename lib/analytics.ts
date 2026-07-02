@@ -11,7 +11,10 @@ type EventName =
   | "submit_abandoned"
   | "location_granted"
   | "location_denied"
-  | "results_viewed";
+  | "results_viewed"
+  | "onboarding_started"
+  | "onboarding_completed"
+  | "onboarding_skipped";
 
 export function track(event: EventName, properties?: Record<string, unknown>) {
   if (typeof window === "undefined") return;

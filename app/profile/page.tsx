@@ -6,30 +6,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import type { UserProfile } from "@/lib/userProfile";
-
-// ── Preference options ────────────────────────────────────────────────────────
-
-const VIBE_OPTIONS = [
-  "Low-Key", "Hype", "Date Night", "Girls Night",
-  "Outdoor", "Late Night", "Arts", "Sports",
-];
-
-const MUSIC_OPTIONS = [
-  "Hip-Hop / Rap", "R&B / Soul", "Afrobeats", "House / EDM",
-  "Latin", "Jazz / Neo Soul", "Live Bands", "Gospel",
-];
-
-const ACTIVITY_OPTIONS = [
-  "Drinks & Bars", "Food & Drinks", "Live Music", "Fresh Air",
-  "Late Night Eats", "Rooftop Vibes", "Casual Fun", "Arts & Events",
-];
-
-const BUDGET_OPTIONS: { label: string; value: number }[] = [
-  { label: "$", value: 1 },
-  { label: "$$", value: 2 },
-  { label: "$$$", value: 3 },
-  { label: "$$$$", value: 4 },
-];
+import ChipGroup from "@/components/ChipGroup";
+import { VIBE_OPTIONS, MUSIC_OPTIONS, ACTIVITY_OPTIONS, BUDGET_OPTIONS } from "@/lib/preferenceOptions";
+import { ONBOARD_PREFS_KEY } from "@/components/OnboardingFlow";
+import { getAnonId } from "@/lib/anon";
 
 // ── Saved event shape from /api/interactions ──────────────────────────────────
 
@@ -46,49 +26,6 @@ interface SavedEventRow {
     image_url: string | null;
     price: string | null;
   } | null;
-}
-
-// ── Chip multiselect helper ───────────────────────────────────────────────────
-
-function ChipGroup({
-  label,
-  options,
-  selected,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onChange: (next: string[]) => void;
-}) {
-  function toggle(opt: string) {
-    onChange(
-      selected.includes(opt)
-        ? selected.filter((s) => s !== opt)
-        : [...selected, opt]
-    );
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs text-muted font-semibold uppercase tracking-wider">{label}</p>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => toggle(opt)}
-            className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors active:scale-95 ${
-              selected.includes(opt)
-                ? "bg-accent text-black"
-                : "bg-white/[0.06] border border-card-border text-muted hover:text-white"
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -131,9 +68,7 @@ export default function ProfilePage() {
       setEmail(user.email ?? null);
 
       // Sync anon_id so pre-auth PostHog events are linkable
-      const anonId = typeof window !== "undefined"
-        ? localStorage.getItem("fyn:anonId")
-        : null;
+      const anonId = typeof window !== "undefined" ? getAnonId() : null;
 
       // Load profile
       const profileRes = await fetch("/api/profile");
@@ -147,12 +82,28 @@ export default function ProfilePage() {
           setPriceLevels(profile.price_levels ?? []);
           setActivityInterests(profile.activity_interests ?? []);
 
-          // Persist anon_id if not already linked
+          // Merge anon-era data: link anon_id, and adopt onboarding-collected
+          // interests only if the user hasn't set real ones yet — never
+          // clobber an existing profile's preferences.
+          const patchBody: { anon_id?: string; activity_interests?: string[] } = {};
           if (anonId && !profile.anon_id) {
+            patchBody.anon_id = anonId;
+          }
+          if ((profile.activity_interests ?? []).length === 0) {
+            try {
+              const raw = localStorage.getItem(ONBOARD_PREFS_KEY);
+              const onboardPrefs: { activity_interests?: string[] } | null = raw ? JSON.parse(raw) : null;
+              if (onboardPrefs?.activity_interests && onboardPrefs.activity_interests.length > 0) {
+                patchBody.activity_interests = onboardPrefs.activity_interests;
+                setActivityInterests(onboardPrefs.activity_interests);
+              }
+            } catch {}
+          }
+          if (Object.keys(patchBody).length > 0) {
             fetch("/api/profile", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ anon_id: anonId }),
+              body: JSON.stringify(patchBody),
             }).catch(() => {});
           }
         }

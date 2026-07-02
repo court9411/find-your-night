@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import { track } from "@/lib/analytics";
+import OnboardingFlow, { ONBOARDED_KEY } from "@/components/OnboardingFlow";
 
 const FALLBACK_COORDS = { lat: 39.1031, lng: -84.512 };
 const GEO_COORDS_KEY = "fyn:geoCoords";
@@ -18,8 +19,14 @@ export default function JustAsk() {
   const [areaName, setAreaName] = useState<string | null>(null);
   const [precise, setPrecise] = useState(false);
   const [showGeoNote, setShowGeoNote] = useState(false);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
+    setOnboarded(localStorage.getItem(ONBOARDED_KEY) === "1");
+  }, []);
+
+  useEffect(() => {
+    if (!onboarded) return;
     if (typeof window === "undefined" || !navigator.geolocation) return;
     if (sessionStorage.getItem(GEO_DENIED_KEY) === "1") return;
 
@@ -73,7 +80,7 @@ export default function JustAsk() {
       },
       { timeout: 8000 }
     );
-  }, []);
+  }, [onboarded]);
 
   function handleCitySelected(selection: CitySelection) {
     if (selection.lat === undefined || selection.lng === undefined) return;
@@ -100,6 +107,15 @@ export default function JustAsk() {
 
   const proximityLabel =
     precise && areaName ? `Near ${areaName}` : "Cincinnati · showing results near you";
+
+  // Avoid flashing either screen until we know whether onboarding is needed
+  if (onboarded === null) {
+    return <main className="min-h-screen" />;
+  }
+
+  if (!onboarded) {
+    return <OnboardingFlow onDone={() => setOnboarded(true)} />;
+  }
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-5 py-8">
