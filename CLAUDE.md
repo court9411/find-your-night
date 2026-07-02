@@ -18,15 +18,25 @@ Built by Courtney (solo founder).
 - **Dev environment**: Claude Code in VS Code
 
 ## Current Priority
-Soft launch at Cincinnati Pride, June 26–28, 2026.
-Feature freeze: ~June 22. Remaining time = content loading, mobile testing, marketing.
+Cincinnati Pride soft launch (June 26–28, 2026) happened and got real traction — estimated 60-100+ unique users plus 300+ in-person conversations that weekend, with organic posts circulating on Instagram and Facebook. Now gearing up for the next app drop.
+
+Next phase: splitting into two apps, built in sequence — **finish the user app first**, don't start the venue/promoter app until the user side is flawless.
+1. **User app** (this repo, Claude Code) — get this fully polished first:
+   - Onboarding flow for new users (not yet built)
+   - UI for surfacing curated/vetted spots to users once they're ranked (depends on the DB-side scoring work below)
+   - General UX polish across the existing flows
+2. **Venue/promoter app** (new, separate, later) — dashboards for venues and promoters to view activity and feedback on their events. Expands on the old "Promoter profiles" backlog item below, but as its own app. Not started until (1) is done.
+
+**DB-side scoring/curation work is handled by a separate Claude session working directly in Supabase, not Claude Code.** As of this writing that work (a computed score blending like_count/featured/recency, and gating the ~424 unvetted Google-sourced venues out of results until curated) hadn't been built yet — check current DB state rather than assuming it's done.
 
 ## Post-Launch Backlog (in rough priority order)
-1. Featured events rail on results page
-2. /submit in permanent nav
-3. Promoter profiles
-4. "Who's Going" social feature (avatar counts)
-5. User accounts (Supabase or Clerk)
+1. Onboarding flow for new users
+2. UI for surfacing curated spots once DB-side scoring/curation lands
+3. Featured events rail on results page
+4. /submit in permanent nav
+5. "Who's Going" social feature (avatar counts)
+6. Venue/promoter dashboard app — separate app, after user side is polished
+7. User accounts (Supabase or Clerk) — shipped: OTP email login via Supabase Auth, profile preferences, saved events
 
 ## Submission Flow (built, deployed)
 Promoter pastes URL or uploads flyer → Claude API extracts structured event details → Promoter confirms in one tap → Stored in Supabase with pending/approved status → /admin review view
@@ -43,4 +53,4 @@ This project has three custom skills. When relevant, Claude should consult them:
 - Mobile-first in all UI decisions
 - LGBTQ+-inclusive by default, not as an afterthought
 - Always check: does this add friction to a promoter or user? If yes, simplify.
-- Prefer shipping over perfecting pre-launch
+- Prefer shipping over perfecting
