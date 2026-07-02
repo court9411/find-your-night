@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Venue } from "@/lib/types";
 import { formatEventDateLine } from "@/lib/formatEventDate";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
+import { useSaveState } from "@/lib/useSaveState";
+import SaveAuthModal from "@/components/SaveAuthModal";
 
 export default function StoryView() {
   const { index: indexParam } = useParams<{ index: string }>();
@@ -14,7 +16,6 @@ export default function StoryView() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [backUrl, setBackUrl] = useState("/results");
   const [hydrated, setHydrated] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     try {
@@ -26,13 +27,10 @@ export default function StoryView() {
     setHydrated(true);
   }, []);
 
-  // Reset saved state when index changes
-  useEffect(() => {
-    setSaved(false);
-  }, [index]);
-
   const venue: Venue | undefined = venues[index];
   const total = venues.length;
+  const { saved, loading, showAuthModal, toggle, handleAuthed, closeAuthModal } =
+    useSaveState("venue", venue?.placeId ?? "");
 
   function navigate(to: number) {
     if (to < 0 || to >= total) return;
@@ -232,10 +230,11 @@ export default function StoryView() {
             Skip →
           </button>
           <button
-            onClick={() => setSaved((s) => !s)}
-            className={`flex-1 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all ${
+            onClick={toggle}
+            disabled={loading}
+            className={`flex-1 rounded-2xl py-3 text-sm font-semibold active:scale-95 transition-all disabled:opacity-60 ${
               saved
-                ? "bg-accent text-black"
+                ? "bg-accent text-black animate-saveBounce"
                 : "bg-accent/20 border border-accent/30 text-accent"
             }`}
           >
@@ -243,6 +242,10 @@ export default function StoryView() {
           </button>
         </div>
       </div>
+
+      {showAuthModal && (
+        <SaveAuthModal onClose={closeAuthModal} onAuthed={handleAuthed} />
+      )}
     </main>
   );
 }
