@@ -70,12 +70,12 @@ export default function SaveAuthModal({ onClose, onAuthed }: SaveAuthModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-0 sm:px-5"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5 overflow-y-auto py-8"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full sm:max-w-sm bg-[#0f0f16] border border-card-border rounded-t-3xl sm:rounded-3xl p-6 pb-8 sm:pb-6 flex flex-col gap-4 animate-fadeUp">
+      <div className="w-full sm:max-w-sm max-h-full overflow-y-auto bg-[#0f0f16] border border-card-border rounded-3xl p-6 flex flex-col gap-4 animate-fadeUp my-auto">
         {step === "email" ? (
           <>
             <div className="flex flex-col gap-1">
