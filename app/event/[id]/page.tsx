@@ -7,6 +7,7 @@ import EventImage from "@/components/EventImage";
 import EventLikeShare from "@/components/EventLikeShare";
 import EventDetailTracker from "@/components/EventDetailTracker";
 import TicketLink from "@/components/TicketLink";
+import SaveButton from "@/components/SaveButton";
 
 interface PageProps {
   params: { id: string };
@@ -34,6 +35,7 @@ export default async function EventPage({ params }: PageProps) {
         <Link href="/" className="text-sm text-muted underline underline-offset-4">
           Home
         </Link>
+        <SaveButton itemType="event" itemId={e.id as string} />
       </div>
 
       {e.image_url && (
