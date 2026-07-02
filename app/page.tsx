@@ -103,6 +103,24 @@ export default function JustAsk() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-5 py-8">
+      <button
+        onClick={() => router.push("/profile")}
+        aria-label="Profile"
+        className="w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 absolute top-12 right-5"
+      >
+        <svg
+          className="w-5 h-5 text-white/70"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          viewBox="0 0 24 24"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
+          <path d="M4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      </button>
       <div className="w-full max-w-sm flex flex-col items-center gap-4">
         <h1 className="font-display font-extrabold text-5xl sm:text-6xl tracking-tight text-center">
           Find Your <span className="text-accent">Night.</span>
