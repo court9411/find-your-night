@@ -16,7 +16,7 @@ const EVENT_COLUMNS =
   "id, event_name, date, start_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
 
 export async function POST(request: Request) {
-  let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown };
+  let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown; source?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
   const lat = typeof body.lat === "number" ? body.lat : null;
   const lng = typeof body.lng === "number" ? body.lng : null;
   const limit = typeof body.limit === "number" ? body.limit : 40;
+  const source = typeof body.source === "string" ? body.source : null;
 
   const { data: ranked, error: rankError } = await supabaseAdmin.rpc("get_ranked_events", {
     p_user_id: userId,
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     p_lat: lat,
     p_lng: lng,
     p_limit: limit,
+    p_source: source,
   });
 
   if (rankError) {

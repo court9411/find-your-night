@@ -29,7 +29,7 @@ export function WhatsHappeningSection({ lat = null, lng = null, userId = null }:
     async function fetchEvents() {
       const today = getTonightDateString()
       try {
-        const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40 })
+        const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40, source: 'promoter' })
         if (cancelled) return
         const tonight = ranked.filter((e) => isDisplayable(e) && e.date === today) as PromoterEvent[]
         setEvents(tonight)

@@ -10,17 +10,22 @@ interface RankedQueryParams {
   limit?: number;
 }
 
+interface RankedEventQueryParams extends RankedQueryParams {
+  source?: string | null;
+}
+
 export async function getRankedEvents({
   userId,
   anonId,
   lat,
   lng,
   limit,
-}: RankedQueryParams): Promise<RankedEvent[]> {
+  source,
+}: RankedEventQueryParams): Promise<RankedEvent[]> {
   const res = await fetch("/api/rank/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, anonId, lat, lng, limit }),
+    body: JSON.stringify({ userId, anonId, lat, lng, limit, source }),
   });
   if (!res.ok) throw new Error(`getRankedEvents failed: ${res.status}`);
   const data = await res.json();

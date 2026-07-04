@@ -43,7 +43,7 @@ export function FuturePlansSection({ lat = null, lng = null, userId = null }: Pr
       const todayStr = getCincyDateString()
       const weekOutStr = addDaysToDateString(todayStr, 7)
       try {
-        const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40 })
+        const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40, source: 'promoter' })
         if (cancelled) return
         const upcoming = ranked.filter(
           (e) => isDisplayable(e) && e.date! > todayStr && e.date! <= weekOutStr
