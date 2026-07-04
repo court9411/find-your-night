@@ -5,6 +5,7 @@ import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { Suspense, useEffect } from "react";
 import PostHogPageView from "./PostHogPageView";
 import { getAnonId } from "@/lib/anon";
+import { createClient } from "@/lib/supabase/client";
 
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -16,9 +17,33 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       capture_pageleave: true,
       persistence: "localStorage",
     });
-    // Link the device's anonymous ID (created if this is a first visit) so
-    // pre-auth actions, including onboarding, are attributed consistently.
-    posthog.identify(getAnonId());
+
+    const supabase = createClient();
+
+    // Keep PostHog's identity in sync with the real Supabase session, not
+    // just the device's anon ID — otherwise every page load re-identifies
+    // as anonymous and silently orphans a logged-in user's history.
+    // identify() with a new distinct_id auto-merges the prior anonymous
+    // activity into the real user, so pre-auth events stay attributed.
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        posthog.identify(user.id, { email: user.email });
+      } else {
+        posthog.identify(getAnonId());
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        posthog.identify(session.user.id, { email: session.user.email });
+      } else if (event === "SIGNED_OUT") {
+        // Reset so a shared/public device doesn't keep attributing the next
+        // person's activity to whoever was just signed in.
+        posthog.reset();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

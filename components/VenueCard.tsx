@@ -57,7 +57,9 @@ export default function VenueCard({ venue, index, showDistance }: VenueCardProps
             </p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {venue.placeId && <SaveButton itemType="venue" itemId={venue.placeId} />}
+            {venue.placeId && (
+              <SaveButton itemType="venue" itemId={venue.placeId} scoringTargetId={venue.id ?? undefined} />
+            )}
             <button
               onClick={handleShare}
               aria-label="Share spot"

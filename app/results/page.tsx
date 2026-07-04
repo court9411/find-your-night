@@ -8,6 +8,12 @@ import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
 import { track } from "@/lib/analytics";
+import { getRankedVenues } from "@/lib/scoring";
+import { logAction } from "@/lib/track-action";
+import { getAnonId } from "@/lib/anon";
+import { createClient } from "@/lib/supabase/client";
+import { useInView } from "@/lib/useInView";
+import NotInterestedButton from "@/components/NotInterestedButton";
 
 const INITIAL_TONIGHT_COUNT = 8;
 
@@ -28,6 +34,18 @@ function TonightContent() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAllTonight, setShowAllTonight] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!cancelled) setUserId(user?.id ?? null);
+    }
+    loadUser();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!userCoords) {
@@ -43,28 +61,29 @@ function TonightContent() {
 
     async function fetchAll() {
       try {
-        const [submittedRes, barsRes] = await Promise.all([
+        const anonId = getAnonId();
+        const [submittedRes, rankedVenues] = await Promise.all([
           fetch("/api/featured", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ city: "Cincinnati" }),
           }),
-          fetch("/api/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ label: "Drinks & Bars", lat: coords.lat, lng: coords.lng }),
+          getRankedVenues({
+            userId,
+            anonId,
+            lat: coords.lat,
+            lng: coords.lng,
+            limit: 20,
           }),
         ]);
         if (cancelled) return;
 
         const submittedData = await submittedRes.json();
-        const barsData = await barsRes.json();
         if (cancelled) return;
 
         const submitted: Venue[] = submittedRes.ok ? (submittedData.venues ?? []) : [];
-        const bars: Venue[] = barsRes.ok ? (barsData.venues ?? []) : [];
 
-        const sorted = sortByProximity([...submitted, ...bars], coords);
+        const sorted = sortByProximity([...submitted, ...rankedVenues], coords);
         sessionStorage.setItem(RESULTS_KEY, JSON.stringify(sorted));
         sessionStorage.setItem(RESULT_BACK_KEY, `/results?${params.toString()}`);
         setVenues(sorted);
@@ -85,10 +104,24 @@ function TonightContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latParam, lngParam]);
+  }, [latParam, lngParam, userId]);
 
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
+  }
+
+  function hideVenue(target: Venue) {
+    setVenues((prev) => {
+      if (!prev) return prev;
+      const next = prev.filter((v) => v !== target);
+      try {
+        sessionStorage.setItem(RESULTS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    if (target.id) {
+      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: target.id, actionType: "hidden" });
+    }
   }
 
   const visibleVenues = venues && (showAllTonight ? venues : venues.slice(0, INITIAL_TONIGHT_COUNT));
@@ -174,14 +207,31 @@ function TonightContent() {
               className="flex gap-3 overflow-x-auto px-5 pb-1"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {visibleVenues!.map((venue, index) => (
-                <RailCard
-                  key={`${venue.name}-${index}`}
-                  venue={venue}
-                  onClick={() => toStory(index)}
-                  showDistance={isPrecise}
-                />
-              ))}
+              {visibleVenues!.map((venue, index) => {
+                const card = (
+                  <RailCard
+                    venue={venue}
+                    onClick={() => toStory(index)}
+                    showDistance={isPrecise}
+                    userId={userId}
+                  />
+                );
+                return (
+                  <div key={`${venue.name}-${index}`} className="flex-none">
+                    {venue.placeId ? (
+                      <NotInterestedButton
+                        itemType="venue"
+                        itemId={venue.placeId}
+                        onConfirm={() => hideVenue(venue)}
+                      >
+                        {card}
+                      </NotInterestedButton>
+                    ) : (
+                      card
+                    )}
+                  </div>
+                );
+              })}
               {hasMoreVenues && (
                 <button
                   onClick={() => setShowAllTonight(true)}
@@ -194,8 +244,8 @@ function TonightContent() {
             </div>
           </div>
 
-          <WhatsHappeningSection />
-          <FuturePlansSection />
+          <WhatsHappeningSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
+          <FuturePlansSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
         </div>
       )}
     </main>
@@ -206,14 +256,33 @@ function RailCard({
   venue,
   onClick,
   showDistance,
+  userId,
 }: {
   venue: Venue;
   onClick: () => void;
   showDistance: boolean;
+  userId: string | null;
 }) {
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  useEffect(() => {
+    if (inView && venue.id) {
+      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: venue.id, actionType: "viewed" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  function handleClick() {
+    if (venue.id) {
+      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: venue.id, actionType: "clicked" });
+    }
+    onClick();
+  }
+
   return (
     <div
-      onClick={onClick}
+      ref={ref}
+      onClick={handleClick}
       className="flex-none w-44 rounded-2xl border border-card-border bg-card overflow-hidden cursor-pointer active:scale-95 transition-transform"
     >
       {venue.imageUrl && (
@@ -224,6 +293,15 @@ function RailCard({
         />
       )}
       <div className="p-3 flex flex-col gap-0.5">
+        {venue.liveTonight && (
+          <div className="flex items-center gap-1 mb-0.5">
+            <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-accent">Live Tonight</span>
+          </div>
+        )}
         <p className="font-display text-base tracking-wide leading-tight line-clamp-1">
           {venue.name}
         </p>

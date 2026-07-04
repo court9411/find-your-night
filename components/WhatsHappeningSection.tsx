@@ -2,77 +2,51 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
 import { getTonightDateString } from '@/lib/cincyDate'
-import { track } from '@/lib/analytics'
+import { getRankedEvents, RankedEvent } from '@/lib/scoring'
+import { getAnonId } from '@/lib/anon'
+import { PromoterEvent } from '@/lib/promoterEvent'
+import EventRailCard from '@/components/EventRailCard'
 
-interface PromoterEvent {
-  id: string
-  event_name: string
-  date: string
-  start_time: string | null
-  venue_name: string
-  neighborhood: string | null
-  image_url: string
-  vibe_tags: string[] | null
-  description: string | null
-  price: string | null
-  ticket_link: string | null
-  like_count: number
+const QUEUE_KEY = 'fyn_underground_queue'
+
+interface Props {
+  lat?: number | null
+  lng?: number | null
+  userId?: string | null
 }
 
-function formatTime(time: string | null): string {
-  if (!time) return ''
-  if (time.includes('AM') || time.includes('PM')) return time
-  const [h, m] = time.split(':')
-  const hour = parseInt(h)
-  const ampm = hour >= 12 ? 'PM' : 'AM'
-  const display = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
-  return `${display}:${m} ${ampm}`
+function isDisplayable(e: RankedEvent): e is RankedEvent & PromoterEvent {
+  return !!(e.event_name && e.venue_name && e.image_url && e.date)
 }
 
-export function WhatsHappeningSection() {
+export function WhatsHappeningSection({ lat = null, lng = null, userId = null }: Props) {
   const [events, setEvents] = useState<PromoterEvent[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     async function fetchEvents() {
       const today = getTonightDateString()
-
-      const { data, error } = await supabase
-        .from('pending_events')
-        .select(
-          'id, event_name, date, start_time, venue_name, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count'
-        )
-        .eq('source', 'promoter')
-        .eq('status', 'approved')
-        .eq('date', today)
-        .not('image_url', 'is', null)
-        .order('like_count', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (!error && data) {
-        setEvents(data as PromoterEvent[])
+      try {
+        const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40 })
+        if (cancelled) return
+        const tonight = ranked.filter((e) => isDisplayable(e) && e.date === today) as PromoterEvent[]
+        setEvents(tonight)
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load ranked events:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchEvents()
-  }, [])
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng, userId])
 
-  const handleCardClick = (event: PromoterEvent, index: number) => {
-    sessionStorage.setItem(
-      'fyn_underground_queue',
-      JSON.stringify({ ids: events.map((e) => e.id), index })
-    )
-    track('event_card_clicked', {
-      event_id: event.id,
-      event_name: event.event_name,
-      position_in_carousel: index,
-      section: 'tonight',
-    })
+  function hideEvent(eventId: string) {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId))
   }
 
   if (loading) {
@@ -117,39 +91,16 @@ export function WhatsHappeningSection() {
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {events.map((event, index) => (
-          <Link
+          <EventRailCard
             key={event.id}
-            href={`/event/${event.id}`}
-            onClick={() => handleCardClick(event, index)}
-            className="flex-shrink-0 active:scale-95 transition-transform duration-100"
-          >
-            <div className="w-44 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800/60">
-              <div className="relative w-44 h-44 bg-black/30">
-                <Image
-                  src={event.image_url}
-                  alt={event.event_name}
-                  fill
-                  className="object-contain"
-                  sizes="176px"
-                  unoptimized
-                />
-              </div>
-              <div className="p-2.5">
-                <p className="text-white text-xs font-semibold truncate leading-snug">
-                  {event.event_name}
-                </p>
-                <p className="text-zinc-500 text-[10px] truncate mt-0.5">
-                  {event.venue_name}
-                  {event.neighborhood ? ` · ${event.neighborhood}` : ''}
-                </p>
-                {event.start_time && (
-                  <p className="text-zinc-600 text-[10px] mt-0.5">
-                    {formatTime(event.start_time)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Link>
+            event={event}
+            index={index}
+            section="tonight"
+            queueKey={QUEUE_KEY}
+            queueIds={events.map((e) => e.id)}
+            userId={userId}
+            onHide={hideEvent}
+          />
         ))}
       </div>
     </section>

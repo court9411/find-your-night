@@ -6,12 +6,13 @@ import SaveAuthModal from "@/components/SaveAuthModal";
 interface SaveButtonProps {
   itemType: "event" | "venue";
   itemId: string;
+  scoringTargetId?: string;
   className?: string;
 }
 
-export default function SaveButton({ itemType, itemId, className = "" }: SaveButtonProps) {
+export default function SaveButton({ itemType, itemId, scoringTargetId, className = "" }: SaveButtonProps) {
   const { saved, loading, justSaved, showAuthModal, toggle, handleAuthed, closeAuthModal } =
-    useSaveState(itemType, itemId);
+    useSaveState(itemType, itemId, scoringTargetId);
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();

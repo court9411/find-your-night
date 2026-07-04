@@ -3,11 +3,12 @@ import { unstable_cache } from "next/cache";
 import Anthropic from "@anthropic-ai/sdk";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { Price, Venue } from "@/lib/types";
+import { Venue } from "@/lib/types";
 import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { shuffle } from "@/lib/shuffle";
 import { haversineMiles, Coords } from "@/lib/geo";
 import { getCincyWeekday } from "@/lib/cincyDate";
+import { deriveType, mapPriceLevel } from "@/lib/venueMappers";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -29,21 +30,6 @@ const VIBE_TAG_MAP: Record<string, string[]> = {
   "Surprise Me":     [],
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  bar: "Bar",
-  night_club: "Nightclub",
-  restaurant: "Restaurant",
-  cafe: "Café",
-  bowling_alley: "Bowling Alley",
-  movie_theater: "Movie Theater",
-  amusement_park: "Amusement Park",
-  museum: "Museum",
-  art_gallery: "Art Gallery",
-  park: "Park",
-  zoo: "Zoo",
-  aquarium: "Aquarium",
-};
-
 const NEIGHBORHOODS = [
   "forest park", "sharonville", "blue ash", "norwood", "oakley",
   "hyde park", "mt lookout", "mount lookout", "columbia tusculum",
@@ -61,13 +47,6 @@ const NEIGHBORHOODS = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function deriveType(types: string[] | null): string {
-  for (const t of types ?? []) {
-    if (TYPE_LABELS[t]) return TYPE_LABELS[t];
-  }
-  return "Venue";
-}
-
 function extractNeighborhood(address: string | null): string {
   if (!address) return "Cincinnati";
   const parts = address.split(",").map((p) => p.trim());
@@ -79,13 +58,6 @@ function extractNeighborhood(address: string | null): string {
     return p;
   }
   return "Cincinnati";
-}
-
-function mapPriceLevel(level: number | null | undefined): Price {
-  if (level == null) return "$$";
-  if (level <= 1) return "$";
-  if (level === 2) return "$$";
-  return "$$$";
 }
 
 // ── DB-backed vibe search ────────────────────────────────────────────────────

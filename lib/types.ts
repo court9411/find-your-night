@@ -1,6 +1,7 @@
 export type Price = "$" | "$$" | "$$$";
 
 export interface Venue {
+  id?: string | null;
   name: string;
   type: string;
   neighborhood: string;
@@ -21,6 +22,17 @@ export interface Venue {
   hours?: string | null;
   happyHour?: string | null;
   placeId?: string | null;
+  liveTonight?: { id: string; eventName: string; startDt: string } | null;
+}
+
+export interface FeaturedVenueEvent {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  imageUrl: string | null;
+  startDt: string;
+  endDt: string;
 }
 
 export interface Vibe {

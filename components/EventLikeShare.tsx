@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
 import { getAnonId } from "@/lib/anon";
+import { logAction } from "@/lib/track-action";
 
 const LIKED_EVENTS_KEY = "fyn:likedEvents";
 
@@ -60,12 +61,14 @@ export default function EventLikeShare({ eventId, eventName, initialLikeCount }:
       try {
         await navigator.share(shareData);
         track("event_shared", { event_id: eventId, event_name: eventName, share_method: "native" });
+        logAction({ anonId: getAnonId(), targetType: "event", targetId: eventId, actionType: "shared" });
       } catch {
         // user cancelled share
       }
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href);
       track("event_shared", { event_id: eventId, event_name: eventName, share_method: "clipboard" });
+      logAction({ anonId: getAnonId(), targetType: "event", targetId: eventId, actionType: "shared" });
       setShared(true);
       setTimeout(() => setShared(false), 2000);
     }

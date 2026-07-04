@@ -8,6 +8,7 @@ import EventLikeShare from "@/components/EventLikeShare";
 import EventDetailTracker from "@/components/EventDetailTracker";
 import TicketLink from "@/components/TicketLink";
 import SaveButton from "@/components/SaveButton";
+import DirectionsLink from "@/components/DirectionsLink";
 
 interface PageProps {
   params: { id: string };
@@ -57,6 +58,16 @@ export default async function EventPage({ params }: PageProps) {
               ? `📍 Private location${e.city ? ` · ${e.city}` : ""}`
               : `${e.venue_name}${e.neighborhood ? ` · ${e.neighborhood}` : ""}`}
           </p>
+
+          {!e.is_private_location && e.address && (
+            <DirectionsLink
+              targetType="event"
+              targetId={e.id as string}
+              address={e.address}
+              lat={e.lat}
+              lng={e.lng}
+            />
+          )}
 
           <div className="rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">
             <p className="text-sm font-semibold">{dateLine}</p>

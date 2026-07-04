@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { logAction } from "@/lib/track-action";
+import { getAnonId } from "@/lib/anon";
 
 type ItemType = "event" | "venue";
 
-export function useSaveState(itemType: ItemType, itemId: string) {
+export function useSaveState(itemType: ItemType, itemId: string, scoringTargetId?: string) {
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,6 +57,11 @@ export function useSaveState(itemType: ItemType, itemId: string) {
         if (!res.ok) throw new Error(`Save failed: ${res.status}`);
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 1800);
+
+        const targetId = scoringTargetId ?? (itemType === "event" ? itemId : undefined);
+        if (targetId) {
+          logAction({ userId, anonId: getAnonId(), targetType: itemType, targetId, actionType: "saved" });
+        }
       } else {
         const res = await fetch("/api/interactions", {
           method: "DELETE",
@@ -90,6 +97,7 @@ export function useSaveState(itemType: ItemType, itemId: string) {
     loading,
     justSaved,
     showAuthModal,
+    userId,
     toggle,
     handleAuthed,
     closeAuthModal: () => setShowAuthModal(false),

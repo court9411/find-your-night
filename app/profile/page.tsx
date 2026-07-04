@@ -67,7 +67,9 @@ export default function ProfilePage() {
       setUserId(user.id);
       setEmail(user.email ?? null);
 
-      // Sync anon_id so pre-auth PostHog events are linkable
+      // Persist anon_id on the profile so pre-auth scoring signals (RPC
+      // calls made before login) can be linked to this account server-side.
+      // PostHog's own anon->user linking happens separately, in PostHogProvider.
       const anonId = typeof window !== "undefined" ? getAnonId() : null;
 
       // Load profile

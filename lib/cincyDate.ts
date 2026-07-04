@@ -59,3 +59,13 @@ export function getCincyLongDate(daysFromNow = 0): string {
     year: "numeric",
   }).format(instant);
 }
+
+/** Formats an ISO timestamp as e.g. "8:00 PM" in Cincinnati local time. */
+export function formatCincyTime(isoString: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: CINCY_TZ,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(isoString));
+}
