@@ -6,6 +6,7 @@ import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import { track } from "@/lib/analytics";
 import OnboardingFlow, { ONBOARDED_KEY } from "@/components/OnboardingFlow";
+import HostEventLink from "@/components/HostEventLink";
 
 const FALLBACK_COORDS = { lat: 39.1031, lng: -84.512 };
 const GEO_COORDS_KEY = "fyn:geoCoords";
@@ -183,9 +184,7 @@ export default function JustAsk() {
           Find My Night
         </button>
 
-        <a href="/submit" className="text-xs text-muted/60 hover:text-muted transition-colors">
-          Hosting an event? →
-        </a>
+        <HostEventLink />
       </div>
     </main>
   );

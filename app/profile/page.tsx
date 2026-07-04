@@ -10,6 +10,7 @@ import ChipGroup from "@/components/ChipGroup";
 import { VIBE_OPTIONS, MUSIC_OPTIONS, ACTIVITY_OPTIONS, BUDGET_OPTIONS } from "@/lib/preferenceOptions";
 import { ONBOARD_PREFS_KEY } from "@/components/OnboardingFlow";
 import { getAnonId } from "@/lib/anon";
+import HostEventLink from "@/components/HostEventLink";
 
 // ── Saved event shape from /api/interactions ──────────────────────────────────
 
@@ -184,6 +185,7 @@ export default function ProfilePage() {
         <Link href="/" className="text-xs text-muted/60 hover:text-muted transition-colors">
           ← Back to app
         </Link>
+        <HostEventLink />
       </main>
     );
   }
@@ -328,6 +330,9 @@ export default function ProfilePage() {
       <Link href="/" className="text-xs text-muted/60 hover:text-muted transition-colors text-center">
         ← Back to app
       </Link>
+      <div className="flex justify-center">
+        <HostEventLink />
+      </div>
     </main>
   );
 }

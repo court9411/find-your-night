@@ -14,6 +14,7 @@ import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
 import { useInView } from "@/lib/useInView";
 import NotInterestedButton from "@/components/NotInterestedButton";
+import HostEventLink from "@/components/HostEventLink";
 
 const INITIAL_TONIGHT_COUNT = 8;
 
@@ -248,6 +249,10 @@ function TonightContent() {
           <FuturePlansSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
         </div>
       )}
+
+      <div className="flex justify-center pt-6 pb-2">
+        <HostEventLink />
+      </div>
     </main>
   );
 }

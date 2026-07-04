@@ -5,6 +5,7 @@ import { formatCincyTime } from "@/lib/cincyDate";
 import { useSaveState } from "@/lib/useSaveState";
 import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
+import HostEventLink from "@/components/HostEventLink";
 
 interface ProgressDots {
   total: number;
@@ -197,6 +198,10 @@ export default function VenueDetailScreen({
           >
             {saved ? "Saved ❤️" : "Save"}
           </button>
+        </div>
+
+        <div className="flex justify-center pt-2">
+          <HostEventLink />
         </div>
       </div>
 

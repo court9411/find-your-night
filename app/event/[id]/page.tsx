@@ -9,6 +9,7 @@ import EventDetailTracker from "@/components/EventDetailTracker";
 import TicketLink from "@/components/TicketLink";
 import SaveButton from "@/components/SaveButton";
 import DirectionsLink from "@/components/DirectionsLink";
+import HostEventLink from "@/components/HostEventLink";
 
 interface PageProps {
   params: { id: string };
@@ -122,6 +123,8 @@ export default async function EventPage({ params }: PageProps) {
           />
         </div>
       </div>
+
+      <HostEventLink />
     </main>
   );
 
