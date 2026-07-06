@@ -18,11 +18,26 @@ import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import { createClient } from "@/lib/supabase/client";
 import { FALLBACK_COORDS, GEO_COORDS_KEY, GEO_AREA_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
 import { track } from "@/lib/analytics";
+import { Venue } from "@/lib/types";
+import { getRankedVenues } from "@/lib/scoring";
+import { sortByProximity } from "@/lib/geo";
+import { getAnonId } from "@/lib/anon";
+import { pickTopVenues } from "@/lib/personalize";
+import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 
 export const ONBOARDED_KEY = "fyn:onboarded";
 export const ONBOARD_PREFS_KEY = "fyn:onboardPrefs";
 
-type Step = "hook" | "value" | "vibes" | "budget" | "learning" | "location" | "email" | "finding";
+type Step =
+  | "hook"
+  | "value"
+  | "vibes"
+  | "budget"
+  | "learning"
+  | "location"
+  | "email"
+  | "finding"
+  | "picks";
 
 const ACTIVITY_ICONS = [
   DrinksIcon,
@@ -143,6 +158,9 @@ export default function OnboardingFlow() {
   const [emailStep, setEmailStep] = useState<"email" | "code">("email");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
+
+  const [allVenues, setAllVenues] = useState<Venue[]>([]);
+  const [pickedVenues, setPickedVenues] = useState<Venue[]>([]);
 
   useEffect(() => {
     track("onboarding_started");
@@ -265,7 +283,16 @@ export default function OnboardingFlow() {
     setStep("finding");
   }
 
-  function finalizeAndRoute() {
+  function resultsUrl() {
+    const finalCoords = coords ?? FALLBACK_COORDS;
+    const p = new URLSearchParams();
+    p.set("lat", String(finalCoords.lat));
+    p.set("lng", String(finalCoords.lng));
+    if (coords) p.set("precise", "1");
+    return `/results?${p.toString()}`;
+  }
+
+  function persistOnboarding() {
     localStorage.setItem(ONBOARDED_KEY, "1");
     if (activityInterests.length > 0 || priceLevels.length > 0) {
       localStorage.setItem(
@@ -273,24 +300,31 @@ export default function OnboardingFlow() {
         JSON.stringify({ activity_interests: activityInterests, price_levels: priceLevels })
       );
     }
-
-    const finalCoords = coords ?? FALLBACK_COORDS;
     if (coords) {
       sessionStorage.setItem(GEO_COORDS_KEY, JSON.stringify(coords));
       if (areaName) sessionStorage.setItem(GEO_AREA_KEY, areaName);
     }
-
     track("onboarding_completed", {
       activity_interests: activityInterests,
       price_levels: priceLevels,
       precise_location: !!coords,
     });
+  }
 
-    const p = new URLSearchParams();
-    p.set("lat", String(finalCoords.lat));
-    p.set("lng", String(finalCoords.lng));
-    if (coords) p.set("precise", "1");
-    router.push(`/results?${p.toString()}`);
+  function finalizeAndRoute() {
+    persistOnboarding();
+    router.push(resultsUrl());
+  }
+
+  // Tapping a pick card mid-onboarding counts as "arrived" — persist same as
+  // finishing normally, then drop into the story view with the full ranked
+  // list cached so back/next navigation there works exactly like /results.
+  function viewVenueDetail(venue: Venue) {
+    persistOnboarding();
+    const index = Math.max(0, allVenues.indexOf(venue));
+    sessionStorage.setItem(RESULTS_KEY, JSON.stringify(allVenues));
+    sessionStorage.setItem(RESULT_BACK_KEY, resultsUrl());
+    router.push(`/tonight/${index}`);
   }
 
   // ── Screen 1: Hook ──────────────────────────────────────────────────────────
@@ -522,7 +556,22 @@ export default function OnboardingFlow() {
   }
 
   // ── Screen 8: Finding Tonight (payoff) ────────────────────────────────────
-  return <FindingScreen onDone={finalizeAndRoute} />;
+  if (step === "finding") {
+    return (
+      <FindingScreen
+        coords={coords ?? FALLBACK_COORDS}
+        onPicks={(venues) => {
+          setAllVenues(venues);
+          setPickedVenues(pickTopVenues(venues, { activityInterests, priceLevels }));
+          setStep("picks");
+        }}
+        onEmpty={finalizeAndRoute}
+      />
+    );
+  }
+
+  // ── Screen 9: Your Top Picks ──────────────────────────────────────────────
+  return <PicksScreen venues={pickedVenues} onSelectVenue={viewVenueDetail} onContinue={finalizeAndRoute} />;
 }
 
 // ── Screen 2 subcomponent — staggers example cards in ──────────────────────
@@ -639,19 +688,45 @@ function LearningScreen({
 }
 
 // ── Screen 8 subcomponent — progress + rotating status lines ────────────────
-function FindingScreen({ onDone }: { onDone: () => void }) {
+// Runs the perceived-progress animation and the real venue fetch side by
+// side, and only advances once both are done — so it never flashes past the
+// animation, but also never waits longer than the fetch actually takes.
+function FindingScreen({
+  coords,
+  onPicks,
+  onEmpty,
+}: {
+  coords: { lat: number; lng: number };
+  onPicks: (venues: Venue[]) => void;
+  onEmpty: () => void;
+}) {
   const [progress, setProgress] = useState(0);
   const [msgIndex, setMsgIndex] = useState(0);
-  const doneRef = useRef(false);
+  const animDoneRef = useRef(false);
+  const venuesRef = useRef<Venue[] | null>(null);
+  const advancedRef = useRef(false);
+  const onPicksRef = useRef(onPicks);
+  const onEmptyRef = useRef(onEmpty);
+  onPicksRef.current = onPicks;
+  onEmptyRef.current = onEmpty;
+
+  function maybeAdvance() {
+    if (advancedRef.current) return;
+    if (!animDoneRef.current || venuesRef.current === null) return;
+    advancedRef.current = true;
+    const venues = venuesRef.current;
+    if (venues.length > 0) onPicksRef.current(venues);
+    else onEmptyRef.current();
+  }
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
           clearInterval(progressInterval);
-          if (!doneRef.current) {
-            doneRef.current = true;
-            setTimeout(onDone, 300);
+          if (!animDoneRef.current) {
+            animDoneRef.current = true;
+            setTimeout(maybeAdvance, 300);
           }
           return 100;
         }
@@ -668,6 +743,38 @@ function FindingScreen({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      let venues: Venue[] = [];
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const ranked = await getRankedVenues({
+          userId: user?.id ?? null,
+          anonId: getAnonId(),
+          lat: coords.lat,
+          lng: coords.lng,
+          limit: 20,
+        });
+        venues = sortByProximity(ranked, coords);
+      } catch {
+        venues = [];
+      }
+      if (!cancelled) {
+        venuesRef.current = venues;
+        maybeAdvance();
+      }
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords.lat, coords.lng]);
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-8">
       <div className="w-full max-w-[220px]">
@@ -679,6 +786,59 @@ function FindingScreen({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       <p className="mt-6 text-sm text-muted">{FINDING_MESSAGES[msgIndex]}</p>
+    </main>
+  );
+}
+
+// ── Screen 9 subcomponent — the payoff: real top picks before the full feed ─
+function PicksScreen({
+  venues,
+  onSelectVenue,
+  onContinue,
+}: {
+  venues: Venue[];
+  onSelectVenue: (venue: Venue) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <main className="relative flex flex-col justify-between min-h-screen px-6 pt-20 pb-10">
+      <div key="picks" className="animate-fadeUp opacity-0">
+        <h2 className="font-display font-bold text-white text-[28px]">Your top picks tonight.</h2>
+        <p className="mt-2 text-sm text-muted">Based on what you just picked.</p>
+
+        <div className="mt-6 flex flex-col gap-3">
+          {venues.map((venue, i) => (
+            <button
+              key={venue.id ?? venue.name}
+              onClick={() => onSelectVenue(venue)}
+              className="w-full text-left rounded-2xl px-4 py-3.5 bg-[#1A1A1A] border border-[#2E2E2E] animate-fadeUp opacity-0 active:scale-[0.98] transition-transform"
+              style={{ animationDelay: `${i * 120}ms` }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-display text-lg tracking-wide text-white leading-tight">{venue.name}</p>
+                <span className="text-accent font-display font-bold text-sm shrink-0">{venue.price}</span>
+              </div>
+              <p className="text-xs text-muted mt-1">
+                {venue.type}
+                {venue.neighborhood ? ` · ${venue.neighborhood}` : ""}
+              </p>
+              {venue.liveTonight && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Live Tonight</span>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <PrimaryButton onClick={onContinue}>See Tonight&apos;s Full Lineup →</PrimaryButton>
+      </div>
     </main>
   );
 }
