@@ -69,3 +69,27 @@ export function formatCincyTime(isoString: string): string {
     hour12: true,
   }).format(new Date(isoString));
 }
+
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/**
+ * Returns the current day-of-week (0=Sunday..6=Saturday, matching Google
+ * Places API's day numbering) and minutes-since-midnight, both in
+ * Cincinnati local time. Used for computing whether a venue is open right
+ * now from its stored weekly hours — see lib/venueHours.ts.
+ */
+export function getCincyDayAndMinutes(date: Date = new Date()): { day: number; minutes: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CINCY_TZ,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return {
+    day: WEEKDAY_INDEX[lookup.weekday],
+    minutes: Number(lookup.hour) * 60 + Number(lookup.minute),
+  };
+}

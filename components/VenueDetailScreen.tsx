@@ -59,6 +59,27 @@ export default function VenueDetailScreen({
       <div className="relative mx-5 rounded-2xl overflow-hidden mb-5">
         {event?.imageUrl ? (
           <img src={event.imageUrl} alt={event.name} className="w-full h-56 object-cover" />
+        ) : venue.imageUrl ? (
+          <>
+            <img src={venue.imageUrl} alt={venue.name} className="w-full h-56 object-cover" />
+            {venue.photoAttribution?.name && (
+              <p className="absolute bottom-1.5 right-2 text-[10px] text-white/70">
+                Photo:{" "}
+                {venue.photoAttribution.uri ? (
+                  <a
+                    href={venue.photoAttribution.uri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    {venue.photoAttribution.name}
+                  </a>
+                ) : (
+                  venue.photoAttribution.name
+                )}
+              </p>
+            )}
+          </>
         ) : (
           <div className="w-full h-56 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex items-center justify-center">
             <span className="text-5xl opacity-30" aria-hidden>

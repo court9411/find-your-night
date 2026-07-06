@@ -290,12 +290,18 @@ function RailCard({
       onClick={handleClick}
       className="flex-none w-44 rounded-2xl border border-card-border bg-card overflow-hidden cursor-pointer active:scale-95 transition-transform"
     >
-      {venue.imageUrl && (
+      {venue.imageUrl ? (
         <img
           src={venue.imageUrl}
           alt={venue.name}
           className="w-full h-28 object-contain bg-black/20"
         />
+      ) : (
+        <div className="w-full h-28 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex items-center justify-center">
+          <span className="text-3xl opacity-30" aria-hidden>
+            🌙
+          </span>
+        </div>
       )}
       <div className="p-3 flex flex-col gap-0.5">
         {venue.liveTonight && (

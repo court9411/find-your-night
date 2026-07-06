@@ -14,6 +14,7 @@ export interface Venue {
   lng?: number | null;
   distanceMiles?: number;
   imageUrl?: string | null;
+  photoAttribution?: { name: string | null; uri: string | null } | null;
   eventDate?: string | null;
   eventTime?: string | null;
   blackOwned?: boolean | null;
@@ -21,6 +22,7 @@ export interface Venue {
   address?: string | null;
   hours?: string | null;
   happyHour?: string | null;
+  isOpenNow?: boolean | null;
   placeId?: string | null;
   liveTonight?: { id: string; eventName: string; startDt: string } | null;
 }

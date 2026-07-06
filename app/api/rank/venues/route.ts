@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { mapPriceLevel, deriveType } from "@/lib/venueMappers";
+import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/venueMappers";
+import { isVenueOpenNow, RegularHours } from "@/lib/venueHours";
 import { Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
 import { getCincyDateString, getTonightDateString } from "@/lib/cincyDate";
@@ -28,6 +29,8 @@ interface DbVenue {
   why_tonight: string | null;
   hours: string | null;
   happy_hour: string | null;
+  regular_hours: RegularHours | null;
+  venue_photos: VenuePhotoRow | VenuePhotoRow[] | null;
 }
 
 export async function POST(request: Request) {
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
   const { data: dbVenues, error: hydrateError } = await supabaseAdmin
     .from("venues")
     .select(
-      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour"
+      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour, regular_hours, venue_photos(photo_url, attribution_name, attribution_uri, photo_source)"
     )
     .in("id", ids);
 
@@ -99,24 +102,30 @@ export async function POST(request: Request) {
     })
   );
 
-  const venues: Venue[] = hydratedVenues.map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: deriveType(row.types),
-    neighborhood: row.neighborhood || "",
-    description: "",
-    whyTonight: row.why_tonight ?? "",
-    price: mapPriceLevel(row.price_level),
-    tags: row.vibe_tags ?? [],
-    blackOwned: row.black_owned ?? null,
-    address: row.address,
-    hours: row.hours,
-    happyHour: row.happy_hour,
-    lat: row.lat,
-    lng: row.lng,
-    placeId: row.place_id ?? null,
-    liveTonight: liveTonightById.get(row.id) ?? null,
-  }));
+  const venues: Venue[] = hydratedVenues.map((row) => {
+    const photo = pickVenuePhoto(row.venue_photos);
+    return {
+      id: row.id,
+      name: row.name,
+      type: deriveType(row.types),
+      neighborhood: row.neighborhood || "",
+      description: "",
+      whyTonight: row.why_tonight ?? "",
+      price: mapPriceLevel(row.price_level),
+      tags: row.vibe_tags ?? [],
+      blackOwned: row.black_owned ?? null,
+      address: row.address,
+      hours: row.hours,
+      happyHour: row.happy_hour,
+      lat: row.lat,
+      lng: row.lng,
+      placeId: row.place_id ?? null,
+      liveTonight: liveTonightById.get(row.id) ?? null,
+      imageUrl: photo?.photo_url ?? null,
+      photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
+      isOpenNow: isVenueOpenNow(row.regular_hours),
+    };
+  });
 
   return NextResponse.json({ venues });
 }

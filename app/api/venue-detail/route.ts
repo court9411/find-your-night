@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { mapPriceLevel, deriveType } from "@/lib/venueMappers";
+import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/venueMappers";
+import { isVenueOpenNow, RegularHours } from "@/lib/venueHours";
 import { FeaturedVenueEvent, Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
 
@@ -22,6 +23,8 @@ interface DbVenue {
   why_tonight: string | null;
   hours: string | null;
   happy_hour: string | null;
+  regular_hours: RegularHours | null;
+  venue_photos: VenuePhotoRow | VenuePhotoRow[] | null;
 }
 
 function fallbackDescription(raw: string | null, eventName: string): string {
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
   const { data: dbVenue, error: venueError } = await supabaseAdmin
     .from("venues")
     .select(
-      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour"
+      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour, regular_hours, venue_photos(photo_url, attribution_name, attribution_uri, photo_source)"
     )
     .eq("id", venueId)
     .single();
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
   }
 
   const row = dbVenue as DbVenue;
+  const photo = pickVenuePhoto(row.venue_photos);
   const venue: Venue = {
     id: row.id,
     name: row.name,
@@ -104,6 +108,9 @@ export async function POST(request: Request) {
     lat: row.lat,
     lng: row.lng,
     placeId: row.place_id ?? null,
+    imageUrl: photo?.photo_url ?? null,
+    photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
+    isOpenNow: isVenueOpenNow(row.regular_hours),
   };
 
   const liveEvents = await fetchVenueLiveEvents(supabaseAdmin, venueId);

@@ -8,7 +8,8 @@ import { getSupplementalVenues } from "@/lib/supplementalVenues";
 import { shuffle } from "@/lib/shuffle";
 import { haversineMiles, Coords } from "@/lib/geo";
 import { getCincyWeekday } from "@/lib/cincyDate";
-import { deriveType, mapPriceLevel } from "@/lib/venueMappers";
+import { deriveType, mapPriceLevel, pickVenuePhoto, VenuePhotoRow } from "@/lib/venueMappers";
+import { isVenueOpenNow, RegularHours } from "@/lib/venueHours";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -63,6 +64,7 @@ function extractNeighborhood(address: string | null): string {
 // ── DB-backed vibe search ────────────────────────────────────────────────────
 
 interface DbVenue {
+  id: string;
   place_id: string;
   name: string;
   address: string | null;
@@ -79,6 +81,8 @@ interface DbVenue {
   special_nights: { day: string; note: string }[] | null;
   hours: string | null;
   happy_hour: string | null;
+  regular_hours: RegularHours | null;
+  venue_photos: VenuePhotoRow | VenuePhotoRow[] | null;
 }
 
 // Returns today's special-night note for a venue, if it has one for the
@@ -111,7 +115,7 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
   let query = supabaseAdmin
     .from("venues")
     .select(
-      "place_id, name, address, lat, lng, types, rating, price_level, vibe_tags, black_owned, source, neighborhood, why_tonight, special_nights, hours, happy_hour"
+      "id, place_id, name, address, lat, lng, types, rating, price_level, vibe_tags, black_owned, source, neighborhood, why_tonight, special_nights, hours, happy_hour, regular_hours, venue_photos(photo_url, attribution_name, attribution_uri, photo_source)"
     );
 
   if (requiredTypes) {
@@ -167,7 +171,9 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
 
   const venues: Venue[] = selected.map((row) => {
     const todayNote = todaysSpecialNote(row, today);
+    const photo = pickVenuePhoto(row.venue_photos);
     return {
+      id: row.id,
       name: row.name,
       type: deriveType(row.types),
       neighborhood: row.neighborhood || extractNeighborhood(row.address),
@@ -182,6 +188,9 @@ async function searchVenuesByVibe(label: string, userCoords: Coords | null): Pro
       lat: row.lat,
       lng: row.lng,
       placeId: row.place_id ?? null,
+      imageUrl: photo?.photo_url ?? null,
+      photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
+      isOpenNow: isVenueOpenNow(row.regular_hours),
     };
   });
 
