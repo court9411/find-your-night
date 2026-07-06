@@ -88,20 +88,32 @@ export default function ProfilePage() {
           // Merge anon-era data: link anon_id, and adopt onboarding-collected
           // interests only if the user hasn't set real ones yet — never
           // clobber an existing profile's preferences.
-          const patchBody: { anon_id?: string; activity_interests?: string[] } = {};
+          const patchBody: { anon_id?: string; activity_interests?: string[]; price_levels?: number[] } = {};
           if (anonId && !profile.anon_id) {
             patchBody.anon_id = anonId;
           }
-          if ((profile.activity_interests ?? []).length === 0) {
-            try {
-              const raw = localStorage.getItem(ONBOARD_PREFS_KEY);
-              const onboardPrefs: { activity_interests?: string[] } | null = raw ? JSON.parse(raw) : null;
-              if (onboardPrefs?.activity_interests && onboardPrefs.activity_interests.length > 0) {
-                patchBody.activity_interests = onboardPrefs.activity_interests;
-                setActivityInterests(onboardPrefs.activity_interests);
-              }
-            } catch {}
-          }
+          try {
+            const raw = localStorage.getItem(ONBOARD_PREFS_KEY);
+            const onboardPrefs: { activity_interests?: string[]; price_levels?: number[] } | null = raw
+              ? JSON.parse(raw)
+              : null;
+            if (
+              (profile.activity_interests ?? []).length === 0 &&
+              onboardPrefs?.activity_interests &&
+              onboardPrefs.activity_interests.length > 0
+            ) {
+              patchBody.activity_interests = onboardPrefs.activity_interests;
+              setActivityInterests(onboardPrefs.activity_interests);
+            }
+            if (
+              (profile.price_levels ?? []).length === 0 &&
+              onboardPrefs?.price_levels &&
+              onboardPrefs.price_levels.length > 0
+            ) {
+              patchBody.price_levels = onboardPrefs.price_levels;
+              setPriceLevels(onboardPrefs.price_levels);
+            }
+          } catch {}
           if (Object.keys(patchBody).length > 0) {
             fetch("/api/profile", {
               method: "PATCH",

@@ -7,11 +7,7 @@ import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompl
 import { track } from "@/lib/analytics";
 import OnboardingFlow, { ONBOARDED_KEY } from "@/components/OnboardingFlow";
 import HostEventLink from "@/components/HostEventLink";
-
-const FALLBACK_COORDS = { lat: 39.1031, lng: -84.512 };
-const GEO_COORDS_KEY = "fyn:geoCoords";
-const GEO_AREA_KEY = "fyn:geoArea";
-const GEO_DENIED_KEY = "fyn:geoDenied";
+import { FALLBACK_COORDS, GEO_COORDS_KEY, GEO_AREA_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
 
 export default function JustAsk() {
   const router = useRouter();
@@ -115,7 +111,7 @@ export default function JustAsk() {
   }
 
   if (!onboarded) {
-    return <OnboardingFlow onDone={() => setOnboarded(true)} />;
+    return <OnboardingFlow />;
   }
 
   return (
