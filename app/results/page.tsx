@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
+import { formatMatchReason } from "@/lib/matchReason";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
@@ -269,6 +270,7 @@ function RailCard({
   userId: string | null;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>();
+  const matchReason = formatMatchReason(venue);
 
   useEffect(() => {
     if (inView && venue.id) {
@@ -322,6 +324,9 @@ function RailCard({
             <> · {venue.distanceMiles.toFixed(1)}mi</>
           )}
         </p>
+        {matchReason && (
+          <p className="text-[10px] text-accent font-semibold leading-tight line-clamp-1">{matchReason}</p>
+        )}
         <p className="text-[11px] text-accent font-semibold mt-0.5">{venue.price}</p>
       </div>
     </div>

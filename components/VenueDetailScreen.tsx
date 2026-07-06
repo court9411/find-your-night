@@ -2,6 +2,7 @@
 
 import { Venue, FeaturedVenueEvent } from "@/lib/types";
 import { formatCincyTime } from "@/lib/cincyDate";
+import { formatMatchReason } from "@/lib/matchReason";
 import { useSaveState } from "@/lib/useSaveState";
 import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
@@ -43,6 +44,7 @@ export default function VenueDetailScreen({
   );
 
   const tags = event ? event.tags : venue.tags;
+  const matchReason = formatMatchReason(venue);
 
   return (
     <main className="flex flex-col min-h-screen pb-12">
@@ -184,6 +186,9 @@ export default function VenueDetailScreen({
             </div>
           )
         )}
+
+        {/* Match reason — why this is in your rail, distinct from why_tonight's "what is this place" */}
+        {matchReason && <p className="text-xs font-semibold text-accent">{matchReason}</p>}
 
         {/* Vibe tags */}
         {tags.length > 0 && (

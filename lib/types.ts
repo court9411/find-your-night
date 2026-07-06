@@ -25,6 +25,9 @@ export interface Venue {
   isOpenNow?: boolean | null;
   placeId?: string | null;
   liveTonight?: { id: string; eventName: string; startDt: string } | null;
+  matchedTags?: string[] | null;
+  budgetMatch?: boolean | null;
+  distanceMi?: number | null;
 }
 
 export interface FeaturedVenueEvent {

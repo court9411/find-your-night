@@ -12,6 +12,8 @@ interface RankedVenueRow {
   vibe_tags: string[] | null;
   distance_mi: number | null;
   final_score: number;
+  matched_tags: string[] | null;
+  budget_match: boolean | null;
 }
 
 interface DbVenue {
@@ -81,19 +83,22 @@ export async function POST(request: Request) {
   const byId = new Map((dbVenues ?? []).map((v) => [v.id, v as DbVenue]));
 
   const hydratedVenues = rankedRows
-    .map((row) => byId.get(row.venue_id))
-    .filter((v): v is DbVenue => !!v);
+    .map((rankedRow) => {
+      const dbVenue = byId.get(rankedRow.venue_id);
+      return dbVenue ? { dbVenue, rankedRow } : null;
+    })
+    .filter((v): v is { dbVenue: DbVenue; rankedRow: RankedVenueRow } => !!v);
 
   // Batch the "is anything live tonight" check server-side, once per rail load,
   // rather than having each rail card fire its own request.
   const tonight = getTonightDateString();
   const liveTonightById = new Map<string, Venue["liveTonight"]>();
   await Promise.all(
-    hydratedVenues.map(async (row) => {
-      const liveEvents = await fetchVenueLiveEvents(supabaseAdmin, row.id);
+    hydratedVenues.map(async ({ dbVenue }) => {
+      const liveEvents = await fetchVenueLiveEvents(supabaseAdmin, dbVenue.id);
       const soonest = liveEvents[0];
       if (soonest && getCincyDateString(new Date(soonest.start_dt)) === tonight) {
-        liveTonightById.set(row.id, {
+        liveTonightById.set(dbVenue.id, {
           id: soonest.event_id,
           eventName: soonest.event_name,
           startDt: soonest.start_dt,
@@ -102,7 +107,7 @@ export async function POST(request: Request) {
     })
   );
 
-  const venues: Venue[] = hydratedVenues.map((row) => {
+  const venues: Venue[] = hydratedVenues.map(({ dbVenue: row, rankedRow }) => {
     const photo = pickVenuePhoto(row.venue_photos);
     return {
       id: row.id,
@@ -124,6 +129,9 @@ export async function POST(request: Request) {
       imageUrl: photo?.photo_url ?? null,
       photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
       isOpenNow: isVenueOpenNow(row.regular_hours),
+      matchedTags: rankedRow.matched_tags ?? [],
+      budgetMatch: rankedRow.budget_match ?? null,
+      distanceMi: rankedRow.distance_mi ?? null,
     };
   });
 
