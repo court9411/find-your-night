@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/venueMappers";
-import { isVenueOpenNow, RegularHours } from "@/lib/venueHours";
+import { isVenueOpenNow, getHoursStatus, RegularHours } from "@/lib/venueHours";
 import { FeaturedVenueEvent, Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
 
@@ -111,6 +111,7 @@ export async function POST(request: Request) {
     imageUrl: photo?.photo_url ?? null,
     photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
     isOpenNow: isVenueOpenNow(row.regular_hours),
+    hoursStatus: getHoursStatus(row.regular_hours),
   };
 
   const liveEvents = await fetchVenueLiveEvents(supabaseAdmin, venueId);

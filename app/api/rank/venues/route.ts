@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/venueMappers";
-import { isVenueOpenNow, RegularHours } from "@/lib/venueHours";
+import { isVenueOpenNow, getHoursStatus, RegularHours } from "@/lib/venueHours";
 import { Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
 import { getCincyDateString, getTonightDateString } from "@/lib/cincyDate";
@@ -129,6 +129,7 @@ export async function POST(request: Request) {
       imageUrl: photo?.photo_url ?? null,
       photoAttribution: photo ? { name: photo.attribution_name, uri: photo.attribution_uri } : null,
       isOpenNow: isVenueOpenNow(row.regular_hours),
+      hoursStatus: getHoursStatus(row.regular_hours),
       matchedTags: rankedRow.matched_tags ?? [],
       budgetMatch: rankedRow.budget_match ?? null,
       distanceMi: rankedRow.distance_mi ?? null,

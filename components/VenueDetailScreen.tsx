@@ -175,20 +175,17 @@ export default function VenueDetailScreen({
         {/* WHY TONIGHT */}
         {event ? (
           <div className="rounded-xl border-l-2 border-accent bg-accent/10 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1.5">Why Tonight</p>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1.5">About this spot</p>
             <p className="text-sm leading-relaxed">{event.description}</p>
           </div>
         ) : (
           venue.whyTonight && (
             <div className="rounded-xl border-l-2 border-zinc-600 bg-white/5 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-1.5">Why Tonight</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-1.5">About this spot</p>
               <p className="text-sm leading-relaxed">{venue.whyTonight}</p>
             </div>
           )
         )}
-
-        {/* Match reason — why this is in your rail, distinct from why_tonight's "what is this place" */}
-        {matchReason && <p className="text-xs font-semibold text-accent">{matchReason}</p>}
 
         {/* Vibe tags */}
         {tags.length > 0 && (
@@ -202,6 +199,24 @@ export default function VenueDetailScreen({
               </span>
             ))}
           </div>
+        )}
+
+        {/* Match reason — personalized, tonight-specific trust signal distinct from the static "About this spot" blurb */}
+        {matchReason && (
+          <div className="rounded-lg border border-accent/20 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1">Why Tonight</p>
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-accent">
+              <span aria-hidden>✨</span>
+              <span>{matchReason}</span>
+            </p>
+          </div>
+        )}
+
+        {/* Hours status — computed server-side from stored weekly hours */}
+        {venue.hoursStatus && (
+          <p className={`text-xs ${venue.hoursStatus.closingSoon ? "text-orange-400" : "text-muted"}`}>
+            {venue.hoursStatus.text}
+          </p>
         )}
 
         {/* Skip / Save */}

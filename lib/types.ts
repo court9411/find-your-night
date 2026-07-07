@@ -23,6 +23,7 @@ export interface Venue {
   hours?: string | null;
   happyHour?: string | null;
   isOpenNow?: boolean | null;
+  hoursStatus?: { text: string; closingSoon: boolean } | null;
   placeId?: string | null;
   liveTonight?: { id: string; eventName: string; startDt: string } | null;
   matchedTags?: string[] | null;
