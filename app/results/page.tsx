@@ -4,18 +4,19 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
-import { formatMatchReason } from "@/lib/matchReason";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
+import { RailSection } from "@/components/RailSection";
+import { TONIGHT_RAILS } from "@/lib/homeRails";
 import { track } from "@/lib/analytics";
 import { getRankedVenues } from "@/lib/scoring";
 import { logAction } from "@/lib/track-action";
 import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
-import { useInView } from "@/lib/useInView";
 import NotInterestedButton from "@/components/NotInterestedButton";
 import HostEventLink from "@/components/HostEventLink";
+import VenueRailCard from "@/components/VenueRailCard";
 
 const INITIAL_TONIGHT_COUNT = 8;
 
@@ -211,7 +212,7 @@ function TonightContent() {
             >
               {visibleVenues!.map((venue, index) => {
                 const card = (
-                  <RailCard
+                  <VenueRailCard
                     venue={venue}
                     onClick={() => toStory(index)}
                     showDistance={isPrecise}
@@ -246,6 +247,10 @@ function TonightContent() {
             </div>
           </div>
 
+          {TONIGHT_RAILS.map((rail) => (
+            <RailSection key={rail.id} config={rail} lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
+          ))}
+
           <WhatsHappeningSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
           <FuturePlansSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
         </div>
@@ -255,81 +260,6 @@ function TonightContent() {
         <HostEventLink />
       </div>
     </main>
-  );
-}
-
-function RailCard({
-  venue,
-  onClick,
-  showDistance,
-  userId,
-}: {
-  venue: Venue;
-  onClick: () => void;
-  showDistance: boolean;
-  userId: string | null;
-}) {
-  const { ref, inView } = useInView<HTMLDivElement>();
-  const matchReason = formatMatchReason(venue);
-
-  useEffect(() => {
-    if (inView && venue.id) {
-      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: venue.id, actionType: "viewed" });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView]);
-
-  function handleClick() {
-    if (venue.id) {
-      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: venue.id, actionType: "clicked" });
-    }
-    onClick();
-  }
-
-  return (
-    <div
-      ref={ref}
-      onClick={handleClick}
-      className="flex-none w-44 rounded-2xl border border-card-border bg-card overflow-hidden cursor-pointer active:scale-95 transition-transform"
-    >
-      {venue.imageUrl ? (
-        <img
-          src={venue.imageUrl}
-          alt={venue.name}
-          className="w-full h-28 object-contain bg-black/20"
-        />
-      ) : (
-        <div className="w-full h-28 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex items-center justify-center">
-          <span className="text-3xl opacity-30" aria-hidden>
-            🌙
-          </span>
-        </div>
-      )}
-      <div className="p-3 flex flex-col gap-0.5">
-        {venue.liveTonight && (
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-accent">Live Tonight</span>
-          </div>
-        )}
-        <p className="font-display text-base tracking-wide leading-tight line-clamp-1">
-          {venue.name}
-        </p>
-        <p className="text-[11px] text-muted leading-tight line-clamp-1">
-          {venue.type} · {venue.neighborhood}
-          {showDistance && venue.distanceMiles !== undefined && (
-            <> · {venue.distanceMiles.toFixed(1)}mi</>
-          )}
-        </p>
-        {matchReason && (
-          <p className="text-[10px] text-accent font-semibold leading-tight line-clamp-1">{matchReason}</p>
-        )}
-        <p className="text-[11px] text-accent font-semibold mt-0.5">{venue.price}</p>
-      </div>
-    </div>
   );
 }
 
