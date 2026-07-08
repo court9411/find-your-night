@@ -162,7 +162,8 @@ function TonightContent() {
             <span aria-hidden>←</span>
             <span>Back</span>
           </button>
-          <h1 className="font-display font-extrabold text-4xl tracking-tight">Tonight</h1>
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">Your Night Picks</h1>
+          <p className="text-sm text-muted mt-1">Pick what feels right — we&apos;ll get smarter as you go.</p>
         </div>
         <button
           onClick={() => router.push("/profile")}

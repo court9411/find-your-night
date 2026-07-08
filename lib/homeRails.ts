@@ -11,7 +11,13 @@ export interface RailConfig {
 }
 
 export const TONIGHT_RAILS: RailConfig[] = [
-  { id: "trending", emoji: "🔥", title: "Trending Right Now", timeContext: "tonight", railType: "trending" },
+  // Label only — id/railType stay "trending" so get_rail_venues,
+  // trending_featured_days day-scoping, etc. keep working unmodified.
+  // "Trending" overclaims while this rail is populated by manually-flagged
+  // venues (is_trending_featured) rather than real engagement data —
+  // revisit once venue_popularity.recent_score has enough activity behind
+  // it to earn the word back. Not a permanent rename.
+  { id: "trending", emoji: "🔥", title: "Popular Picks", timeContext: "tonight", railType: "trending" },
   { id: "date_night", emoji: "❤️", title: "Date Night", timeContext: "tonight", railType: "date_night" },
   // price_level = 1 covers "free or cheap" as one combined tier in the
   // schema — "Budget-Friendly" is the honest name for that; "Free Stuff"
