@@ -81,8 +81,8 @@ export default function EventRailCard({
                 </span>
               )}
             </div>
-            <div className="p-2.5">
-              <p className="text-white text-xs font-semibold truncate leading-snug">
+            <div className="p-2.5 min-w-0">
+              <p className="text-white text-xs font-semibold line-clamp-2 leading-snug">
                 {event.event_name}
               </p>
               <p className="text-zinc-500 text-[10px] truncate mt-0.5">

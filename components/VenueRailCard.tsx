@@ -57,7 +57,7 @@ export default function VenueRailCard({ venue, userId, showDistance = false, hre
           </span>
         </div>
       )}
-      <div className="p-3 flex flex-col gap-0.5">
+      <div className="p-3 flex flex-col gap-0.5 min-w-0">
         {venue.liveTonight && (
           <div className="flex items-center gap-1 mb-0.5">
             <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
@@ -67,13 +67,13 @@ export default function VenueRailCard({ venue, userId, showDistance = false, hre
             <span className="text-[9px] font-bold uppercase tracking-widest text-accent">Live Tonight</span>
           </div>
         )}
-        <p className="font-display text-base tracking-wide leading-tight line-clamp-1">{venue.name}</p>
+        <p className="font-display text-base tracking-wide leading-tight line-clamp-2">{venue.name}</p>
         <p className="text-[11px] text-muted leading-tight line-clamp-1">
           {venue.type} · {venue.neighborhood}
           {showDistance && distanceMiles != null && <> · {distanceMiles.toFixed(1)}mi</>}
         </p>
         {matchReason && (
-          <p className="text-[10px] text-accent font-semibold leading-tight line-clamp-1">{matchReason}</p>
+          <p className="text-[10px] text-accent font-semibold leading-tight truncate">{matchReason}</p>
         )}
         <p className="text-[11px] text-accent font-semibold mt-0.5">{venue.price}</p>
       </div>
