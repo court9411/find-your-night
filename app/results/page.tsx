@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
-import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
-import { FuturePlansSection } from "@/components/FuturePlansSection";
+import { LineupSection } from "@/components/LineupSection";
 import { RailSection } from "@/components/RailSection";
 import { RailConfig } from "@/lib/homeRails";
 import { track } from "@/lib/analytics";
@@ -272,8 +271,7 @@ function TonightContent() {
             <RailSection key={rail.id} config={rail} lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
           ))}
 
-          <WhatsHappeningSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
-          <FuturePlansSection lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
+          <LineupSection userId={userId} />
         </div>
       )}
 
