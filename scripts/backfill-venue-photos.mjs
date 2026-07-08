@@ -82,14 +82,18 @@ async function fetchVenuePhoto(placeId) {
 // ── Supabase ─────────────────────────────────────────────────────────────────
 
 async function fetchVenuesNeedingPhotos() {
-  // Curated venues use synthetic place_ids (e.g. "curated-bar-29") for
-  // venues that were never matched to a real Google Place — Google will
-  // always 400 on these, so there's no point ever calling Places for them.
+  // Some curated venues use synthetic place_ids (e.g. "curated-bar-29") for
+  // venues never matched to a real Google Place — Google always 400s on
+  // those. But plenty of curated venues *were* matched to a real listing
+  // during curation and have a normal "ChIJ..." place_id, so excluding by
+  // `source = 'curated'` wrongly skipped them too (found via Supabase MCP:
+  // 15 curated venues had real place_ids and were silently never synced).
+  // Filter on the place_id shape itself instead.
   const { data: venues, error: venuesError } = await supabase
     .from("venues")
     .select("id, name, place_id")
     .not("place_id", "is", null)
-    .neq("source", "curated");
+    .not("place_id", "like", "curated-%");
   if (venuesError) throw venuesError;
 
   // Scoped to our own 'google' rows — a venue can also have a promoter/user/
