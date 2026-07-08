@@ -70,6 +70,38 @@ export function formatCincyTime(isoString: string): string {
   }).format(new Date(isoString));
 }
 
+export type NightlifeMode = "daytime" | "nightlife";
+
+export interface NightlifeContext {
+  mode: NightlifeMode;
+  dayOfWeek: string;
+}
+
+/**
+ * Determines the daytime (4am-4pm) vs. nightlife (4pm-4am) window a moment
+ * falls in, and which calendar day that window belongs to. The nightlife
+ * window rolls over at 4am, not midnight — 1:30am Friday is still
+ * "Thursday night" (matters for venues.trending_featured_days scoping,
+ * which would otherwise flip to Friday mid-night). Always compute this
+ * server-side: a client Date() reflects the device's own clock/timezone,
+ * not Cincinnati's.
+ */
+export function getNightlifeContext(now: Date = new Date(), timezone: string = CINCY_TZ): NightlifeContext {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "2-digit", hourCycle: "h23" }).format(now)
+  );
+  const mode: NightlifeMode = hour >= 4 && hour < 16 ? "daytime" : "nightlife";
+
+  // Same rollover as getTonightDateString: before 4am local, this moment
+  // still belongs to the previous calendar day's night.
+  const effectiveInstant = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const dayOfWeek = new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "long" })
+    .format(effectiveInstant)
+    .toLowerCase();
+
+  return { mode, dayOfWeek };
+}
+
 const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
 /**

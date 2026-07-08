@@ -4,7 +4,7 @@ import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/
 import { isVenueOpenNow, getHoursStatus, RegularHours } from "@/lib/venueHours";
 import { Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
-import { getCincyDateString, getCincyWeekday, getTonightDateString } from "@/lib/cincyDate";
+import { getCincyDateString, getNightlifeContext, getTonightDateString } from "@/lib/cincyDate";
 
 // Keep in sync with lib/homeRails.ts's railType values and the p_rail_type
 // cases inside the get_rail_venues Postgres function.
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     lat?: unknown;
     lng?: unknown;
     limit?: unknown;
+    categories?: unknown;
   };
   try {
     body = await request.json();
@@ -63,15 +64,22 @@ export async function POST(request: Request) {
   const lat = typeof body.lat === "number" ? body.lat : null;
   const lng = typeof body.lng === "number" ? body.lng : null;
   const limit = typeof body.limit === "number" ? body.limit : 10;
+  const categories =
+    Array.isArray(body.categories) && body.categories.every((c) => typeof c === "string")
+      ? (body.categories as string[])
+      : null;
 
   // get_rail_venues defaults p_day_of_week to the DB server's UTC day, which
   // is wrong near midnight Eastern (e.g. 11pm Thursday in Cincinnati is
   // already Friday UTC). Always compute it here in Cincinnati local time
   // and pass it explicitly — confirmed empirically that the RPC expects the
-  // full capitalized weekday name ("Tuesday"), not an abbreviation: passing
+  // full weekday name ("Tuesday"/"tuesday"), not an abbreviation: passing
   // "Tue" let a Tuesday-closed venue (Privee on Elm) leak into "trending"
-  // results, while "Tuesday" correctly excluded it.
-  const dayOfWeek = getCincyWeekday();
+  // results, while the full name correctly excluded it. Derived from
+  // getNightlifeContext (not getCincyWeekday directly) so this can't
+  // disagree with the day/night rail switch in app/api/home-context —
+  // both roll over at 4am, not midnight, off the same function.
+  const { dayOfWeek } = getNightlifeContext();
 
   const { data: ranked, error: rankError } = await supabaseAdmin.rpc("get_rail_venues", {
     p_rail_type: railType,
@@ -80,6 +88,9 @@ export async function POST(request: Request) {
     p_lng: lng,
     p_limit: limit,
     p_day_of_week: dayOfWeek,
+    // Omit entirely (rather than pass null) when the caller didn't specify
+    // one, so the RPC's own default (nightlife + entertainment) applies.
+    ...(categories ? { p_categories: categories } : {}),
   });
 
   if (rankError) {

@@ -8,7 +8,7 @@ import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import { FuturePlansSection } from "@/components/FuturePlansSection";
 import { RailSection } from "@/components/RailSection";
-import { TONIGHT_RAILS } from "@/lib/homeRails";
+import { RailConfig } from "@/lib/homeRails";
 import { track } from "@/lib/analytics";
 import { getRankedVenues } from "@/lib/scoring";
 import { logAction } from "@/lib/track-action";
@@ -38,6 +38,7 @@ function TonightContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAllTonight, setShowAllTonight] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [activeRails, setActiveRails] = useState<RailConfig[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +48,26 @@ function TonightContent() {
       if (!cancelled) setUserId(user?.id ?? null);
     }
     loadUser();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    // Which rail set to show (daytime vs. nightlife) has to come from the
+    // server — the browser's Date() reflects the device's own timezone,
+    // not Cincinnati's, and /api/rank/rail's day-of-week scoping needs to
+    // agree with whichever set actually renders. See app/api/home-context.
+    let cancelled = false;
+    async function loadHomeContext() {
+      try {
+        const res = await fetch("/api/home-context");
+        if (cancelled || !res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setActiveRails(data.rails ?? []);
+      } catch (err) {
+        if (!cancelled) console.error("Failed to load home context:", err);
+      }
+    }
+    loadHomeContext();
     return () => { cancelled = true; };
   }, []);
 
@@ -247,7 +268,7 @@ function TonightContent() {
             </div>
           </div>
 
-          {TONIGHT_RAILS.map((rail) => (
+          {activeRails.map((rail) => (
             <RailSection key={rail.id} config={rail} lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
           ))}
 

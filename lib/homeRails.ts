@@ -6,20 +6,33 @@ export interface RailConfig {
   title: string;
   timeContext: RailTimeContext;
   railType: string; // maps to p_rail_type in get_rail_venues
+  /** Maps to p_categories in get_rail_venues. Omit to use the RPC's own default (nightlife + entertainment). */
+  categories?: string[];
 }
 
 export const TONIGHT_RAILS: RailConfig[] = [
   { id: "trending", emoji: "🔥", title: "Trending Right Now", timeContext: "tonight", railType: "trending" },
   { id: "date_night", emoji: "❤️", title: "Date Night", timeContext: "tonight", railType: "date_night" },
-  { id: "free", emoji: "🆓", title: "Free Stuff", timeContext: "tonight", railType: "free" },
+  // price_level = 1 covers "free or cheap" as one combined tier in the
+  // schema — "Budget-Friendly" is the honest name for that; "Free Stuff"
+  // overpromised (these are $ cafes/spots, not literally free).
+  { id: "budget_friendly", emoji: "💰", title: "Budget-Friendly", timeContext: "tonight", railType: "free" },
 ];
 
-// Daytime rail types aren't scoped yet — Phase 2 (Happy Hour Ending Soon,
-// Late Night Eats) is blocked on data that doesn't exist yet. Leave this
-// empty until that's decided rather than guessing at daytime categories.
-export const TODAY_RAILS: RailConfig[] = [];
-
-/** Simplest v1 day/night split: before 5pm local time → Today, after → Tonight. */
-export function getActiveRails(now: Date = new Date()): RailConfig[] {
-  return now.getHours() < 17 ? TODAY_RAILS : TONIGHT_RAILS;
-}
+// Full daytime rail design (Adventurous, Outdoor, etc.) is a separate task.
+// This is a single placeholder rail proving get_rail_venues works for
+// daytime content via p_categories — same RPC, same closed-venue
+// filtering, same distance sort as the nightlife rails, just a different
+// category array. rail_type doesn't carry nightlife-specific semantics
+// here ('trending'/'date_night'/'free' were built for nightlife), so
+// 'free' is used as a placeholder filter, not a meaningful label.
+export const TODAY_RAILS: RailConfig[] = [
+  {
+    id: "daytime_picks",
+    emoji: "☀️",
+    title: "Daytime Picks",
+    timeContext: "today",
+    railType: "free",
+    categories: ["daytime_outdoor"],
+  },
+];

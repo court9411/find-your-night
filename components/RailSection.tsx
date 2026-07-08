@@ -15,11 +15,12 @@ interface Props {
 }
 
 /**
- * One themed home rail (Trending, Date Night, Free Stuff, ...) — same
+ * One themed home rail (Trending, Date Night, Budget-Friendly, ...) — same
  * ranked-venue engine as the main Tonight rail, filtered server-side by
- * config.railType via get_rail_venues. Hides itself entirely on an empty
- * or errored fetch, same convention as WhatsHappeningSection, so a rail
- * with no matches (or a not-yet-deployed RPC) just doesn't render.
+ * config.railType (and config.categories, for daytime rails) via
+ * get_rail_venues. Hides itself entirely on an empty or errored fetch,
+ * same convention as WhatsHappeningSection, so a rail with no matches
+ * (or a not-yet-deployed RPC) just doesn't render.
  */
 export function RailSection({ config, lat = null, lng = null, userId }: Props) {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -34,7 +35,14 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
         const res = await fetch("/api/rank/rail", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ railType: config.railType, userId, lat, lng, limit: 10 }),
+          body: JSON.stringify({
+            railType: config.railType,
+            userId,
+            lat,
+            lng,
+            limit: 10,
+            categories: config.categories,
+          }),
         });
         if (cancelled) return;
         if (!res.ok) {
@@ -57,7 +65,7 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [config.railType, lat, lng, userId]);
+  }, [config.railType, config.categories, lat, lng, userId]);
 
   function hideVenue(placeId: string) {
     setVenues((prev) => prev.filter((v) => v.placeId !== placeId));
