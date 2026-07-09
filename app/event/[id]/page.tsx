@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PendingEvent } from "@/lib/types";
@@ -10,6 +9,7 @@ import TicketLink from "@/components/TicketLink";
 import SaveButton from "@/components/SaveButton";
 import DirectionsLink from "@/components/DirectionsLink";
 import HostEventLink from "@/components/HostEventLink";
+import PicksLink from "@/components/PicksLink";
 
 interface PageProps {
   params: { id: string };
@@ -34,9 +34,9 @@ export default async function EventPage({ params }: PageProps) {
     <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-6">
       <EventDetailTracker eventId={e.id as string} eventName={e.event_name} vibeTags={e.vibe_tags ?? []} />
       <div className="flex items-center justify-between w-full max-w-md">
-        <Link href="/" className="text-sm text-muted underline underline-offset-4">
+        <PicksLink className="text-sm text-muted underline underline-offset-4">
           Home
-        </Link>
+        </PicksLink>
         <SaveButton itemType="event" itemId={e.id as string} />
       </div>
 

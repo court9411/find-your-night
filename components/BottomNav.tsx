@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BOTTOM_NAV_CONTENT_HEIGHT } from "@/lib/navConstants";
-import { GEO_COORDS_KEY } from "@/lib/geoStorage";
+import { usePicksHref } from "@/lib/usePicksHref";
 
 interface Tab {
   href: string;
@@ -20,22 +19,7 @@ const TABS: Tab[] = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  // /results requires ?lat&lng — reuse the coords app/page.tsx already
-  // cached when the user first granted location, so the Picks tab works
-  // from anywhere in the nav, not just right after the landing flow.
-  const [picksHref, setPicksHref] = useState("/results");
-
-  useEffect(() => {
-    try {
-      const cached = sessionStorage.getItem(GEO_COORDS_KEY);
-      if (cached) {
-        const { lat, lng } = JSON.parse(cached);
-        if (typeof lat === "number" && typeof lng === "number") {
-          setPicksHref(`/results?lat=${lat}&lng=${lng}&precise=1`);
-        }
-      }
-    } catch {}
-  }, []);
+  const picksHref = usePicksHref();
 
   return (
     <nav

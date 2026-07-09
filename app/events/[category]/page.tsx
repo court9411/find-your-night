@@ -7,6 +7,7 @@ import { deleteExpiredEvents, todayDateString } from "@/lib/eventCleanup";
 import { SEASONAL_ENTRIES } from "@/lib/seasonal.config";
 import { resolveCityFromZip, ZIP_CODE_REGEX } from "@/lib/googleMaps";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
+import PicksLink from "@/components/PicksLink";
 
 interface PageProps {
   params: { category: string };
@@ -69,9 +70,9 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
     <main className="flex flex-col items-center min-h-screen py-12 gap-6">
       <div className="flex items-center justify-between w-full max-w-md px-6">
         <h1 className="font-display font-extrabold text-4xl tracking-tight">{heading}</h1>
-        <Link href="/" className="text-sm text-muted underline underline-offset-4">
+        <PicksLink className="text-sm text-muted underline underline-offset-4">
           Home
-        </Link>
+        </PicksLink>
       </div>
       <p className="text-muted text-sm w-full max-w-md -mt-4 px-6">
         {cityToken ? `Tonight's lineup for ${heading} near ${cityToken}` : `Tonight's lineup for ${heading}`}

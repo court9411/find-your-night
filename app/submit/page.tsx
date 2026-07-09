@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { ExtractedEventData } from "@/lib/types";
 import { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import { CitySelection } from "@/components/CityAutocompleteInput";
 import EventReviewForm from "@/components/EventReviewForm";
 import { compressImage } from "@/lib/imageCompression";
 import { track } from "@/lib/analytics";
+import PicksLink from "@/components/PicksLink";
 
 const SECRET_LOCATION_NAME = "Secret Location";
 
@@ -255,9 +255,9 @@ export default function SubmitPage() {
       <main className="flex flex-col items-center min-h-screen px-6 py-12 gap-8">
         <div className="flex items-center justify-between w-full max-w-md">
           <h1 className="font-display font-extrabold text-4xl tracking-tight">Submit Event</h1>
-          <Link href="/" className="text-sm text-muted underline underline-offset-4">
+          <PicksLink className="text-sm text-muted underline underline-offset-4">
             Home
-          </Link>
+          </PicksLink>
         </div>
 
         <p className="text-muted text-sm w-full max-w-md -mt-4">
@@ -419,12 +419,9 @@ export default function SubmitPage() {
           Share Event
         </button>
 
-        <Link
-          href="/"
-          className="rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-lg tracking-wide px-8 py-3 transition-transform active:scale-95"
-        >
+        <PicksLink className="rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-lg tracking-wide px-8 py-3 transition-transform active:scale-95">
           Back Home
-        </Link>
+        </PicksLink>
       </main>
     );
   }

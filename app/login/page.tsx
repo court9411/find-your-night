@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Suspense } from "react";
+import PicksLink from "@/components/PicksLink";
 
 const RESEND_COOLDOWN = 120; // seconds
 
@@ -168,9 +168,9 @@ function LoginForm() {
           We&apos;ll email you a 6-digit code. No password needed.
         </p>
 
-        <Link href="/" className="text-xs text-muted/60 hover:text-muted transition-colors">
+        <PicksLink className="text-xs text-muted/60 hover:text-muted transition-colors">
           ← Back to app
-        </Link>
+        </PicksLink>
       </main>
     );
   }
