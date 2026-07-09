@@ -22,6 +22,13 @@ export function haversineMiles(a: Coords, b: Coords): number {
   return EARTH_RADIUS_MILES * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
+const MILES_TO_METERS = 1609.34;
+
+/** Great-circle distance between two lat/lng points, in meters — used for check-in proximity checks. */
+export function haversineMeters(a: Coords, b: Coords): number {
+  return haversineMiles(a, b) * MILES_TO_METERS;
+}
+
 // Sorts venues into three proximity buckets relative to the user
 // (0-5mi, 5-15mi, 15+mi/unknown), shuffling within each bucket so the
 // order still feels fresh. Falls back to a plain shuffle if the user's
