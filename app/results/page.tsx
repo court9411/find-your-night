@@ -16,6 +16,9 @@ import { createClient } from "@/lib/supabase/client";
 import NotInterestedButton from "@/components/NotInterestedButton";
 import HostEventLink from "@/components/HostEventLink";
 import VenueRailCard from "@/components/VenueRailCard";
+import DidYouGoCard from "@/components/DidYouGoCard";
+import VisitSurveyModal from "@/components/VisitSurveyModal";
+import { PendingVisit } from "@/lib/visitSurvey";
 
 const INITIAL_TONIGHT_COUNT = 8;
 
@@ -38,6 +41,19 @@ function TonightContent() {
   const [showAllTonight, setShowAllTonight] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeRails, setActiveRails] = useState<RailConfig[]>([]);
+  const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
+  const [surveyOpen, setSurveyOpen] = useState(false);
+
+  async function fetchPendingVisit() {
+    try {
+      const res = await fetch("/api/visits/pending");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingVisit(data.visit ?? null);
+    } catch (err) {
+      console.error("Failed to load pending visit prompt:", err);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +65,15 @@ function TonightContent() {
     loadUser();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setPendingVisit(null);
+      return;
+    }
+    fetchPendingVisit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   useEffect(() => {
     // Which rail set to show (daytime vs. nightlife) has to come from the
@@ -131,6 +156,15 @@ function TonightContent() {
 
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
+  }
+
+  // Re-fetch after any outcome — "not this time" writes a row so the next
+  // saved-and-passed event (if any) surfaces; abandoning the survey writes
+  // nothing, so the same prompt correctly reappears.
+  function handleVisitPromptResolved() {
+    setPendingVisit(null);
+    setSurveyOpen(false);
+    fetchPendingVisit();
   }
 
   function hideVenue(target: Venue) {
@@ -218,6 +252,14 @@ function TonightContent() {
       {/* Results */}
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
+          {pendingVisit && (
+            <DidYouGoCard
+              visit={pendingVisit}
+              onDismissed={handleVisitPromptResolved}
+              onStartSurvey={() => setSurveyOpen(true)}
+            />
+          )}
+
           <div>
             <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3">Tonight</h3>
             <div
@@ -272,6 +314,14 @@ function TonightContent() {
       <div className="flex justify-center pt-6 pb-2">
         <HostEventLink />
       </div>
+
+      {surveyOpen && pendingVisit && (
+        <VisitSurveyModal
+          visit={pendingVisit}
+          onClose={() => setSurveyOpen(false)}
+          onComplete={handleVisitPromptResolved}
+        />
+      )}
     </main>
   );
 }
