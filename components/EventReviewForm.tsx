@@ -54,6 +54,12 @@ export default function EventReviewForm({
   onToggleVibeTag,
   onEmailChange,
 }: EventReviewFormProps) {
+  // No end time entered is exactly what "Until Close" means (falls back to
+  // the 4am-rollover heuristic in lib/eventTiming.ts) — so the toggle is
+  // just a convenience control derived from whether endTime is set, not a
+  // separate field to keep in sync.
+  const untilClose = !data?.endTime;
+
   const fieldClass = (field: string) =>
     `w-full px-4 py-2 rounded-lg bg-white/5 border outline-none focus:border-accent/60 ${
       missing.includes(field)
@@ -119,6 +125,37 @@ export default function EventReviewForm({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* End Time (optional) */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted block">
+                End Time <span className="text-muted/60">(optional)</span>
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={untilClose}
+                  onChange={(e) => onFieldChange("endTime", e.target.checked ? "" : TIME_OPTIONS[0])}
+                  className="accent-accent"
+                />
+                Until Close
+              </label>
+            </div>
+            <select
+              value={data?.endTime || ""}
+              onChange={(e) => onFieldChange("endTime", e.target.value)}
+              disabled={untilClose}
+              className="w-full min-w-0 px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-base text-white [color-scheme:dark] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">Select time</option>
+              {TIME_OPTIONS.map((time) => (
+                <option key={time} value={time}>
+                  {time}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Venue */}

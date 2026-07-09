@@ -29,6 +29,7 @@ export async function POST(request: Request) {
         event_name: eventData.eventName,
         date: eventData.date,
         start_time: eventData.startTime,
+        end_time: eventData.endTime || null,
         venue_name: eventData.venueName,
         address: eventData.address,
         neighborhood: eventData.neighborhood || null,

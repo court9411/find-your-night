@@ -15,6 +15,7 @@ const BLANK_EVENT_DATA: ExtractedEventData = {
   eventName: "",
   date: "",
   startTime: "",
+  endTime: null,
   venueName: "",
   address: "",
   neighborhood: "",

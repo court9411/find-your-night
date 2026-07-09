@@ -68,6 +68,7 @@ export interface ExtractedEventData {
   eventName: string | null;
   date: string | null;
   startTime: string | null;
+  endTime?: string | null;
   venueName: string | null;
   address: string | null;
   neighborhood?: string | null;
