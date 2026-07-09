@@ -51,6 +51,32 @@ export const CROWD_LEVEL_OPTIONS: { value: CrowdLevel; label: string }[] = [
   { value: "packed", label: "Packed" },
 ];
 
+// Map pin colors per live crowd_level. No recent check-in data at all uses
+// the neutral gray. filling_up reuses the app's own accent green; busy/red
+// reuse the same orange-400/red-500 shades already used elsewhere in the
+// app (hours-closing-soon warning, form error states) rather than
+// inventing a new palette.
+export const NO_DATA_PIN_COLOR = "#71717A";
+export const CROWD_LEVEL_PIN_COLORS: Record<CrowdLevel, string> = {
+  empty: "#64748B",
+  filling_up: "#22C55E",
+  busy: "#FB923C",
+  packed: "#EF4444",
+};
+
+export function crowdLevelPinColor(level: CrowdLevel | null | undefined): string {
+  return level ? CROWD_LEVEL_PIN_COLORS[level] : NO_DATA_PIN_COLOR;
+}
+
+export interface VenuePin {
+  id: string;
+  name: string;
+  neighborhood: string | null;
+  lat: number;
+  lng: number;
+  crowdLevel: CrowdLevel | null;
+}
+
 // Same 8-genre taxonomy as onboarding/profile music_prefs — must stay in
 // sync so check-in tags feed the same rec-engine signal.
 export const CHECKIN_MUSIC_TAGS = MUSIC_TAG_OPTIONS;
