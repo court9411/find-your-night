@@ -88,6 +88,7 @@ export interface PendingEvent {
   event_name: string;
   date: string;
   start_time: string;
+  end_time?: string | null;
   venue_name: string;
   address: string;
   neighborhood?: string | null;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getTonightDateString } from "@/lib/cincyDate";
+import { isEventOver } from "@/lib/eventTiming";
 import { PendingVisit } from "@/lib/visitSurvey";
 
 interface SavedEventJoinRow {
@@ -20,16 +20,14 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ visit: null });
 
-  // "Passed" respects the 4am nightlife rollover — an event happening
-  // tonight shouldn't prompt "did you go?" while the night is still on.
-  const today = getTonightDateString();
+  const now = new Date();
 
   const { data: saved, error } = await supabaseAdmin
     .from("user_event_interactions")
     .select(`
       event_id,
       pending_events (
-        id, event_name, date, start_time, venue_name, venue_id, neighborhood, image_url
+        id, event_name, date, start_time, end_time, venue_name, venue_id, neighborhood, image_url
       )
     `)
     .eq("user_id", user.id)
@@ -37,9 +35,12 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // "Passed" is the single shared isEventOver check — real end_time when the
+  // promoter set one, otherwise the same 4am-rollover heuristic used
+  // everywhere else, so this can't silently disagree with the Lineup rail.
   const passed = ((saved ?? []) as unknown as SavedEventJoinRow[])
     .map((row) => row.pending_events)
-    .filter((ev): ev is PendingVisit => !!ev && ev.date < today)
+    .filter((ev): ev is PendingVisit => !!ev && isEventOver(ev, now))
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   if (passed.length === 0) return NextResponse.json({ visit: null });

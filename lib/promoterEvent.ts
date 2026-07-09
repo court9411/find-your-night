@@ -3,6 +3,7 @@ export interface PromoterEvent {
   event_name: string
   date: string
   start_time: string | null
+  end_time: string | null
   venue_name: string
   venue_id: string | null
   neighborhood: string | null

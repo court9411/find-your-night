@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getTonightDateString } from '@/lib/cincyDate'
+import { isEventOver } from '@/lib/eventTiming'
 import { getRankedEvents, RankedEvent } from '@/lib/scoring'
 import { getAnonId } from '@/lib/anon'
 import { PromoterEvent } from '@/lib/promoterEvent'
@@ -31,7 +32,11 @@ export function WhatsHappeningSection({ lat = null, lng = null, userId = null }:
       try {
         const ranked = await getRankedEvents({ userId, anonId: getAnonId(), lat, lng, limit: 40, source: 'promoter' })
         if (cancelled) return
-        const tonight = ranked.filter((e) => isDisplayable(e) && e.date === today) as PromoterEvent[]
+        // Same night AND not yet over — a same-day event with an early
+        // explicit end_time shouldn't linger here after it's actually done.
+        const tonight = ranked.filter(
+          (e) => isDisplayable(e) && e.date === today && !isEventOver(e, new Date())
+        ) as PromoterEvent[]
         setEvents(tonight)
       } catch (err) {
         if (!cancelled) console.error('Failed to load ranked events:', err)

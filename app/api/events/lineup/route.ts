@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PromoterEvent } from "@/lib/promoterEvent";
-import { getTonightDateString } from "@/lib/cincyDate";
+import { getTonightDateString, addDaysToDateString } from "@/lib/cincyDate";
+import { isEventOver } from "@/lib/eventTiming";
 
 const EVENT_COLUMNS =
-  "id, event_name, date, start_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
+  "id, event_name, date, start_time, end_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
 
 const DEFAULT_LIMIT = 20;
 
@@ -53,18 +54,23 @@ export async function POST(request: Request) {
     // no body sent — use the default limit
   }
   const limit = typeof body.limit === "number" ? body.limit : DEFAULT_LIMIT;
+  const now = new Date();
 
-  // Same 4am-rollover "today" used everywhere else in the app (not a fresh
-  // Date(), and not plain calendar-date getCincyDateString) — a promoter
-  // flyer for "tonight" should still show at 1am, same night.
-  const today = getTonightDateString();
+  // SQL-level safety net only, one day before the rollover "today" — an
+  // event can never still be "not over" per isEventOver() any earlier than
+  // that (end_time is always same-calendar-day; the rollover fallback only
+  // ever extends to 4am the *next* day). The real, definitive cutoff is
+  // isEventOver() below, applied per-event in JS — same reason start_time
+  // sorting happens in JS: these are free-text columns, not real date/time
+  // types SQL can compare directly.
+  const safetyLowerBound = addDaysToDateString(getTonightDateString(), -1);
 
   const { data, error } = await supabaseAdmin
     .from("pending_events")
     .select(EVENT_COLUMNS)
     .eq("source", "promoter")
     .eq("status", "approved")
-    .gte("date", today)
+    .gte("date", safetyLowerBound)
     .not("image_url", "is", null)
     .order("date", { ascending: true })
     .limit(FETCH_CAP);
@@ -75,6 +81,7 @@ export async function POST(request: Request) {
   }
 
   const events = ((data ?? []) as PromoterEvent[])
+    .filter((event) => !isEventOver(event, now))
     .sort((a, b) => {
       if (a.date !== b.date) return a.date < b.date ? -1 : 1;
       return startTimeMinutes(a.start_time) - startTimeMinutes(b.start_time);

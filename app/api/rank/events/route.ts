@@ -13,7 +13,7 @@ interface RankedEventRow {
 }
 
 const EVENT_COLUMNS =
-  "id, event_name, date, start_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
+  "id, event_name, date, start_time, end_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
 
 export async function POST(request: Request) {
   let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown; source?: unknown };
