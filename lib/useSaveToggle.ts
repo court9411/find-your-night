@@ -1,21 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import { logAction } from "@/lib/track-action";
 import { getAnonId } from "@/lib/anon";
 
-type ItemType = "event" | "venue";
+interface UseSaveToggleParams {
+  /** The id this specific save/unsave targets — event id or venue place_id. */
+  itemId: string;
+  isSaved: () => Promise<boolean>;
+  save: () => Promise<void>;
+  unsave: () => Promise<void>;
+  scoringTargetType: "event" | "venue";
+  scoringTargetId?: string;
+}
 
-export function useSaveState(itemType: ItemType, itemId: string, scoringTargetId?: string) {
+/**
+ * Shared auth/optimistic-update/loading state machine behind useSaveEvent
+ * and useSaveVenue — not exported for direct use. The two entity-specific
+ * hooks own *which* save/unsave/isSaved functions get called; this owns the
+ * UI-state plumbing that's identical either way, so that isn't duplicated
+ * per entity type.
+ */
+export function useSaveToggle({ itemId, isSaved, save, unsave, scoringTargetType, scoringTargetId }: UseSaveToggleParams) {
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Check auth and existing save state whenever the item changes
   useEffect(() => {
     let cancelled = false;
     setSaved(false); // avoid flashing the previous item's saved state
@@ -30,18 +44,17 @@ export function useSaveState(itemType: ItemType, itemId: string, scoringTargetId
       }
       setUserId(user.id);
 
-      const res = await fetch(`/api/interactions?type=saved&itemType=${itemType}`);
-      if (cancelled || !res.ok) return;
-      const json = await res.json();
-      const items: Array<{ event_id?: string; place_id?: string }> = json.items ?? [];
-      const isSaved = items.some((item) =>
-        itemType === "event" ? item.event_id === itemId : item.place_id === itemId
-      );
-      setSaved(isSaved);
+      try {
+        const isItemSaved = await isSaved();
+        if (!cancelled) setSaved(isItemSaved);
+      } catch (err) {
+        console.error("Failed to check saved state:", err);
+      }
     }
     init();
     return () => { cancelled = true; };
-  }, [itemType, itemId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemId]);
 
   async function performSave(next: boolean) {
     setSaved(next); // optimistic
@@ -49,28 +62,20 @@ export function useSaveState(itemType: ItemType, itemId: string, scoringTargetId
 
     try {
       if (next) {
-        const res = await fetch("/api/interactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemType, itemId, interactionType: "saved" }),
-        });
-        if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+        await save();
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 1800);
 
-        const targetId = scoringTargetId ?? (itemType === "event" ? itemId : undefined);
-        if (targetId) {
-          logAction({ userId, anonId: getAnonId(), targetType: itemType, targetId, actionType: "saved" });
+        if (scoringTargetId) {
+          logAction({ userId, anonId: getAnonId(), targetType: scoringTargetType, targetId: scoringTargetId, actionType: "saved" });
         }
       } else {
-        const res = await fetch("/api/interactions", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemType, itemId }),
-        });
-        if (!res.ok) throw new Error(`Unsave failed: ${res.status}`);
+        await unsave();
       }
-    } catch {
+    } catch (err) {
+      // Surfaced, not swallowed — a failed save reverting silently with no
+      // trace is exactly what made this class of bug hard to pin down.
+      console.error(`Failed to ${next ? "save" : "unsave"} ${scoringTargetType} ${itemId}:`, err);
       setSaved(!next); // revert — the server never confirmed the change
     } finally {
       setLoading(false);

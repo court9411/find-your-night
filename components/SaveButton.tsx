@@ -1,6 +1,7 @@
 "use client";
 
-import { useSaveState } from "@/lib/useSaveState";
+import { useSaveEvent } from "@/lib/useSaveEvent";
+import { useSaveVenue } from "@/lib/useSaveVenue";
 import SaveAuthModal from "@/components/SaveAuthModal";
 
 interface SaveButtonProps {
@@ -10,10 +11,46 @@ interface SaveButtonProps {
   className?: string;
 }
 
-export default function SaveButton({ itemType, itemId, scoringTargetId, className = "" }: SaveButtonProps) {
-  const { saved, loading, justSaved, showAuthModal, toggle, handleAuthed, closeAuthModal } =
-    useSaveState(itemType, itemId, scoringTargetId);
+// itemType is a fixed prop per call site (every usage passes a literal
+// "event" or "venue", never a variable that changes), so branching into two
+// inner components — each calling exactly one save hook, unconditionally —
+// keeps this rules-of-hooks safe while still giving each entity type its
+// own real hook, not a generic one that has to be told which table to hit.
+export default function SaveButton(props: SaveButtonProps) {
+  return props.itemType === "event" ? <EventSaveButton {...props} /> : <VenueSaveButton {...props} />;
+}
 
+function EventSaveButton({ itemId, className }: SaveButtonProps) {
+  const state = useSaveEvent(itemId);
+  return <SaveButtonView {...state} className={className} />;
+}
+
+function VenueSaveButton({ itemId, scoringTargetId, className }: SaveButtonProps) {
+  const state = useSaveVenue(itemId, scoringTargetId);
+  return <SaveButtonView {...state} className={className} />;
+}
+
+interface SaveButtonViewProps {
+  saved: boolean;
+  loading: boolean;
+  justSaved: boolean;
+  showAuthModal: boolean;
+  toggle: () => void;
+  handleAuthed: (user: import("@supabase/supabase-js").User) => void;
+  closeAuthModal: () => void;
+  className?: string;
+}
+
+function SaveButtonView({
+  saved,
+  loading,
+  justSaved,
+  showAuthModal,
+  toggle,
+  handleAuthed,
+  closeAuthModal,
+  className = "",
+}: SaveButtonViewProps) {
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();

@@ -3,7 +3,8 @@
 import { Venue, FeaturedVenueEvent } from "@/lib/types";
 import { formatCincyTime } from "@/lib/cincyDate";
 import { formatMatchReason } from "@/lib/matchReason";
-import { useSaveState } from "@/lib/useSaveState";
+import { useSaveEvent } from "@/lib/useSaveEvent";
+import { useSaveVenue } from "@/lib/useSaveVenue";
 import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
 import HostEventLink from "@/components/HostEventLink";
@@ -26,7 +27,36 @@ interface Props {
   progressDots?: ProgressDots;
 }
 
-export default function VenueDetailScreen({
+type SaveState = ReturnType<typeof useSaveEvent>;
+
+// When a specific dated event is showing (the "Tonight · time" flyer view),
+// Save must write an event interaction against that event's pending_events
+// id, not a venue-level save — otherwise the post-visit survey trigger
+// (which reads user_event_interactions) never fires for anything saved
+// from this screen. Splitting into two thin wrapper components (rather than
+// branching which hook to call inside one component) keeps this
+// rules-of-hooks safe: each wrapper calls exactly one save hook,
+// unconditionally, and React remounts fresh (not conditionally-hooks) when
+// `event` flips from null to populated.
+export default function VenueDetailScreen(props: Props) {
+  return props.event ? (
+    <VenueDetailScreenWithEvent {...props} event={props.event} />
+  ) : (
+    <VenueDetailScreenWithVenue {...props} event={null} />
+  );
+}
+
+function VenueDetailScreenWithEvent(props: Props & { event: FeaturedVenueEvent }) {
+  const saveState = useSaveEvent(props.event.id);
+  return <VenueDetailScreenBody {...props} saveState={saveState} />;
+}
+
+function VenueDetailScreenWithVenue(props: Props & { event: null }) {
+  const saveState = useSaveVenue(props.venue.placeId ?? "", props.venue.id);
+  return <VenueDetailScreenBody {...props} saveState={saveState} />;
+}
+
+function VenueDetailScreenBody({
   venue,
   event,
   onBack,
@@ -36,17 +66,9 @@ export default function VenueDetailScreen({
   onPrevZone,
   onNextZone,
   progressDots,
-}: Props) {
-  // When a specific dated event is showing (the "Tonight · time" flyer view),
-  // Save must write an event interaction against that event's pending_events
-  // id — not a venue-level save — otherwise the post-visit survey trigger
-  // (which reads user_event_interactions) never fires for anything saved
-  // from this screen.
-  const { saved, loading, toggle, showAuthModal, handleAuthed, closeAuthModal, userId } = useSaveState(
-    event ? "event" : "venue",
-    event ? event.id : venue.placeId ?? "",
-    event ? undefined : venue.id ?? undefined
-  );
+  saveState,
+}: Props & { saveState: SaveState }) {
+  const { saved, loading, toggle, showAuthModal, handleAuthed, closeAuthModal, userId } = saveState;
 
   const tags = event ? event.tags : venue.tags;
   const matchReason = formatMatchReason(venue);
