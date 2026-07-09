@@ -8,6 +8,7 @@ import { useSaveVenue } from "@/lib/useSaveVenue";
 import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
 import HostEventLink from "@/components/HostEventLink";
+import RightNowBlock from "@/components/RightNowBlock";
 
 interface ProgressDots {
   total: number;
@@ -170,6 +171,8 @@ function VenueDetailScreenBody({
             {venue.type} · {venue.neighborhood} · {venue.price}
           </p>
         </div>
+
+        <RightNowBlock venueId={venue.id} />
 
         {/* Address / Hours / Happy Hour */}
         {(venue.address || venue.hours || venue.happyHour) && (
