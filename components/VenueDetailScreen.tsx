@@ -37,10 +37,15 @@ export default function VenueDetailScreen({
   onNextZone,
   progressDots,
 }: Props) {
+  // When a specific dated event is showing (the "Tonight · time" flyer view),
+  // Save must write an event interaction against that event's pending_events
+  // id — not a venue-level save — otherwise the post-visit survey trigger
+  // (which reads user_event_interactions) never fires for anything saved
+  // from this screen.
   const { saved, loading, toggle, showAuthModal, handleAuthed, closeAuthModal, userId } = useSaveState(
-    "venue",
-    venue.placeId ?? "",
-    venue.id ?? undefined
+    event ? "event" : "venue",
+    event ? event.id : venue.placeId ?? "",
+    event ? undefined : venue.id ?? undefined
   );
 
   const tags = event ? event.tags : venue.tags;
