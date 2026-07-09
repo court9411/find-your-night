@@ -7,9 +7,16 @@ import type { User } from "@supabase/supabase-js";
 interface SaveAuthModalProps {
   onClose: () => void;
   onAuthed: (user: User) => void;
+  title?: string;
+  subtitle?: string;
 }
 
-export default function SaveAuthModal({ onClose, onAuthed }: SaveAuthModalProps) {
+export default function SaveAuthModal({
+  onClose,
+  onAuthed,
+  title = "Enter your email to save this",
+  subtitle = "We'll send a 6-digit code. No password needed, and it saves across all your devices.",
+}: SaveAuthModalProps) {
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -80,10 +87,10 @@ export default function SaveAuthModal({ onClose, onAuthed }: SaveAuthModalProps)
           <>
             <div className="flex flex-col gap-1">
               <h2 className="font-display font-bold text-xl tracking-tight">
-                Enter your email to save this
+                {title}
               </h2>
               <p className="text-muted text-sm">
-                We&apos;ll send a 6-digit code. No password needed, and it saves across all your devices.
+                {subtitle}
               </p>
             </div>
             <form onSubmit={handleSendCode} className="flex flex-col gap-3">
