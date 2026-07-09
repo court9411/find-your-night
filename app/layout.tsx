@@ -3,6 +3,7 @@ import { Bebas_Neue, Outfit, Syne, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import InstallPrompt from "@/components/InstallPrompt";
 import PostHogProvider from "@/components/PostHogProvider";
+import AppShell from "@/components/AppShell";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -62,7 +63,7 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${inter.variable}`}>
       <body className={`${bebasNeue.variable} ${outfit.variable} font-body antialiased`}>
         <PostHogProvider>
-          {children}
+          <AppShell>{children}</AppShell>
           <InstallPrompt />
           <Analytics />
         </PostHogProvider>
