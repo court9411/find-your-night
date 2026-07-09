@@ -194,9 +194,6 @@ export default function ProfilePage() {
         >
           Sign In
         </Link>
-        <Link href="/" className="text-xs text-muted/60 hover:text-muted transition-colors">
-          ← Back to app
-        </Link>
         <HostEventLink />
       </main>
     );
@@ -339,9 +336,6 @@ export default function ProfilePage() {
         })}
       </div>
 
-      <Link href="/" className="text-xs text-muted/60 hover:text-muted transition-colors text-center">
-        ← Back to app
-      </Link>
       <div className="flex justify-center">
         <HostEventLink />
       </div>

@@ -155,13 +155,6 @@ function TonightContent() {
       {/* Header */}
       <div className="flex items-start justify-between px-5 pt-12 pb-4">
         <div>
-          <button
-            onClick={() => router.push("/")}
-            className="flex items-center gap-1 text-muted text-sm mb-1 active:opacity-70"
-          >
-            <span aria-hidden>←</span>
-            <span>Back</span>
-          </button>
           <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">Your Night Picks</h1>
           <p className="text-sm text-muted mt-1">Pick what feels right — we&apos;ll get smarter as you go.</p>
         </div>
