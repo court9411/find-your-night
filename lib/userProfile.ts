@@ -12,6 +12,7 @@ export interface UserProfile {
   anon_id: string | null;
   created_at: string;
   updated_at: string;
+  is_scout: boolean;
 }
 
 export type ProfileUpdate = Partial<

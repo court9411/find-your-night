@@ -8,6 +8,7 @@ import { usePhotoCapture } from "@/lib/usePhotoCapture";
 import { compressImage } from "@/lib/imageCompression";
 import { CROWD_LEVEL_OPTIONS, CHECKIN_MUSIC_TAGS, CrowdLevel, ScoutStats, SelectedVenue } from "@/lib/checkin";
 import SaveAuthModal from "@/components/SaveAuthModal";
+import ScoutTierSummary from "@/components/ScoutTierSummary";
 
 interface Props {
   venue: SelectedVenue;
@@ -119,18 +120,7 @@ export default function CheckInForm({ venue, onBack, onSubmitted }: Props) {
         <h2 className="font-display font-extrabold text-2xl tracking-tight">{venue.name}</h2>
       </div>
 
-      {stats && (
-        <div className="rounded-xl bg-accent/10 border border-accent/20 px-4 py-3">
-          <p className="text-sm font-semibold text-accent">
-            {stats.tier} · {stats.checkinCount} check-in{stats.checkinCount === 1 ? "" : "s"}
-          </p>
-          {stats.progress && (
-            <p className="text-xs text-muted mt-0.5">
-              {stats.progress.remaining} more to reach {stats.progress.nextTier}
-            </p>
-          )}
-        </div>
-      )}
+      {stats && <ScoutTierSummary stats={stats} />}
 
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted font-semibold uppercase tracking-wider">Crowd</p>
