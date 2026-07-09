@@ -1,0 +1,169 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { GEO_COORDS_KEY, FALLBACK_COORDS } from "@/lib/geoStorage";
+import { NearbyVenue, SelectedVenue, VenuePin } from "@/lib/checkin";
+import MapView from "@/components/MapView";
+import CheckInVenuePicker from "@/components/CheckInVenuePicker";
+import CheckInConfirmVenue from "@/components/CheckInConfirmVenue";
+import VenueInfoSheet from "@/components/VenueInfoSheet";
+import CheckInForm from "@/components/CheckInForm";
+import CheckInSuccess from "@/components/CheckInSuccess";
+
+type Sheet =
+  | { name: "closed" }
+  | { name: "picker" }
+  | { name: "confirm"; venue: NearbyVenue }
+  | { name: "info"; venue: SelectedVenue }
+  | { name: "checkin"; venue: SelectedVenue }
+  | { name: "success"; venue: SelectedVenue };
+
+function readCachedCoords(): { lat: number; lng: number } {
+  try {
+    const cached = sessionStorage.getItem(GEO_COORDS_KEY);
+    if (cached) {
+      const { lat, lng } = JSON.parse(cached);
+      if (typeof lat === "number" && typeof lng === "number") return { lat, lng };
+    }
+  } catch {}
+  return FALLBACK_COORDS;
+}
+
+export default function MapExplorer() {
+  const [center] = useState(readCachedCoords);
+  const [venues, setVenues] = useState<VenuePin[]>([]);
+  const [focusCoords, setFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [sheet, setSheet] = useState<Sheet>({ name: "closed" });
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/venues/pins")
+      .then((res) => (res.ok ? res.json() : { venues: [] }))
+      .then((data) => {
+        if (!cancelled) setVenues(data.venues ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setVenues([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function focusOnVenueId(id: string) {
+    const pin = venues.find((v) => v.id === id);
+    if (pin) setFocusCoords({ lat: pin.lat, lng: pin.lng });
+  }
+
+  function handlePinClick(venue: VenuePin) {
+    setFocusCoords({ lat: venue.lat, lng: venue.lng });
+    setSheet({ name: "info", venue: { id: venue.id, name: venue.name, neighborhood: venue.neighborhood } });
+  }
+
+  return (
+    <div className="relative flex-1 min-h-0">
+      <MapView
+        venues={venues}
+        center={center}
+        focusCoords={focusCoords}
+        onPinClick={handlePinClick}
+        onLoadError={setMapError}
+      />
+
+      {mapError && (
+        <div className="absolute top-4 left-4 right-4 z-30 rounded-xl bg-red-900/80 border border-red-500/40 px-4 py-3 backdrop-blur-sm">
+          <p className="text-red-200 text-xs">{mapError}</p>
+        </div>
+      )}
+
+      <div className="absolute top-4 left-0 right-0 z-30 flex justify-center px-4">
+        <button
+          onClick={() => setSheet({ name: "picker" })}
+          className="rounded-full bg-[#0f0f16]/95 border border-card-border px-5 py-3 min-h-[44px] font-display font-bold text-sm tracking-wide backdrop-blur-md active:scale-95 transition-transform shadow-lg"
+        >
+          🔍 Find a spot to check in
+        </button>
+      </div>
+
+      {sheet.name === "picker" && (
+        <SheetOverlay title="Check In" onClose={() => setSheet({ name: "closed" })}>
+          <CheckInVenuePicker
+            onNearbyMatch={(venue) => {
+              focusOnVenueId(venue.id);
+              setSheet({ name: "confirm", venue });
+            }}
+            onSelectVenue={(venue) => {
+              focusOnVenueId(venue.id);
+              setSheet({ name: "info", venue });
+            }}
+          />
+        </SheetOverlay>
+      )}
+
+      {sheet.name === "confirm" && (
+        <SheetOverlay title="Check In" onClose={() => setSheet({ name: "closed" })}>
+          <CheckInConfirmVenue
+            venue={sheet.venue}
+            onConfirm={() => setSheet({ name: "checkin", venue: sheet.venue })}
+            onNotThis={() => setSheet({ name: "picker" })}
+          />
+        </SheetOverlay>
+      )}
+
+      {sheet.name === "info" && (
+        <VenueInfoSheet
+          venue={sheet.venue}
+          onClose={() => setSheet({ name: "closed" })}
+          onCheckIn={() => setSheet({ name: "checkin", venue: sheet.venue })}
+        />
+      )}
+
+      {sheet.name === "checkin" && (
+        <SheetOverlay title="Check In" onClose={() => setSheet({ name: "closed" })}>
+          <CheckInForm
+            venue={sheet.venue}
+            onBack={() => setSheet({ name: "info", venue: sheet.venue })}
+            onSubmitted={() => setSheet({ name: "success", venue: sheet.venue })}
+          />
+        </SheetOverlay>
+      )}
+
+      {sheet.name === "success" && (
+        <SheetOverlay title="Check In" onClose={() => setSheet({ name: "closed" })}>
+          <CheckInSuccess
+            venue={sheet.venue}
+            onRefresh={() => setSheet({ name: "checkin", venue: sheet.venue })}
+            onDone={() => setSheet({ name: "closed" })}
+          />
+        </SheetOverlay>
+      )}
+    </div>
+  );
+}
+
+function SheetOverlay({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="flex items-center justify-between px-5 pt-12 pb-2">
+        <span className="font-display font-bold text-lg tracking-wide">{title}</span>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-muted active:opacity-70"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto pt-4">{children}</div>
+    </div>
+  );
+}
