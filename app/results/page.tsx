@@ -241,6 +241,19 @@ function TonightContent() {
         </div>
       )}
 
+      {/* "Did you go?" trigger — independent of the Tonight venues fetch
+          below (separate data source), so it must not be gated behind
+          venues loading/erroring/being empty. */}
+      {pendingVisit && (
+        <div className="pt-2 pb-4">
+          <DidYouGoCard
+            visit={pendingVisit}
+            onDismissed={handleVisitPromptResolved}
+            onStartSurvey={() => setSurveyOpen(true)}
+          />
+        </div>
+      )}
+
       {/* Empty */}
       {!loading && !errorMsg && venues !== null && venues.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-3 min-h-[40vh] px-5 text-center">
@@ -252,14 +265,6 @@ function TonightContent() {
       {/* Results */}
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
-          {pendingVisit && (
-            <DidYouGoCard
-              visit={pendingVisit}
-              onDismissed={handleVisitPromptResolved}
-              onStartSurvey={() => setSurveyOpen(true)}
-            />
-          )}
-
           <div>
             <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3">Tonight</h3>
             <div
