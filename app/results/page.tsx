@@ -6,6 +6,7 @@ import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { LineupSection } from "@/components/LineupSection";
+import { BigShowsSection } from "@/components/BigShowsSection";
 import { RailSection } from "@/components/RailSection";
 import { RailConfig } from "@/lib/homeRails";
 import { track } from "@/lib/analytics";
@@ -311,6 +312,8 @@ function TonightContent() {
           {activeRails.map((rail) => (
             <RailSection key={rail.id} config={rail} lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
           ))}
+
+          <BigShowsSection userId={userId} />
 
           <LineupSection userId={userId} />
         </div>

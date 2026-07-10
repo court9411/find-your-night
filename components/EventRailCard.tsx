@@ -14,7 +14,7 @@ import { VENUE_DETAIL_BACK_KEY } from "@/lib/storageKeys";
 interface Props {
   event: PromoterEvent;
   index: number;
-  section: "tonight" | "this_week" | "lineup";
+  section: "tonight" | "this_week" | "lineup" | "big_shows";
   queueKey: string;
   queueIds: string[];
   userId: string | null;

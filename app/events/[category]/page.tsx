@@ -15,8 +15,16 @@ interface PageProps {
   searchParams: { city?: string };
 }
 
+// "Big Shows" is a pseudo-category, not a real pending_events.category
+// value — category is inconsistent/mostly null on Ticketmaster-sourced
+// rows, so this filters on source instead. Handled as a special case here
+// rather than a dedicated route so it still gets the city filter, grouping,
+// and layout every other category page already has for free.
+const BIG_SHOWS_SLUG = "big-shows";
+
 export default async function CategoryEventsPage({ params, searchParams }: PageProps) {
   const category = decodeURIComponent(params.category);
+  const isBigShows = category.toLowerCase() === BIG_SHOWS_SLUG;
   const cityParam = searchParams.city?.trim();
   // Match results page behavior: only compare the city name, not the state/country.
   let cityToken = cityParam ? cityParam.split(",")[0].trim() : "";
@@ -27,7 +35,9 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
     if (resolved) cityToken = resolved;
   }
   // Seasonal categories (e.g. "July4th") use a friendlier display label for the heading.
-  const heading = SEASONAL_ENTRIES.find((entry) => entry.category === category)?.label ?? category;
+  const heading = isBigShows
+    ? "Big Shows 🎟️"
+    : SEASONAL_ENTRIES.find((entry) => entry.category === category)?.label ?? category;
 
   await deleteExpiredEvents();
 
@@ -41,11 +51,12 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
     .from("pending_events")
     .select("*")
     .eq("status", "approved")
-    .ilike("category", category)
     .or(`date.gte.${today},is_recurring.eq.true`)
     .order("featured", { ascending: false })
     .order("display_order", { ascending: true })
     .order("date", { ascending: true });
+
+  query = isBigShows ? query.eq("source", "ticketmaster") : query.ilike("category", category);
 
   if (cityToken) {
     query = query.ilike("city", `%${cityToken}%`);
