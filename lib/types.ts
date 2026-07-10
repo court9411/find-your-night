@@ -82,6 +82,10 @@ export interface ExtractedEventData {
   lng?: number | null;
   isPrivateLocation?: boolean;
   privateLocationNote?: string | null;
+  isRecurring?: boolean;
+  recurrenceFrequency?: import("./recurrence").RecurrenceFrequency | null;
+  recurrenceDays?: string[];
+  recurrenceEndDate?: string | null;
 }
 
 export interface PendingEvent {
@@ -91,6 +95,7 @@ export interface PendingEvent {
   start_time: string;
   end_time?: string | null;
   venue_name: string;
+  venue_id?: string | null;
   address: string;
   neighborhood?: string | null;
   city: string;
@@ -111,4 +116,9 @@ export interface PendingEvent {
   private_location_note: string | null;
   like_count: number;
   created_at?: string;
+  is_recurring?: boolean | null;
+  recurrence_frequency?: import("./recurrence").RecurrenceFrequency | null;
+  recurrence_days?: string[] | null;
+  recurrence_end_date?: string | null;
+  parent_event_id?: string | null;
 }

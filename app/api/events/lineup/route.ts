@@ -3,9 +3,10 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PromoterEvent } from "@/lib/promoterEvent";
 import { getTonightDateString, addDaysToDateString } from "@/lib/cincyDate";
 import { isEventOver } from "@/lib/eventTiming";
+import { getEffectiveDate } from "@/lib/recurrence";
 
 const EVENT_COLUMNS =
-  "id, event_name, date, start_time, end_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count";
+  "id, event_name, date, start_time, end_time, venue_name, venue_id, neighborhood, image_url, vibe_tags, description, price, ticket_link, like_count, is_recurring, recurrence_frequency, recurrence_days, recurrence_end_date";
 
 const DEFAULT_LIMIT = 20;
 
@@ -65,12 +66,15 @@ export async function POST(request: Request) {
   // types SQL can compare directly.
   const safetyLowerBound = addDaysToDateString(getTonightDateString(), -1);
 
+  // Recurring templates can carry a stale anchor `date` well before
+  // safetyLowerBound, so fetch them regardless of their own date column and
+  // resolve each to its real next-occurrence date in JS below.
   const { data, error } = await supabaseAdmin
     .from("pending_events")
     .select(EVENT_COLUMNS)
     .eq("source", "promoter")
     .eq("status", "approved")
-    .gte("date", safetyLowerBound)
+    .or(`date.gte.${safetyLowerBound},is_recurring.eq.true`)
     .not("image_url", "is", null)
     .order("date", { ascending: true })
     .limit(FETCH_CAP);
@@ -80,7 +84,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Couldn't load the lineup." }, { status: 500 });
   }
 
+  const today = getTonightDateString(now);
   const events = ((data ?? []) as PromoterEvent[])
+    .map((event) => {
+      const effectiveDate = getEffectiveDate(event, today);
+      return effectiveDate ? { ...event, date: effectiveDate } : null;
+    })
+    .filter((event): event is PromoterEvent => event !== null)
     .filter((event) => !isEventOver(event, now))
     .sort((a, b) => {
       if (a.date !== b.date) return a.date < b.date ? -1 : 1;

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PromoterEvent } from '@/lib/promoterEvent'
 import EventRailCard from '@/components/EventRailCard'
+import { formatRecurrenceBadge } from '@/lib/recurrence'
 
 const QUEUE_KEY = 'fyn_lineup_queue'
 const LINEUP_LIMIT = 20
@@ -12,9 +13,14 @@ interface Props {
   userId?: string | null
 }
 
-// "Today", "Tomorrow", or "Sat 6/28" for anything further out.
-function formatDateLabel(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`)
+// "Today", "Tomorrow", or "Sat 6/28" for anything further out — replaced by
+// a recurrence badge ("Every Thursday") for recurring templates, since
+// their computed next-occurrence date isn't the interesting fact to show.
+function formatDateLabel(event: PromoterEvent): string {
+  const recurrenceBadge = formatRecurrenceBadge(event)
+  if (recurrenceBadge) return recurrenceBadge
+
+  const date = new Date(`${event.date}T00:00:00`)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const diffDays = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -111,7 +117,7 @@ export function LineupSection({ userId = null }: Props) {
             queueKey={QUEUE_KEY}
             queueIds={events.map((e) => e.id)}
             userId={userId}
-            dateLabel={formatDateLabel(event.date)}
+            dateLabel={formatDateLabel(event)}
             onHide={hideEvent}
           />
         ))}

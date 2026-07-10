@@ -3,6 +3,8 @@
 import { ExtractedEventData } from "@/lib/types";
 import PlaceAutocompleteInput, { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
+import { RECURRENCE_FREQUENCY_OPTIONS, RECURRENCE_WEEKDAYS } from "@/lib/recurrence";
+import { getCincyDateString } from "@/lib/cincyDate";
 
 export const VALID_VIBE_TAGS = [
   "drag show",
@@ -33,26 +35,22 @@ interface EventReviewFormProps {
   data: ExtractedEventData | null;
   missing: string[];
   imageUrl?: string | null;
-  submitterEmail: string;
-  onFieldChange: (field: keyof ExtractedEventData, value: string | string[]) => void;
+  onFieldChange: (field: keyof ExtractedEventData, value: string | string[] | boolean | null) => void;
   onPlaceSelected: (place: PlaceDetails) => void;
   onCitySelected: (selection: CitySelection) => void;
   onTogglePrivateLocation: (checked: boolean) => void;
   onToggleVibeTag: (tag: string) => void;
-  onEmailChange: (email: string) => void;
 }
 
 export default function EventReviewForm({
   data,
   missing,
   imageUrl,
-  submitterEmail,
   onFieldChange,
   onPlaceSelected,
   onCitySelected,
   onTogglePrivateLocation,
   onToggleVibeTag,
-  onEmailChange,
 }: EventReviewFormProps) {
   // No end time entered is exactly what "Until Close" means (falls back to
   // the 4am-rollover heuristic in lib/eventTiming.ts) — so the toggle is
@@ -103,11 +101,19 @@ export default function EventReviewForm({
               <input
                 type="date"
                 value={data?.date || ""}
+                min={getCincyDateString()}
                 onChange={(e) => onFieldChange("date", e.target.value)}
-                className={`${fieldClass("date")} min-w-0 text-base text-white [color-scheme:dark]`}
+                className={`w-full px-4 py-2 rounded-lg bg-white/5 border outline-none focus:border-accent/60 min-w-0 text-base text-white [color-scheme:dark] ${
+                  missing.includes("date") || missing.includes("datePast")
+                    ? "border-orange-500/60 focus:border-orange-400"
+                    : "border-white/10"
+                }`}
               />
               {missing.includes("date") && (
                 <p className="text-xs text-orange-400 mt-1">⚠ Required</p>
+              )}
+              {missing.includes("datePast") && (
+                <p className="text-xs text-orange-400 mt-1">⚠ Date can&apos;t be in the past</p>
               )}
             </div>
             <div className="min-w-0">
@@ -286,19 +292,81 @@ export default function EventReviewForm({
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Email Input */}
-      <div className="w-full max-w-2xl">
-        <label className="text-xs text-muted mb-2 block">Your Email</label>
-        <input
-          type="email"
-          value={submitterEmail}
-          onChange={(e) => onEmailChange(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60"
-        />
+          {/* Recurring */}
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center justify-between cursor-pointer">
+              <span className="text-xs text-muted font-semibold uppercase tracking-wider">Recurring event</span>
+              <input
+                type="checkbox"
+                checked={!!data?.isRecurring}
+                onChange={(e) => onFieldChange("isRecurring", e.target.checked)}
+                className="accent-accent w-4 h-4"
+              />
+            </label>
+
+            {data?.isRecurring && (
+              <div className="flex flex-col gap-3 pl-1">
+                <div>
+                  <label className="text-xs text-muted mb-1 block">Frequency</label>
+                  <select
+                    value={data?.recurrenceFrequency || "weekly"}
+                    onChange={(e) => onFieldChange("recurrenceFrequency", e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-base text-white [color-scheme:dark]"
+                  >
+                    {RECURRENCE_FREQUENCY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {data?.recurrenceFrequency !== "monthly" && (
+                  <div>
+                    <label className="text-xs text-muted mb-2 block">Day(s) of week</label>
+                    <div className="flex flex-wrap gap-2">
+                      {RECURRENCE_WEEKDAYS.map((day) => {
+                        const isOn = data?.recurrenceDays?.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => {
+                              const current = data?.recurrenceDays || [];
+                              const next = isOn ? current.filter((d) => d !== day) : [...current, day];
+                              onFieldChange("recurrenceDays", next);
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm capitalize transition-all ${
+                              isOn
+                                ? "bg-accent text-black"
+                                : "bg-white/5 border border-white/10 text-muted hover:border-accent/60"
+                            }`}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-xs text-muted mb-1 block">
+                    Ends <span className="text-muted/60">(optional — leave blank to recur indefinitely)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={data?.recurrenceEndDate || ""}
+                    min={data?.date || getCincyDateString()}
+                    onChange={(e) => onFieldChange("recurrenceEndDate", e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 outline-none focus:border-accent/60 text-base text-white [color-scheme:dark]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

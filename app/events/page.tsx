@@ -3,9 +3,14 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PendingEvent } from "@/lib/types";
 import EventListingCard from "@/components/EventListingCard";
 import { getCincyDateString } from "@/lib/cincyDate";
+import { getEffectiveDate } from "@/lib/recurrence";
 
 export const dynamic = "force-dynamic";
 
+// Recurring templates can carry a stale anchor `date` (whenever they were
+// first submitted), so a plain `.gte("date", today)` would wrongly exclude
+// them — fetch non-recurring upcoming events OR any recurring template,
+// then resolve each to its real next-occurrence date in JS.
 export default async function AllEventsPage() {
   const today = getCincyDateString();
 
@@ -14,7 +19,7 @@ export default async function AllEventsPage() {
     .select("*")
     .eq("source", "promoter")
     .eq("status", "approved")
-    .gte("date", today)
+    .or(`date.gte.${today},is_recurring.eq.true`)
     .not("image_url", "is", null)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true })
@@ -25,7 +30,12 @@ export default async function AllEventsPage() {
     console.error("All events fetch error:", error);
   }
 
-  const events = (data ?? []) as PendingEvent[];
+  const events = ((data ?? []) as PendingEvent[])
+    .map((e) => ({ event: e, effectiveDate: getEffectiveDate(e, today) }))
+    .filter((row): row is { event: PendingEvent; effectiveDate: string } => row.effectiveDate !== null)
+    .sort((a, b) => (a.effectiveDate < b.effectiveDate ? -1 : a.effectiveDate > b.effectiveDate ? 1 : 0))
+    .map((row) => ({ ...row.event, date: row.effectiveDate }));
+
   const tonight = events.filter((e) => e.date === today);
   const upcoming = events.filter((e) => e.date !== today);
 

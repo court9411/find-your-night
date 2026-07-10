@@ -13,6 +13,10 @@ export interface PromoterEvent {
   price: string | null
   ticket_link: string | null
   like_count: number
+  is_recurring?: boolean | null
+  recurrence_frequency?: import("./recurrence").RecurrenceFrequency | null
+  recurrence_days?: string[] | null
+  recurrence_end_date?: string | null
 }
 
 export function formatEventTime(time: string | null): string {

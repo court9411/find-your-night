@@ -8,6 +8,7 @@ import { SEASONAL_ENTRIES } from "@/lib/seasonal.config";
 import { resolveCityFromZip, ZIP_CODE_REGEX } from "@/lib/googleMaps";
 import { WhatsHappeningSection } from "@/components/WhatsHappeningSection";
 import PicksLink from "@/components/PicksLink";
+import { getEffectiveDate } from "@/lib/recurrence";
 
 interface PageProps {
   params: { category: string };
@@ -30,12 +31,18 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
 
   await deleteExpiredEvents();
 
+  const today = todayDateString();
+
+  // Recurring templates can carry a stale anchor `date`, so a plain
+  // `.gte("date", today)` would wrongly exclude them — fetch non-recurring
+  // upcoming events OR any recurring template, then resolve each to its
+  // real next-occurrence date in JS.
   let query = supabaseAdmin
     .from("pending_events")
     .select("*")
     .eq("status", "approved")
     .ilike("category", category)
-    .gte("date", todayDateString())
+    .or(`date.gte.${today},is_recurring.eq.true`)
     .order("featured", { ascending: false })
     .order("display_order", { ascending: true })
     .order("date", { ascending: true });
@@ -44,19 +51,24 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
     query = query.ilike("city", `%${cityToken}%`);
   }
 
-  const { data: events, error } = await query;
+  const { data: rawEvents, error } = await query;
 
   if (error) {
     console.error("Category events fetch error:", error);
   }
 
-  const hasEvents = !!events && events.length > 0;
+  const events = ((rawEvents ?? []) as PendingEvent[])
+    .map((e) => ({ event: e, effectiveDate: getEffectiveDate(e, today) }))
+    .filter((row): row is { event: PendingEvent; effectiveDate: string } => row.effectiveDate !== null)
+    .map((row) => ({ ...row.event, date: row.effectiveDate }));
+
+  const hasEvents = events.length > 0;
 
   // No city set: group events by city under subheadings.
   const groupedByCity: { city: string; events: PendingEvent[] }[] = [];
   if (!cityToken && hasEvents) {
     const groups = new Map<string, PendingEvent[]>();
-    for (const event of events as PendingEvent[]) {
+    for (const event of events) {
       const key = event.city?.trim() || "Other";
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(event);
@@ -91,7 +103,7 @@ export default async function CategoryEventsPage({ params, searchParams }: PageP
         <p className="text-muted text-sm px-6">No events yet — check back soon.</p>
       ) : cityToken ? (
         <div className="flex flex-col gap-4 w-full max-w-md px-6">
-          {(events as PendingEvent[]).map((event, i) => (
+          {events.map((event, i) => (
             <EventListingCard key={event.id} event={event} index={i} />
           ))}
         </div>

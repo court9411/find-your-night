@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createClient } from "@/lib/supabase/server";
 import { ExtractedEventData } from "@/lib/types";
+import { getCincyDateString } from "@/lib/cincyDate";
 
 const resend = new Resend(process.env.RESEND_API_KEY || "placeholder-resend-key");
 
 export async function POST(request: Request) {
   try {
-    const { eventData, submitterEmail, imageUrl, category } = await request.json();
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!eventData || !submitterEmail) {
+    if (!user || !user.email) {
+      return NextResponse.json({ error: "Sign in to submit an event" }, { status: 401 });
+    }
+
+    const { eventData, imageUrl, category } = await request.json();
+
+    if (!eventData) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -22,6 +33,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    if (!eventData.date || eventData.date < getCincyDateString()) {
+      return NextResponse.json(
+        { error: "Event date can't be in the past" },
+        { status: 400 }
+      );
+    }
+
+    const isRecurring = !!eventData.isRecurring;
 
     const { data, error } = await supabaseAdmin
       .from("pending_events")
@@ -40,7 +60,7 @@ export async function POST(request: Request) {
         ticket_link: eventData.ticketLink,
         vibe_tags: eventData.vibeTags || [],
         image_url: imageUrl,
-        submitter_email: submitterEmail,
+        submitter_email: user.email,
         status: "pending",
         category: category || null,
         lat: eventData.lat ?? null,
@@ -49,6 +69,10 @@ export async function POST(request: Request) {
         private_location_note: eventData.isPrivateLocation
           ? eventData.privateLocationNote || null
           : null,
+        is_recurring: isRecurring,
+        recurrence_frequency: isRecurring ? eventData.recurrenceFrequency || null : null,
+        recurrence_days: isRecurring ? eventData.recurrenceDays || null : null,
+        recurrence_end_date: isRecurring ? eventData.recurrenceEndDate || null : null,
       })
       .select("id")
       .single();
@@ -57,7 +81,7 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    await sendNotificationEmail(eventData, submitterEmail);
+    await sendNotificationEmail(eventData, user.email);
 
     return NextResponse.json({
       success: true,

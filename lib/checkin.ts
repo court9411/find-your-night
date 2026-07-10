@@ -78,8 +78,11 @@ export interface VenuePin {
 }
 
 // Same 8-genre taxonomy as onboarding/profile music_prefs — must stay in
-// sync so check-in tags feed the same rec-engine signal.
-export const CHECKIN_MUSIC_TAGS = MUSIC_TAG_OPTIONS;
+// sync so check-in tags feed the same rec-engine signal. "Other" is a
+// check-in-only addition (no free text, just another selectable tag saved
+// into music_tags like the rest) — not part of the shared taxonomy, so it's
+// appended here rather than added to MUSIC_OPTIONS itself.
+export const CHECKIN_MUSIC_TAGS = [...MUSIC_TAG_OPTIONS, "Other"];
 
 export function crowdLevelLabel(level: CrowdLevel | null | undefined): string {
   return CROWD_LEVEL_OPTIONS.find((o) => o.value === level)?.label ?? "";

@@ -1,12 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ExtractedEventData } from "@/lib/types";
 import { PlaceDetails } from "@/components/PlaceAutocompleteInput";
 import { CitySelection } from "@/components/CityAutocompleteInput";
 import EventReviewForm from "@/components/EventReviewForm";
 import { compressImage } from "@/lib/imageCompression";
 import { track } from "@/lib/analytics";
+import { createClient } from "@/lib/supabase/client";
+import { getCincyDateString } from "@/lib/cincyDate";
 import PicksLink from "@/components/PicksLink";
 
 const SECRET_LOCATION_NAME = "Secret Location";
@@ -29,6 +32,10 @@ const BLANK_EVENT_DATA: ExtractedEventData = {
   lng: null,
   isPrivateLocation: false,
   privateLocationNote: "",
+  isRecurring: false,
+  recurrenceFrequency: "weekly",
+  recurrenceDays: [],
+  recurrenceEndDate: null,
 };
 
 type Stage = "input" | "extracting" | "preview" | "success";
@@ -43,11 +50,25 @@ export default function SubmitPage() {
   const [extracted, setExtracted] = useState<ExtractedEventData | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [submitterEmail, setSubmitterEmail] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationData | null>(null);
   const [editedData, setEditedData] = useState<ExtractedEventData | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
+      setIsAuthed(!!user);
+      setAuthChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function getMissingFields(): string[] {
     const data = editedData || extracted;
@@ -55,6 +76,7 @@ export default function SubmitPage() {
     const missing: string[] = [];
     if (!data.eventName?.trim()) missing.push("eventName");
     if (!data.date?.trim()) missing.push("date");
+    else if (data.date < getCincyDateString()) missing.push("datePast");
     if (!data.venueName?.trim()) missing.push("venueName");
     if (!data.city?.trim()) missing.push("city");
     return missing;
@@ -143,15 +165,13 @@ export default function SubmitPage() {
 
   async function handleFinalSubmit() {
     const missing = getMissingFields();
-    if (missing.length > 0) {
-      setError(
-        `Please fill in required fields: ${missing.join(", ")}`
-      );
+    if (missing.includes("datePast")) {
+      setError("Event date can't be in the past.");
       return;
     }
-
-    if (!submitterEmail.trim()) {
-      setError("Please enter your email");
+    const requiredMissing = missing.filter((f) => f !== "datePast");
+    if (requiredMissing.length > 0) {
+      setError(`Please fill in required fields: ${requiredMissing.join(", ")}`);
       return;
     }
 
@@ -167,7 +187,6 @@ export default function SubmitPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventData: data,
-          submitterEmail,
           imageUrl,
         }),
       });
@@ -196,7 +215,7 @@ export default function SubmitPage() {
 
   function updateEditedData(
     field: keyof ExtractedEventData,
-    value: string | string[]
+    value: string | string[] | boolean | null
   ) {
     setEditedData((prev) =>
       prev ? { ...prev, [field]: value } : prev
@@ -247,6 +266,36 @@ export default function SubmitPage() {
         checked && !prev.venueName?.trim() ? SECRET_LOCATION_NAME : prev.venueName;
       return { ...prev, isPrivateLocation: checked, venueName };
     });
+  }
+
+  // AUTH GATE
+  if (!authChecked) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen px-6">
+        <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </main>
+    );
+  }
+
+  if (!isAuthed) {
+    return (
+      <main className="flex flex-col items-center justify-center min-h-screen px-6 py-12 gap-6 text-center">
+        <span className="text-5xl">📋</span>
+        <h1 className="font-display font-extrabold text-4xl tracking-tight">Submit Event</h1>
+        <p className="text-muted text-sm max-w-xs">
+          Sign in to submit an event — this keeps submissions tied to a real account instead of an email field.
+        </p>
+        <Link
+          href="/login"
+          className="w-full max-w-xs rounded-2xl bg-accent hover:bg-accent-hover text-black font-display font-bold text-xl tracking-wide py-3.5 text-center"
+        >
+          Sign In
+        </Link>
+        <PicksLink className="text-sm text-muted underline underline-offset-4">
+          Home
+        </PicksLink>
+      </main>
+    );
   }
 
   // INPUT STAGE
@@ -362,13 +411,11 @@ export default function SubmitPage() {
           data={editedData}
           missing={missing}
           imageUrl={imageUrl}
-          submitterEmail={submitterEmail}
           onFieldChange={updateEditedData}
           onPlaceSelected={handlePlaceSelected}
           onCitySelected={handleCitySelected}
           onTogglePrivateLocation={togglePrivateLocation}
           onToggleVibeTag={toggleVibeTag}
-          onEmailChange={setSubmitterEmail}
         />
 
         {/* Action Buttons */}
