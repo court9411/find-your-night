@@ -33,6 +33,8 @@ export async function PATCH(request: Request) {
   const allowed: (keyof ProfileUpdate)[] = [
     "home_city",
     "home_neighborhood",
+    "home_lat",
+    "home_lng",
     "vibe_prefs",
     "music_prefs",
     "price_levels",

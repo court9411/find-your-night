@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ACTIVITY_OPTIONS, BUDGET_OPTIONS } from "@/lib/preferenceOptions";
+import { ACTIVITY_OPTIONS, BUDGET_OPTIONS, MUSIC_OPTIONS } from "@/lib/preferenceOptions";
 import {
   DrinksIcon,
   FoodDrinksIcon,
@@ -33,6 +33,7 @@ type Step =
   | "value"
   | "vibes"
   | "budget"
+  | "music"
   | "learning"
   | "location"
   | "email"
@@ -146,6 +147,7 @@ export default function OnboardingFlow() {
 
   const [activityInterests, setActivityInterests] = useState<string[]>([]);
   const [priceLevels, setPriceLevels] = useState<number[]>([]);
+  const [musicPrefs, setMusicPrefs] = useState<string[]>([]);
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [areaName, setAreaName] = useState<string | null>(null);
@@ -172,6 +174,10 @@ export default function OnboardingFlow() {
 
   function toggleBudget(value: number) {
     setPriceLevels((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  }
+
+  function toggleMusic(opt: string) {
+    setMusicPrefs((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
   }
 
   function skipFrom(fromStep: Step) {
@@ -292,7 +298,7 @@ export default function OnboardingFlow() {
     return `/results?${p.toString()}`;
   }
 
-  function persistOnboarding() {
+  async function persistOnboarding() {
     localStorage.setItem(ONBOARDED_KEY, "1");
     if (activityInterests.length > 0 || priceLevels.length > 0) {
       localStorage.setItem(
@@ -307,8 +313,39 @@ export default function OnboardingFlow() {
     track("onboarding_completed", {
       activity_interests: activityInterests,
       price_levels: priceLevels,
+      music_prefs: musicPrefs,
       precise_location: !!coords,
     });
+
+    // Write straight to user_profiles so answers aren't stranded in
+    // localStorage for users who never visit /profile. Silently no-ops if
+    // the user skipped the email step and has no session yet — the existing
+    // localStorage merge on first Profile visit covers that case.
+    const dbUpdate: Record<string, unknown> = {};
+    if (activityInterests.length > 0) dbUpdate.activity_interests = activityInterests;
+    if (priceLevels.length > 0) dbUpdate.price_levels = priceLevels;
+    if (musicPrefs.length > 0) dbUpdate.music_prefs = musicPrefs;
+    if (coords) {
+      dbUpdate.home_lat = coords.lat;
+      dbUpdate.home_lng = coords.lng;
+    }
+    if (areaName) dbUpdate.home_city = areaName;
+
+    if (Object.keys(dbUpdate).length > 0) {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          await fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dbUpdate),
+          });
+        }
+      } catch {}
+    }
   }
 
   function finalizeAndRoute() {
@@ -330,7 +367,7 @@ export default function OnboardingFlow() {
   // ── Screen 1: Hook ──────────────────────────────────────────────────────────
   if (step === "hook") {
     return (
-      <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10 overflow-hidden">
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10 overflow-hidden">
         <CityLightsBG />
         <SkipCorner onClick={() => skipFrom("hook")} />
         <div key="hook" className="relative animate-fadeUp opacity-0">
@@ -356,7 +393,7 @@ export default function OnboardingFlow() {
   // ── Screen 3: Build Your Vibe ─────────────────────────────────────────────
   if (step === "vibes") {
     return (
-      <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10">
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <SkipCorner onClick={() => skipFrom("vibes")} />
         <div key="vibes" className="animate-fadeUp opacity-0">
           <h2 className="font-display font-bold text-white text-[28px]">What&apos;s your vibe?</h2>
@@ -392,7 +429,7 @@ export default function OnboardingFlow() {
   // ── Screen 4: Budget ──────────────────────────────────────────────────────
   if (step === "budget") {
     return (
-      <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10">
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <SkipCorner onClick={() => skipFrom("budget")} />
         <div key="budget" className="animate-fadeUp opacity-0">
           <h2 className="font-display font-bold text-white text-[28px]">What&apos;s tonight worth to you?</h2>
@@ -422,6 +459,40 @@ export default function OnboardingFlow() {
         </div>
 
         <div>
+          <PrimaryButton onClick={() => setStep("music")}>Lock It In</PrimaryButton>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Screen 4.5: Music ─────────────────────────────────────────────────────
+  if (step === "music") {
+    return (
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
+        <SkipCorner onClick={() => skipFrom("music")} />
+        <div key="music" className="animate-fadeUp opacity-0">
+          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s the soundtrack?</h2>
+          <p className="mt-2 text-sm text-muted">Pick your genres. We&apos;ll match the room.</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {MUSIC_OPTIONS.map((opt) => {
+              const isOn = musicPrefs.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  onClick={() => toggleMusic(opt)}
+                  className={`px-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
+                    isOn ? "bg-accent text-black animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]" : "bg-transparent text-white border border-[#2E2E2E]"
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
           <PrimaryButton onClick={() => setStep("learning")}>Lock It In</PrimaryButton>
         </div>
       </main>
@@ -442,7 +513,7 @@ export default function OnboardingFlow() {
   // ── Screen 6: Location ────────────────────────────────────────────────────
   if (step === "location") {
     return (
-      <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10">
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <SkipCorner onClick={() => skipFrom("location")} />
         <div key="location" className="animate-fadeUp opacity-0">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-[#1A1A1A] border border-[#2E2E2E]">
@@ -484,7 +555,7 @@ export default function OnboardingFlow() {
   // ── Screen 7: Email ───────────────────────────────────────────────────────
   if (step === "email") {
     return (
-      <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10">
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <div key="email" className="animate-fadeUp opacity-0">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-[#1A1A1A] border border-[#2E2E2E]">
             <svg className="w-[22px] h-[22px] text-accent" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
@@ -584,7 +655,7 @@ function ValueScreen({ onNext, onSkip }: { onNext: () => void; onSkip: () => voi
   }, [visible]);
 
   return (
-    <main className="relative flex flex-col justify-between min-h-screen px-6 pt-20 pb-10">
+    <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-20 pb-10">
       <SkipCorner onClick={onSkip} />
       <div className="flex flex-col items-center gap-3 mt-4">
         {VALUE_CARDS.map((c, i) => (
@@ -643,7 +714,7 @@ function LearningScreen({
     .slice(0, 4);
 
   return (
-    <main className="relative flex flex-col justify-between min-h-screen px-6 pt-24 pb-10">
+    <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
       <SkipCorner onClick={onSkip} />
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="relative flex items-center justify-center" style={{ height: 140 }}>
@@ -776,7 +847,7 @@ function FindingScreen({
   }, [coords.lat, coords.lng]);
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen px-8">
+    <main className="flex flex-col items-center justify-center min-h-dvh px-8">
       <div className="w-full max-w-[220px]">
         <div className="h-1 w-full rounded-full overflow-hidden bg-[#242424]">
           <div
@@ -801,7 +872,7 @@ function PicksScreen({
   onContinue: () => void;
 }) {
   return (
-    <main className="relative flex flex-col justify-between min-h-screen px-6 pt-20 pb-10">
+    <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-20 pb-10">
       <div key="picks" className="animate-fadeUp opacity-0">
         <h2 className="font-display font-bold text-white text-[28px]">Your top picks tonight.</h2>
         <p className="mt-2 text-sm text-muted">Based on what you just picked.</p>

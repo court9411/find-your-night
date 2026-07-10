@@ -5,6 +5,8 @@ export interface UserProfile {
   email: string | null;
   home_city: string | null;
   home_neighborhood: string | null;
+  home_lat: number | null;
+  home_lng: number | null;
   vibe_prefs: string[];
   music_prefs: string[];
   price_levels: number[];
@@ -20,6 +22,8 @@ export type ProfileUpdate = Partial<
     UserProfile,
     | "home_city"
     | "home_neighborhood"
+    | "home_lat"
+    | "home_lng"
     | "vibe_prefs"
     | "music_prefs"
     | "price_levels"
