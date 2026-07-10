@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { storeEventImage } from "@/lib/eventImageStorage";
+import { getCincyWeekday, getCincyLongDate } from "@/lib/cincyDate";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -31,7 +32,15 @@ const VALID_VIBE_TAGS = [
   "networking",
 ];
 
-const EXTRACTION_PROMPT = `You are an event information extractor. Extract event details from the provided content and return ONLY a strict JSON object with these fields:
+// Flyers routinely give a date with no year ("Thursday, July 16th") — with
+// no anchor, the model has to guess a year from its own training data,
+// which can land on a stale one (confirmed in production: a flyer for
+// "July 16th" got extracted as 2025). Telling it today's real date lets it
+// resolve partial dates correctly instead of guessing.
+function buildExtractionPrompt(): string {
+  const todayLabel = `${getCincyWeekday()}, ${getCincyLongDate()}`;
+
+  return `You are an event information extractor. Today's real date is ${todayLabel}. Extract event details from the provided content and return ONLY a strict JSON object with these fields:
 - eventName: string or null
 - date: string in YYYY-MM-DD format or null
 - startTime: string in 12-hour format (e.g. "7:00 PM") or null
@@ -44,6 +53,7 @@ const EXTRACTION_PROMPT = `You are an event information extractor. Extract event
 
 Important:
 - Return null for any field you cannot confidently find — NEVER guess dates or prices
+- If the source gives a date without an explicit year (e.g. "Thursday, July 16th"), resolve it to the next real calendar occurrence of that month/day on or after today's date above — never infer a year from anything other than today's date
 - Only include vibeTags that clearly apply
 - Ensure date is in YYYY-MM-DD format
 - Ensure startTime is in 12-hour format with AM/PM
@@ -51,6 +61,7 @@ Important:
 - Return ONLY valid JSON, no markdown or extra text
 
 Content to extract from:`;
+}
 
 // Find a <meta> tag's content by name/property, regardless of attribute
 // order or quote style (e.g. og:image vs description).
@@ -149,7 +160,7 @@ async function extractFromImage(base64Image: string, mimeType: string): Promise<
             },
             {
               type: "text",
-              text: EXTRACTION_PROMPT,
+              text: buildExtractionPrompt(),
             },
           ],
         },
@@ -177,7 +188,7 @@ async function extractEventData(content: string): Promise<ExtractedEventData> {
       messages: [
         {
           role: "user",
-          content: `${EXTRACTION_PROMPT}\n\n${content}`,
+          content: `${buildExtractionPrompt()}\n\n${content}`,
         },
       ],
     });
