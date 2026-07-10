@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import { BOTTOM_NAV_CONTENT_HEIGHT, TAB_ROUTES } from "@/lib/navConstants";
@@ -11,6 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {showNav && <AppHeader />}
       {children}
       {showNav && (
         <>

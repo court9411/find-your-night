@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Moon } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { formatMatchReason } from "@/lib/matchReason";
 import { logAction } from "@/lib/track-action";
@@ -16,6 +17,8 @@ interface Props {
   href?: string;
   /** Fired on click in addition to logging — navigation (router.push / Link) or session bookkeeping. */
   onClick?: () => void;
+  /** Tailwind text-color class for this rail's section accent (see components/sectionColors.ts) — colors the match-reason line and no-photo fallback icon so each rail reads distinctly. Defaults to brand green for rails that don't pass one (e.g. the plain Tonight rail). */
+  accentClass?: string;
 }
 
 /**
@@ -23,7 +26,14 @@ interface Props {
  * Tonight rail, and the themed home rails). Rails differ in *what* they
  * fetch, not what a card looks like — see lib/homeRails.ts.
  */
-export default function VenueRailCard({ venue, userId, showDistance = false, href, onClick }: Props) {
+export default function VenueRailCard({
+  venue,
+  userId,
+  showDistance = false,
+  href,
+  onClick,
+  accentClass = "text-accent",
+}: Props) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const matchReason = formatMatchReason(venue);
   // distanceMiles (client-side Haversine, set by sortByProximity for the
@@ -48,16 +58,22 @@ export default function VenueRailCard({ venue, userId, showDistance = false, hre
 
   const card = (
     <div className="flex-none w-44 rounded-2xl border border-card-border bg-card overflow-hidden">
-      {venue.imageUrl ? (
-        <img src={venue.imageUrl} alt={venue.name} className="w-full h-28 object-contain bg-black/20" />
-      ) : (
-        <div className="w-full h-28 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex items-center justify-center">
-          <span className="text-3xl opacity-30" aria-hidden>
-            🌙
-          </span>
-        </div>
-      )}
-      <div className="p-3 flex flex-col gap-0.5 min-w-0">
+      <div className="relative w-full h-28">
+        {venue.imageUrl ? (
+          <img src={venue.imageUrl} alt={venue.name} className="w-full h-full object-contain bg-black/20" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black flex items-center justify-center">
+            <Moon className={accentClass} size={28} style={{ opacity: 0.5 }} fill="currentColor" stroke="none" aria-hidden />
+          </div>
+        )}
+        {/* Bottom-anchored contrast gradient — keeps any overlaid badges legible regardless of the photo underneath. */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)" }}
+          aria-hidden
+        />
+      </div>
+      <div className="p-6 flex flex-col gap-0.5 min-w-0">
         {venue.liveTonight && (
           <div className="flex items-center gap-1 mb-0.5">
             <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
@@ -73,7 +89,7 @@ export default function VenueRailCard({ venue, userId, showDistance = false, hre
           {showDistance && distanceMiles != null && <> · {distanceMiles.toFixed(1)}mi</>}
         </p>
         {matchReason && (
-          <p className="text-[10px] text-accent font-semibold leading-tight truncate">{matchReason}</p>
+          <p className={`text-[10px] ${accentClass} font-semibold leading-tight truncate`}>{matchReason}</p>
         )}
         <p className="text-[11px] text-accent font-semibold mt-0.5">{venue.price}</p>
       </div>

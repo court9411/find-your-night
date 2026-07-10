@@ -16,6 +16,11 @@ const config: Config = {
           DEFAULT: "#22C55E",
           hover: "#4ADE80",
           dim: "#052e16",
+          // Section accent colors from the brand palette (Neon Vibes concept) —
+          // used to color-code rail headers/icons/match-reason text per section.
+          pink: "#FF3DBB",
+          amber: "#FFC857",
+          purple: "#B43DFF",
         },
         card: "rgba(255,255,255,0.04)",
         "card-border": "rgba(255,255,255,0.08)",

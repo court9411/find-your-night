@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Calendar } from 'lucide-react'
 import { PromoterEvent } from '@/lib/promoterEvent'
 import EventRailCard from '@/components/EventRailCard'
 import { formatRecurrenceBadge } from '@/lib/recurrence'
@@ -97,15 +98,15 @@ export function LineupSection({ userId = null }: Props) {
   return (
     <section className="py-5 w-full">
       <div className="flex items-center gap-2 px-4 mb-3">
+        <Calendar className="text-accent" size={20} aria-hidden />
         <h2 className="font-display font-bold text-white text-lg tracking-tight">The Lineup</h2>
-        <span aria-hidden className="text-base leading-none">📅</span>
         <Link href="/events" className="ml-auto text-accent text-xs font-medium shrink-0">
           See more →
         </Link>
       </div>
 
       <div
-        className="flex gap-3 overflow-x-auto pb-2 px-4"
+        className="flex gap-3.5 overflow-x-auto pb-2 px-4"
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {events.map((event, index) => (

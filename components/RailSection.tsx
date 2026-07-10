@@ -6,6 +6,7 @@ import { RailConfig } from "@/lib/homeRails";
 import { VENUE_DETAIL_BACK_KEY } from "@/lib/storageKeys";
 import NotInterestedButton from "@/components/NotInterestedButton";
 import VenueRailCard from "@/components/VenueRailCard";
+import { sectionTextClass, railIcon } from "@/components/sectionColors";
 
 interface Props {
   config: RailConfig;
@@ -96,13 +97,17 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
 
   if (venues.length === 0) return null;
 
+  const Icon = railIcon(config.id);
+  const colorClass = sectionTextClass(config.colorClass);
+
   return (
     <div className="w-full">
-      <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3">
-        {config.emoji} {config.title}
+      <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3 flex items-center gap-2">
+        <Icon className={colorClass} size={20} aria-hidden />
+        {config.title}
       </h3>
       <div
-        className="flex gap-3 overflow-x-auto px-5 pb-1"
+        className="flex gap-3.5 overflow-x-auto px-5 pb-1"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {venues.map((venue) => {
@@ -113,6 +118,7 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
               showDistance={!!lat}
               href={venue.id ? `/venue/${venue.id}` : undefined}
               onClick={rememberBackUrl}
+              accentClass={colorClass}
             />
           );
           return (

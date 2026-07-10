@@ -2,7 +2,8 @@ export type RailTimeContext = "tonight" | "today";
 
 export interface RailConfig {
   id: string;
-  emoji: string;
+  /** Tailwind color token suffix off the `accent` scale — "DEFAULT" renders as text-accent. Icon component is resolved client-side from `id` (see components/sectionColors.ts) since this config crosses a JSON API boundary (app/api/home-context) and React components can't survive that round-trip. */
+  colorClass: string;
   title: string;
   timeContext: RailTimeContext;
   railType: string; // maps to p_rail_type in get_rail_venues
@@ -17,12 +18,30 @@ export const TONIGHT_RAILS: RailConfig[] = [
   // venues (is_trending_featured) rather than real engagement data —
   // revisit once venue_popularity.recent_score has enough activity behind
   // it to earn the word back. Not a permanent rename.
-  { id: "trending", emoji: "🔥", title: "Popular Picks", timeContext: "tonight", railType: "trending" },
-  { id: "date_night", emoji: "❤️", title: "Date Night", timeContext: "tonight", railType: "date_night" },
+  {
+    id: "trending",
+    colorClass: "accent",
+    title: "Popular Picks",
+    timeContext: "tonight",
+    railType: "trending",
+  },
+  {
+    id: "date_night",
+    colorClass: "accent-pink",
+    title: "Date Night",
+    timeContext: "tonight",
+    railType: "date_night",
+  },
   // price_level = 1 covers "free or cheap" as one combined tier in the
   // schema — "Budget-Friendly" is the honest name for that; "Free Stuff"
   // overpromised (these are $ cafes/spots, not literally free).
-  { id: "budget_friendly", emoji: "💰", title: "Budget-Friendly", timeContext: "tonight", railType: "free" },
+  {
+    id: "budget_friendly",
+    colorClass: "accent-amber",
+    title: "Budget-Friendly",
+    timeContext: "tonight",
+    railType: "free",
+  },
 ];
 
 // Full daytime rail design (Adventurous, Outdoor, etc.) is a separate task.
@@ -35,7 +54,7 @@ export const TONIGHT_RAILS: RailConfig[] = [
 export const TODAY_RAILS: RailConfig[] = [
   {
     id: "daytime_picks",
-    emoji: "☀️",
+    colorClass: "accent",
     title: "Daytime Picks",
     timeContext: "today",
     railType: "free",

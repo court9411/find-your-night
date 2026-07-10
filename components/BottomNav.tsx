@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home, Map, User, LucideIcon } from "lucide-react";
 import { BOTTOM_NAV_CONTENT_HEIGHT } from "@/lib/navConstants";
 import { usePicksHref } from "@/lib/usePicksHref";
 
 interface Tab {
   href: string;
-  emoji: string;
+  icon: LucideIcon;
   label: string;
 }
 
 const TABS: Tab[] = [
-  { href: "/results", emoji: "🏠", label: "Picks" },
-  { href: "/map", emoji: "🗺️", label: "Live Map" },
-  { href: "/profile", emoji: "👤", label: "Profile" },
+  { href: "/results", icon: Home, label: "Picks" },
+  { href: "/map", icon: Map, label: "Live Map" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 export default function BottomNav() {
@@ -33,6 +34,7 @@ export default function BottomNav() {
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           const href = tab.href === "/results" ? picksHref : tab.href;
+          const Icon = tab.icon;
           return (
             <Link
               key={tab.href}
@@ -40,9 +42,12 @@ export default function BottomNav() {
               aria-current={active ? "page" : undefined}
               className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[44px] active:opacity-70"
             >
-              <span className={`text-xl leading-none ${active ? "" : "opacity-60"}`} aria-hidden>
-                {tab.emoji}
-              </span>
+              <Icon
+                className={active ? "text-accent" : "text-muted"}
+                size={22}
+                strokeWidth={active ? 2.25 : 1.75}
+                aria-hidden
+              />
               <span className={`text-[11px] font-semibold ${active ? "text-accent" : "text-muted"}`}>
                 {tab.label}
               </span>

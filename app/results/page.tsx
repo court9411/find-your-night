@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Zap } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
@@ -190,7 +191,9 @@ function TonightContent() {
       {/* Header */}
       <div className="flex items-start justify-between px-5 pt-12 pb-4">
         <div>
-          <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">Your Night Picks</h1>
+          <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">
+            Your <span className="text-accent">Night</span> Picks
+          </h1>
           <p className="text-sm text-muted mt-1">Pick what feels right — we&apos;ll get smarter as you go.</p>
         </div>
         <button
@@ -267,9 +270,12 @@ function TonightContent() {
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
           <div>
-            <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3">Tonight</h3>
+            <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3 flex items-center gap-2">
+              <Zap className="text-accent" size={20} aria-hidden />
+              Tonight
+            </h3>
             <div
-              className="flex gap-3 overflow-x-auto px-5 pb-1"
+              className="flex gap-3.5 overflow-x-auto px-5 pb-1"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
               {visibleVenues!.map((venue, index) => {

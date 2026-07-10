@@ -75,13 +75,19 @@ export default function EventRailCard({
                 sizes="176px"
                 unoptimized
               />
+              {/* Bottom-anchored contrast gradient — keeps the date pill and any future overlaid text legible regardless of the flyer underneath. */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent 55%)" }}
+                aria-hidden
+              />
               {dateLabel && (
                 <span className="absolute top-1.5 left-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-black">
                   {dateLabel}
                 </span>
               )}
             </div>
-            <div className="p-2.5 min-w-0">
+            <div className="p-5 min-w-0">
               <p className="text-white text-xs font-semibold line-clamp-2 leading-snug">
                 {event.event_name}
               </p>
