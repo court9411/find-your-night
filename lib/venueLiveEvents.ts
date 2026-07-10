@@ -8,6 +8,7 @@ export interface VenueLiveEventRow {
   start_dt: string;
   end_dt: string;
   image_url: string | null;
+  ticket_link: string | null;
 }
 
 /** Rows are already ordered soonest-first and filtered to still-live/upcoming by the RPC. */

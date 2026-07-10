@@ -9,6 +9,7 @@ import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
 import HostEventLink from "@/components/HostEventLink";
 import RightNowBlock from "@/components/RightNowBlock";
+import TicketLink from "@/components/TicketLink";
 
 interface ProgressDots {
   total: number;
@@ -207,6 +208,16 @@ function VenueDetailScreenBody({
           <div className="rounded-xl border-l-2 border-accent bg-accent/10 px-4 py-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1.5">About this spot</p>
             <p className="text-sm leading-relaxed">{event.description}</p>
+            {event.ticketLink && (
+              <div className="mt-2">
+                <TicketLink
+                  href={event.ticketLink}
+                  eventId={event.id}
+                  eventName={event.name}
+                  hasPrice={false}
+                />
+              </div>
+            )}
           </div>
         ) : (
           venue.whyTonight && (

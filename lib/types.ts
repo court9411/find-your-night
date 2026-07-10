@@ -39,6 +39,7 @@ export interface FeaturedVenueEvent {
   imageUrl: string | null;
   startDt: string;
   endDt: string;
+  ticketLink: string | null;
 }
 
 export interface Vibe {

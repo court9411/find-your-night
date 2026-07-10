@@ -131,6 +131,7 @@ export async function POST(request: Request) {
     imageUrl: chosen.image_url,
     startDt: chosen.start_dt,
     endDt: chosen.end_dt,
+    ticketLink: chosen.ticket_link,
   };
 
   return NextResponse.json({ venue, event });
