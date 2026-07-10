@@ -7,6 +7,7 @@ import { isEventOver } from '@/lib/eventTiming'
 import { getRankedEvents, RankedEvent } from '@/lib/scoring'
 import { getAnonId } from '@/lib/anon'
 import { PromoterEvent } from '@/lib/promoterEvent'
+import { formatRecurrenceBadge } from '@/lib/recurrence'
 import EventRailCard from '@/components/EventRailCard'
 
 const QUEUE_KEY = 'fyn_underground_queue'
@@ -104,6 +105,7 @@ export function WhatsHappeningSection({ lat = null, lng = null, userId = null }:
             queueKey={QUEUE_KEY}
             queueIds={events.map((e) => e.id)}
             userId={userId}
+            dateLabel={formatRecurrenceBadge(event) ?? undefined}
             onHide={hideEvent}
           />
         ))}
