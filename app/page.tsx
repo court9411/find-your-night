@@ -8,6 +8,7 @@ import { track } from "@/lib/analytics";
 import OnboardingFlow, { ONBOARDED_KEY } from "@/components/OnboardingFlow";
 import HostEventLink from "@/components/HostEventLink";
 import { FALLBACK_COORDS, GEO_COORDS_KEY, GEO_AREA_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
+import { SKIP_ONBOARDING } from "@/lib/featureFlags";
 
 export default function JustAsk() {
   const router = useRouter();
@@ -22,8 +23,16 @@ export default function JustAsk() {
     setOnboarded(localStorage.getItem(ONBOARDED_KEY) === "1");
   }, []);
 
+  // Live Map is the default landing tab (see Part 1 of the nav-shell
+  // handoff) — send onboarded/bypassed users straight there instead of
+  // rendering the location-ask screen below.
   useEffect(() => {
-    if (!onboarded) return;
+    if (onboarded === null) return;
+    if (onboarded || SKIP_ONBOARDING) router.replace("/map");
+  }, [onboarded, router]);
+
+  useEffect(() => {
+    if (!onboarded && !SKIP_ONBOARDING) return;
     if (typeof window === "undefined" || !navigator.geolocation) return;
     if (sessionStorage.getItem(GEO_DENIED_KEY) === "1") return;
 
@@ -110,8 +119,18 @@ export default function JustAsk() {
     return <main className="min-h-screen" />;
   }
 
-  if (!onboarded) {
+  if (!onboarded && !SKIP_ONBOARDING) {
     return <OnboardingFlow />;
+  }
+
+  // Onboarded (or bypassed via SKIP_ONBOARDING) — the effect above is
+  // already redirecting to /map, the default landing tab. Render nothing
+  // rather than flashing this legacy location-ask screen. Left intact below
+  // (unreachable while the redirect stands) rather than deleted, since
+  // Part 1 of the nav-shell handoff only changes the default route, not
+  // this screen's architecture.
+  if (onboarded || SKIP_ONBOARDING) {
+    return <main className="min-h-screen" />;
   }
 
   return (

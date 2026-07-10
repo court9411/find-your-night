@@ -47,7 +47,9 @@ Build order:
 3. **Check-in flow + Right Now block** — search-by-name (fuzzy, via `search_venues()`) or GPS "use my location" entry point. Scout check-in form wired to `venue_checkins`. Live countdown (90 min) on confirmation, "Still here? Refresh status" button after expiry.
 4. **Live Map v1** — new tab, colored pins by live crowd_level, check-in entry point lives here.
 5. **Profile redesign** — Taste (Spotify-style), Night History, tier badge. Mostly display work once 2–3 exist.
-6. **Onboarding flow** — deferred, not this sprint.
+6. **Onboarding flow** — deferred, not this sprint. Currently **bypassed** via `SKIP_ONBOARDING` in [lib/featureFlags.ts](lib/featureFlags.ts): new signups skip the 9-screen flow entirely and land straight in the main app. Onboarding's code/routes/components are untouched, just not auto-triggered. **Re-enable this flag before App Store submission work begins** — don't forget it's on.
+
+**Default landing route is Live Map (`/map`), not Picks** — `/` (the PWA `start_url`) now redirects onboarded/bypassed users straight to Live Map instead of showing the old "Where are you tonight?" location-ask screen. That screen's code is still intact in [app/page.tsx](app/page.tsx) (unreachable while the redirect stands), since `/results` falls back to `/` when it has no cached coords — the redirect just continues on to `/map` from there instead. Bottom nav still shows all 3 tabs normally; this only changes first-launch behavior.
 
 **Scouting is open to all users** (not invite-gated) — decided after initially scoping it as invite-only. Trust/quality is enforced mechanically instead of via gatekeeping:
 - Every check-in requires real GPS proximity to the venue (within 150m), enforced at the database level via RLS — prevents fake/remote check-ins
