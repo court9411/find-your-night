@@ -82,10 +82,17 @@ async function fetchVenuePhoto(placeId) {
 // ── Supabase ─────────────────────────────────────────────────────────────────
 
 async function fetchVenuesNeedingPhotos() {
-  // Some curated venues use synthetic place_ids (e.g. "curated-bar-29") for
-  // venues never matched to a real Google Place — Google always 400s on
-  // those. But plenty of curated venues *were* matched to a real listing
-  // during curation and have a normal "ChIJ..." place_id, so excluding by
+  // Some venues use synthetic place_ids for spots never matched to a real
+  // Google Place — Google always 400s on those. Two known synthetic
+  // prefixes: "curated-<slug>" from the one-off ingest-*.mjs scripts, and
+  // "manual_<slug>" from approve_pending_venue()'s Postgres fallback when a
+  // user-submitted venue has no place_id. (This second one bit us for real:
+  // Bargos Grill & Tap and Cruise Inn Sports Bar & Grill both landed with
+  // "manual_..." ids and this filter didn't catch them, so the script would
+  // have 400'd on both instead of skipping them — found and fixed the same
+  // session those two venues were manually resolved to real place_ids.)
+  // But plenty of curated venues *were* matched to a real listing during
+  // curation and have a normal "ChIJ..." place_id, so excluding by
   // `source = 'curated'` wrongly skipped them too (found via Supabase MCP:
   // 15 curated venues had real place_ids and were silently never synced).
   // Filter on the place_id shape itself instead.
@@ -93,7 +100,8 @@ async function fetchVenuesNeedingPhotos() {
     .from("venues")
     .select("id, name, place_id")
     .not("place_id", "is", null)
-    .not("place_id", "like", "curated-%");
+    .not("place_id", "like", "curated-%")
+    .not("place_id", "like", "manual_%");
   if (venuesError) throw venuesError;
 
   // Scoped to our own 'google' rows — a venue can also have a promoter/user/

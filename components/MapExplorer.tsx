@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { GEO_COORDS_KEY, FALLBACK_COORDS } from "@/lib/geoStorage";
 import { NearbyVenue, SelectedVenue, VenuePin } from "@/lib/checkin";
+import { useLocation } from "@/lib/useLocation";
 import MapView from "@/components/MapView";
 import CheckInVenuePicker from "@/components/CheckInVenuePicker";
 import CheckInConfirmVenue from "@/components/CheckInConfirmVenue";
 import VenueInfoSheet from "@/components/VenueInfoSheet";
 import CheckInForm from "@/components/CheckInForm";
 import CheckInSuccess from "@/components/CheckInSuccess";
+import ProactiveCheckInPrompt from "@/components/ProactiveCheckInPrompt";
 
 type Sheet =
   | { name: "closed" }
@@ -35,6 +37,8 @@ export default function MapExplorer() {
   const [focusCoords, setFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [sheet, setSheet] = useState<Sheet>({ name: "closed" });
   const [mapError, setMapError] = useState<string | null>(null);
+  const [proactiveVenue, setProactiveVenue] = useState<NearbyVenue | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +54,34 @@ export default function MapExplorer() {
       cancelled = true;
     };
   }, []);
+
+  // Silent, best-effort check for "user is already standing at a venue" —
+  // failures (denied permission, no nearby match) are expected and just
+  // mean no prompt, never surfaced as an error like the manual GPS flow.
+  useEffect(() => {
+    let cancelled = false;
+    location
+      .request()
+      .then((coords) => fetch(`/api/venues/nearby?lat=${coords.lat}&lng=${coords.lng}`))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.venue) setProactiveVenue(data.venue);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function refreshPins() {
+    fetch("/api/venues/pins")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setVenues(data.venues ?? []);
+      })
+      .catch(() => {});
+  }
 
   function focusOnVenueId(id: string) {
     const pin = venues.find((v) => v.id === id);
@@ -85,6 +117,18 @@ export default function MapExplorer() {
           🔍 Find a spot to check in
         </button>
       </div>
+
+      {proactiveVenue && sheet.name === "closed" && (
+        <ProactiveCheckInPrompt
+          venue={proactiveVenue}
+          onCheckIn={() => {
+            focusOnVenueId(proactiveVenue.id);
+            setSheet({ name: "confirm", venue: proactiveVenue });
+            setProactiveVenue(null);
+          }}
+          onDismiss={() => setProactiveVenue(null)}
+        />
+      )}
 
       {sheet.name === "picker" && (
         <SheetOverlay title="Check In" onClose={() => setSheet({ name: "closed" })}>
@@ -124,7 +168,10 @@ export default function MapExplorer() {
           <CheckInForm
             venue={sheet.venue}
             onBack={() => setSheet({ name: "info", venue: sheet.venue })}
-            onSubmitted={() => setSheet({ name: "success", venue: sheet.venue })}
+            onSubmitted={() => {
+              refreshPins();
+              setSheet({ name: "success", venue: sheet.venue });
+            }}
           />
         </SheetOverlay>
       )}

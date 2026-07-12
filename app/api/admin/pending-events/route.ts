@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEventApprovedEmail } from "@/lib/sendEventApprovedEmail";
 
+export const dynamic = "force-dynamic";
+
 // GET: List pending events
 export async function GET() {
   try {

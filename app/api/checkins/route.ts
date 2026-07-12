@@ -5,11 +5,11 @@ import { storeVisitPhoto } from "@/lib/visitPhotoStorage";
 import { haversineMeters } from "@/lib/geo";
 import { CROWD_LEVEL_OPTIONS, CrowdLevel } from "@/lib/checkin";
 
-// Mirrors the RLS policy on venue_checkins (150m proximity, 20min rate
+// Mirrors the RLS policy on venue_checkins (75m proximity, 20min rate
 // limit per venue) so we can surface a specific, friendly error instead of
 // a raw policy-violation message. The actual insert still goes through the
 // user-scoped client below so RLS enforces both for real, defense-in-depth.
-const CHECKIN_RADIUS_METERS = 150;
+const CHECKIN_RADIUS_METERS = 75;
 const RATE_LIMIT_MINUTES = 20;
 
 interface CheckInBody {

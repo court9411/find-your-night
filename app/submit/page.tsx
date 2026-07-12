@@ -368,6 +368,13 @@ export default function SubmitPage() {
         >
           Don&apos;t have a link? Enter details manually
         </button>
+
+        <Link
+          href="/submit/venue"
+          className="text-sm text-muted underline underline-offset-4 hover:text-white"
+        >
+          Know a spot that&apos;s missing? Add a venue instead
+        </Link>
       </main>
     );
   }

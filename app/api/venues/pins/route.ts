@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CrowdLevel, VenuePin } from "@/lib/checkin";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const [{ data: venues, error: venuesError }, { data: recent, error: recentError }] = await Promise.all([
     supabaseAdmin

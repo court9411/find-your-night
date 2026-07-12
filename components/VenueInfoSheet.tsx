@@ -2,6 +2,7 @@
 
 import { SelectedVenue } from "@/lib/checkin";
 import RightNowBlock from "@/components/RightNowBlock";
+import VisitorInsightsCard from "@/components/VisitorInsightsCard";
 
 interface Props {
   venue: SelectedVenue;
@@ -33,6 +34,7 @@ export default function VenueInfoSheet({ venue, onClose, onCheckIn }: Props) {
         </div>
 
         <RightNowBlock venueId={venue.id} />
+        <VisitorInsightsCard venueId={venue.id} />
 
         <button
           onClick={onCheckIn}

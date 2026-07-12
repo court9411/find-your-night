@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const dynamic = "force-dynamic";
+
 const VALID_STATUSES = ["pending", "approved", "rejected"];
 
 export async function GET() {

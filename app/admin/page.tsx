@@ -36,17 +36,33 @@ interface Submission {
   created_at: string;
 }
 
-type TabType = "pending-events" | "submissions";
+interface PendingVenue {
+  id: string;
+  name: string;
+  address: string | null;
+  neighborhood: string | null;
+  venue_category: string | null;
+  vibe_tags: string[] | null;
+  price_level: number | null;
+  description: string | null;
+  image_url: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}
+
+type TabType = "pending-events" | "submissions" | "pending-venues";
 const STATUS_FILTERS = ["pending", "approved", "rejected", "all"] as const;
 
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabType>("pending-events");
   const [pendingEvents, setPendingEvents] = useState<PendingEvent[] | null>(null);
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
+  const [pendingVenues, setPendingVenues] = useState<PendingVenue[] | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("pending");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
+  const [openedDateInputs, setOpenedDateInputs] = useState<Record<string, string>>({});
   const router = useRouter();
 
   async function loadPendingEvents() {
@@ -79,11 +95,28 @@ export default function AdminDashboard() {
     }
   }
 
+  async function loadPendingVenues() {
+    try {
+      const res = await fetch("/api/admin/pending-venues");
+      if (res.status === 401) {
+        router.push("/admin/login");
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Failed to load");
+      setPendingVenues(data.venues);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load");
+    }
+  }
+
   useEffect(() => {
     if (tab === "pending-events") {
       loadPendingEvents();
-    } else {
+    } else if (tab === "submissions") {
       loadSubmissions();
+    } else {
+      loadPendingVenues();
     }
   }, [tab]);
 
@@ -241,6 +274,71 @@ export default function AdminDashboard() {
     }
   }
 
+  async function approveVenue(id: string) {
+    setUpdatingId(id);
+    try {
+      const res = await fetch("/api/admin/pending-venues", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "approve", openedDate: openedDateInputs[id] || undefined }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Failed to approve");
+      }
+      setPendingVenues((prev) =>
+        prev ? prev.map((v) => (v.id === id ? { ...v, status: "approved" } : v)) : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to approve");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function rejectVenue(id: string) {
+    setUpdatingId(id);
+    try {
+      const res = await fetch("/api/admin/pending-venues", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "reject" }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Failed to reject");
+      }
+      setPendingVenues((prev) =>
+        prev ? prev.map((v) => (v.id === id ? { ...v, status: "rejected" } : v)) : prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reject");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function deleteVenue(id: string) {
+    if (!confirm("Delete this venue submission permanently?")) return;
+    setUpdatingId(id);
+    try {
+      const res = await fetch("/api/admin/pending-venues", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? "Failed to delete");
+      }
+      setPendingVenues((prev) => (prev ? prev.filter((v) => v.id !== id) : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
@@ -251,6 +349,9 @@ export default function AdminDashboard() {
 
   const filteredSubmissions =
     submissions?.filter((s) => filter === "all" || s.status === filter) ?? [];
+
+  const filteredVenues =
+    pendingVenues?.filter((v) => filter === "all" || v.status === filter) ?? [];
 
   return (
     <main className="flex flex-col items-center min-h-screen px-4 md:px-6 py-8 md:py-12 gap-6">
@@ -303,6 +404,19 @@ export default function AdminDashboard() {
           }`}
         >
           Submissions
+        </button>
+        <button
+          onClick={() => {
+            setTab("pending-venues");
+            setFilter("pending");
+          }}
+          className={`px-4 py-3 font-display text-sm tracking-wide transition-colors ${
+            tab === "pending-venues"
+              ? "text-accent border-b-2 border-accent"
+              : "text-muted hover:text-white"
+          }`}
+        >
+          Pending Venues
         </button>
       </div>
 
@@ -540,6 +654,100 @@ export default function AdminDashboard() {
                   <button
                     onClick={() => deleteSubmission(submission.id)}
                     disabled={updatingId === submission.id}
+                    className="flex-1 md:flex-initial px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-muted text-sm font-medium hover:border-white/30 disabled:opacity-50 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* PENDING VENUES TAB */}
+      {tab === "pending-venues" && (
+        <div className="grid grid-cols-1 gap-4 w-full max-w-6xl">
+          {!pendingVenues ? (
+            <div className="text-center py-12">
+              <p className="text-muted">Loading pending venues...</p>
+            </div>
+          ) : filteredVenues.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted">No {filter === "all" ? "pending" : filter} venues.</p>
+            </div>
+          ) : (
+            filteredVenues.map((venue) => (
+              <div
+                key={venue.id}
+                className="glass-card px-4 md:px-6 py-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
+                    {venue.image_url && (
+                      <img
+                        src={venue.image_url}
+                        alt={venue.name}
+                        className="w-16 h-16 object-cover rounded hidden md:block"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-display text-lg tracking-wide truncate">{venue.name}</h3>
+                      <p className="text-sm text-muted">
+                        {venue.venue_category ?? "No category"}
+                        {venue.neighborhood ? ` • ${venue.neighborhood}` : ""}
+                        {venue.price_level ? ` • ${"$".repeat(venue.price_level)}` : ""}
+                      </p>
+                      {venue.address && <p className="text-xs text-muted mt-1">{venue.address}</p>}
+                      {venue.description && (
+                        <p className="text-xs text-muted mt-1 line-clamp-2">{venue.description}</p>
+                      )}
+                      {venue.vibe_tags && venue.vibe_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {venue.vibe_tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <label className="flex items-center gap-1.5 text-xs text-muted mt-2 w-fit">
+                        Opened
+                        <input
+                          type="date"
+                          value={openedDateInputs[venue.id] ?? ""}
+                          onChange={(e) =>
+                            setOpenedDateInputs((prev) => ({ ...prev, [venue.id]: e.target.value }))
+                          }
+                          disabled={updatingId === venue.id || venue.status !== "pending"}
+                          className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-white [color-scheme:dark] disabled:opacity-50"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button
+                    onClick={() => approveVenue(venue.id)}
+                    disabled={updatingId === venue.id || venue.status !== "pending"}
+                    className="flex-1 md:flex-initial px-3 py-2 rounded-lg bg-green-500/20 border border-green-500/50 text-green-300 text-sm font-medium hover:bg-green-500/30 disabled:opacity-50 transition-all"
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    onClick={() => rejectVenue(venue.id)}
+                    disabled={updatingId === venue.id || venue.status !== "pending"}
+                    className="flex-1 md:flex-initial px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 text-sm font-medium hover:bg-red-500/30 disabled:opacity-50 transition-all"
+                  >
+                    ✕ Reject
+                  </button>
+                  <button
+                    onClick={() => deleteVenue(venue.id)}
+                    disabled={updatingId === venue.id}
                     className="flex-1 md:flex-initial px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-muted text-sm font-medium hover:border-white/30 disabled:opacity-50 transition-all"
                   >
                     Delete

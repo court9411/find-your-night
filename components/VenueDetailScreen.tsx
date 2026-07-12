@@ -9,6 +9,7 @@ import SaveAuthModal from "@/components/SaveAuthModal";
 import DirectionsLink from "@/components/DirectionsLink";
 import HostEventLink from "@/components/HostEventLink";
 import RightNowBlock from "@/components/RightNowBlock";
+import VisitorInsightsCard from "@/components/VisitorInsightsCard";
 import TicketLink from "@/components/TicketLink";
 
 interface ProgressDots {
@@ -174,6 +175,7 @@ function VenueDetailScreenBody({
         </div>
 
         <RightNowBlock venueId={venue.id} />
+        <VisitorInsightsCard venueId={venue.id} />
 
         {/* Address / Hours / Happy Hour */}
         {(venue.address || venue.hours || venue.happyHour) && (
