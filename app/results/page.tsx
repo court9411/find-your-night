@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Zap } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
+import { readCachedCoords } from "@/lib/geoStorage";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { LineupSection } from "@/components/LineupSection";
 import { BigShowsSection } from "@/components/BigShowsSection";
@@ -30,12 +31,21 @@ function TonightContent() {
 
   const latParam = params.get("lat");
   const lngParam = params.get("lng");
-  const isPrecise = params.get("precise") === "1";
+  const hasParamCoords = latParam !== null && lngParam !== null;
 
-  const userCoords: Coords | null =
-    latParam !== null && lngParam !== null
-      ? { lat: Number(latParam), lng: Number(lngParam) }
-      : null;
+  // Picks (via usePicksHref) falls back to a bare "/results" when nothing's
+  // cached yet, and this page used to redirect to "/" when that happened —
+  // which then bounced bypassed/onboarded users straight to Live Map,
+  // making the Picks tab look broken. Degrade to a cached or fallback
+  // location instead, same as MapExplorer already does, so Picks always
+  // renders something.
+  const cachedCoords = !hasParamCoords ? readCachedCoords() : null;
+
+  const userCoords: Coords = hasParamCoords
+    ? { lat: Number(latParam), lng: Number(lngParam) }
+    : { lat: cachedCoords!.lat, lng: cachedCoords!.lng };
+
+  const isPrecise = hasParamCoords ? params.get("precise") === "1" : (cachedCoords?.precise ?? false);
 
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,10 +108,6 @@ function TonightContent() {
   }, []);
 
   useEffect(() => {
-    if (!userCoords) {
-      router.replace("/");
-      return;
-    }
     const coords = userCoords;
 
     let cancelled = false;
@@ -154,7 +160,7 @@ function TonightContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latParam, lngParam, userId]);
+  }, [userCoords.lat, userCoords.lng, userId]);
 
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
@@ -316,7 +322,7 @@ function TonightContent() {
           </div>
 
           {activeRails.map((rail) => (
-            <RailSection key={rail.id} config={rail} lat={userCoords!.lat} lng={userCoords!.lng} userId={userId} />
+            <RailSection key={rail.id} config={rail} lat={userCoords.lat} lng={userCoords.lng} userId={userId} />
           ))}
 
           <BigShowsSection userId={userId} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GEO_COORDS_KEY, FALLBACK_COORDS } from "@/lib/geoStorage";
+import { readCachedCoords } from "@/lib/geoStorage";
 import { NearbyVenue, SelectedVenue, VenuePin } from "@/lib/checkin";
 import { useLocation } from "@/lib/useLocation";
 import MapView from "@/components/MapView";
@@ -19,17 +19,6 @@ type Sheet =
   | { name: "info"; venue: SelectedVenue }
   | { name: "checkin"; venue: SelectedVenue }
   | { name: "success"; venue: SelectedVenue };
-
-function readCachedCoords(): { lat: number; lng: number } {
-  try {
-    const cached = sessionStorage.getItem(GEO_COORDS_KEY);
-    if (cached) {
-      const { lat, lng } = JSON.parse(cached);
-      if (typeof lat === "number" && typeof lng === "number") return { lat, lng };
-    }
-  } catch {}
-  return FALLBACK_COORDS;
-}
 
 export default function MapExplorer() {
   const [center] = useState(readCachedCoords);

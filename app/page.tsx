@@ -6,6 +6,7 @@ import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import { track } from "@/lib/analytics";
 import OnboardingFlow, { ONBOARDED_KEY } from "@/components/OnboardingFlow";
+import WelcomeIntro, { SEEN_INTRO_KEY } from "@/components/WelcomeIntro";
 import HostEventLink from "@/components/HostEventLink";
 import { FALLBACK_COORDS, GEO_COORDS_KEY, GEO_AREA_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
 import { SKIP_ONBOARDING } from "@/lib/featureFlags";
@@ -18,18 +19,28 @@ export default function JustAsk() {
   const [precise, setPrecise] = useState(false);
   const [showGeoNote, setShowGeoNote] = useState(false);
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [seenIntro, setSeenIntro] = useState<boolean | null>(null);
 
   useEffect(() => {
     setOnboarded(localStorage.getItem(ONBOARDED_KEY) === "1");
+    setSeenIntro(localStorage.getItem(SEEN_INTRO_KEY) === "1");
   }, []);
+
+  function dismissIntro() {
+    localStorage.setItem(SEEN_INTRO_KEY, "1");
+    setSeenIntro(true);
+  }
 
   // Live Map is the default landing tab (see Part 1 of the nav-shell
   // handoff) — send onboarded/bypassed users straight there instead of
-  // rendering the location-ask screen below.
+  // rendering the location-ask screen below. Withheld until the one-time
+  // WelcomeIntro screen has been dismissed, since SKIP_ONBOARDING means the
+  // full OnboardingFlow never runs and a cold visitor would otherwise land
+  // on Live Map with zero explanation of what the app is.
   useEffect(() => {
-    if (onboarded === null) return;
+    if (onboarded === null || seenIntro === null || !seenIntro) return;
     if (onboarded || SKIP_ONBOARDING) router.replace("/map");
-  }, [onboarded, router]);
+  }, [onboarded, seenIntro, router]);
 
   useEffect(() => {
     if (!onboarded && !SKIP_ONBOARDING) return;
@@ -115,12 +126,19 @@ export default function JustAsk() {
     precise && areaName ? `Near ${areaName}` : "Cincinnati · showing results near you";
 
   // Avoid flashing either screen until we know whether onboarding is needed
-  if (onboarded === null) {
+  if (onboarded === null || seenIntro === null) {
     return <main className="min-h-screen" />;
   }
 
   if (!onboarded && !SKIP_ONBOARDING) {
     return <OnboardingFlow />;
+  }
+
+  // Onboarded (or bypassed via SKIP_ONBOARDING) but hasn't seen the
+  // one-time intro yet — show it before the redirect effect sends them to
+  // Live Map.
+  if ((onboarded || SKIP_ONBOARDING) && !seenIntro) {
+    return <WelcomeIntro onContinue={dismissIntro} />;
   }
 
   // Onboarded (or bypassed via SKIP_ONBOARDING) — the effect above is
