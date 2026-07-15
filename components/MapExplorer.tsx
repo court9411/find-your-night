@@ -7,7 +7,7 @@ import { useLocation } from "@/lib/useLocation";
 import MapView from "@/components/MapView";
 import CheckInVenuePicker from "@/components/CheckInVenuePicker";
 import CheckInConfirmVenue from "@/components/CheckInConfirmVenue";
-import VenueInfoSheet from "@/components/VenueInfoSheet";
+import MapVenueDetailSheet from "@/components/MapVenueDetailSheet";
 import CheckInForm from "@/components/CheckInForm";
 import CheckInSuccess from "@/components/CheckInSuccess";
 import ProactiveCheckInPrompt from "@/components/ProactiveCheckInPrompt";
@@ -169,7 +169,7 @@ export default function MapExplorer() {
       )}
 
       {sheet.name === "info" && (
-        <VenueInfoSheet
+        <MapVenueDetailSheet
           venue={sheet.venue}
           onClose={() => setSheet({ name: "closed" })}
           onCheckIn={() => setSheet({ name: "checkin", venue: sheet.venue })}

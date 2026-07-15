@@ -28,6 +28,9 @@ interface Props {
   onPrevZone?: () => void;
   onNextZone?: () => void;
   progressDots?: ProgressDots;
+  // Map context has no "next venue" to skip to — when set, this replaces
+  // the Skip button with a Check In action instead.
+  onCheckIn?: () => void;
 }
 
 type SaveState = ReturnType<typeof useSaveEvent>;
@@ -69,6 +72,7 @@ function VenueDetailScreenBody({
   onPrevZone,
   onNextZone,
   progressDots,
+  onCheckIn,
   saveState,
 }: Props & { saveState: SaveState }) {
   const { saved, loading, toggle, showAuthModal, handleAuthed, closeAuthModal, userId } = saveState;
@@ -262,15 +266,24 @@ function VenueDetailScreenBody({
           </p>
         )}
 
-        {/* Skip / Save */}
+        {/* Check In (map context) / Skip (swipe deck) / Save */}
         <div className="flex gap-3 mt-2">
-          <button
-            onClick={onSkip}
-            disabled={skipDisabled}
-            className="flex-1 rounded-2xl border border-card-border py-3 text-sm font-semibold text-muted active:scale-95 transition-transform disabled:opacity-30"
-          >
-            Skip →
-          </button>
+          {onCheckIn ? (
+            <button
+              onClick={onCheckIn}
+              className="flex-1 rounded-2xl bg-accent hover:bg-accent-hover text-black py-3 text-sm font-bold active:scale-95 transition-transform"
+            >
+              Check In Here
+            </button>
+          ) : (
+            <button
+              onClick={onSkip}
+              disabled={skipDisabled}
+              className="flex-1 rounded-2xl border border-card-border py-3 text-sm font-semibold text-muted active:scale-95 transition-transform disabled:opacity-30"
+            >
+              Skip →
+            </button>
+          )}
           <button
             onClick={toggle}
             disabled={loading}
