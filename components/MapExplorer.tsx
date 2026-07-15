@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { readCachedCoords } from "@/lib/geoStorage";
-import { NearbyVenue, SelectedVenue, VenuePin } from "@/lib/checkin";
+import { LiveDensityVenue, NearbyVenue, SelectedVenue, VenuePin } from "@/lib/checkin";
 import { useLocation } from "@/lib/useLocation";
 import MapView from "@/components/MapView";
 import CheckInVenuePicker from "@/components/CheckInVenuePicker";
@@ -23,6 +23,7 @@ type Sheet =
 export default function MapExplorer() {
   const [center] = useState(readCachedCoords);
   const [venues, setVenues] = useState<VenuePin[]>([]);
+  const [liveVenues, setLiveVenues] = useState<LiveDensityVenue[]>([]);
   const [focusCoords, setFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [sheet, setSheet] = useState<Sheet>({ name: "closed" });
   const [mapError, setMapError] = useState<string | null>(null);
@@ -41,6 +42,28 @@ export default function MapExplorer() {
       });
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Poll live-density while the Live Map screen is mounted, stop on
+  // unmount/tab switch so it doesn't keep hitting the RPC in the background.
+  useEffect(() => {
+    let cancelled = false;
+
+    function fetchLiveDensity() {
+      fetch("/api/venues/live-density")
+        .then((res) => (res.ok ? res.json() : { venues: [] }))
+        .then((data) => {
+          if (!cancelled) setLiveVenues(data.venues ?? []);
+        })
+        .catch(() => {});
+    }
+
+    fetchLiveDensity();
+    const interval = setInterval(fetchLiveDensity, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -86,6 +109,7 @@ export default function MapExplorer() {
     <div className="relative flex-1 min-h-0">
       <MapView
         venues={venues}
+        liveVenues={liveVenues}
         center={center}
         focusCoords={focusCoords}
         onPinClick={handlePinClick}

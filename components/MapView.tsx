@@ -3,20 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps } from "@/lib/googleMaps";
 import { DARK_MAP_STYLE } from "@/lib/mapStyle";
-import { VenuePin, crowdLevelPinColor } from "@/lib/checkin";
+import { LiveDensityVenue, VenuePin, crowdLevelPinColor } from "@/lib/checkin";
+import { createLiveDensityOverlay, LiveDensityOverlayHandle } from "@/lib/liveDensityOverlay";
 
 interface Props {
   venues: VenuePin[];
+  liveVenues: LiveDensityVenue[];
   center: { lat: number; lng: number };
   focusCoords: { lat: number; lng: number } | null;
   onPinClick: (venue: VenuePin) => void;
   onLoadError: (message: string) => void;
 }
 
-export default function MapView({ venues, center, focusCoords, onPinClick, onLoadError }: Props) {
+export default function MapView({ venues, liveVenues, center, focusCoords, onPinClick, onLoadError }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const liveOverlayRef = useRef<LiveDensityOverlayHandle | null>(null);
   const onPinClickRef = useRef(onPinClick);
   onPinClickRef.current = onPinClick;
   const [mapReady, setMapReady] = useState(false);
@@ -86,6 +89,30 @@ export default function MapView({ venues, center, focusCoords, onPinClick, onLoa
       }
     });
   }, [mapReady, venues]);
+
+  // Create the live-density glow overlay once the map exists, tear it down
+  // on unmount. Data is applied separately below so this doesn't recreate
+  // the overlay on every 60s poll tick.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    liveOverlayRef.current = createLiveDensityOverlay(mapRef.current);
+    return () => {
+      liveOverlayRef.current?.remove();
+      liveOverlayRef.current = null;
+    };
+  }, [mapReady]);
+
+  // Feed the overlay "live"-tier venues only; "none"-tier venues stay plain
+  // grey markers via the pin effect above and never enter this layer. An
+  // empty array here is the common case for now and simply renders no glow
+  // — not an error state.
+  useEffect(() => {
+    liveOverlayRef.current?.setVenues(liveVenues.filter((v) => v.confidence_tier === "live"));
+    // mapReady is in the deps (not just referenced) because the overlay ref
+    // is only created once mapReady flips true — without it, live-density
+    // data that arrives before the map finishes loading would never get
+    // applied, since this effect wouldn't otherwise re-run once the ref exists.
+  }, [liveVenues, mapReady]);
 
   // Pan/zoom on demand (GPS match, search selection, pin tap).
   useEffect(() => {

@@ -89,3 +89,17 @@ export function crowdLevelLabel(level: CrowdLevel | null | undefined): string {
 }
 
 export const CHECKIN_COUNTDOWN_MINUTES = 90;
+
+// One row per venue in the market from get_venue_live_density(). Most rows
+// are confidence_tier "none" (no recent check-in signal) — only "live" rows
+// carry a meaningful live_score, so consumers should filter to "live" before
+// feeding this into anything weighted (e.g. the heatmap layer).
+export interface LiveDensityVenue {
+  venue_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  live_score: number;
+  checkin_count: number;
+  confidence_tier: "live" | "none";
+}
