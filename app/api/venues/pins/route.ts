@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CrowdLevel, VenuePin } from "@/lib/checkin";
+import { RegularHours } from "@/lib/venueHours";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export async function GET() {
   const [{ data: venues, error: venuesError }, { data: recent, error: recentError }] = await Promise.all([
     supabaseAdmin
       .from("venues")
-      .select("id, name, neighborhood, lat, lng")
+      .select("id, name, neighborhood, lat, lng, regular_hours")
       .not("lat", "is", null)
       .not("lng", "is", null),
     supabaseAdmin.from("venue_checkins_recent").select("venue_id, crowd_level"),
@@ -28,6 +29,7 @@ export async function GET() {
     lat: v.lat as number,
     lng: v.lng as number,
     crowdLevel: crowdByVenue.get(v.id as string) ?? null,
+    regularHours: (v.regular_hours as RegularHours | null) ?? null,
   }));
 
   return NextResponse.json({ venues: pins });

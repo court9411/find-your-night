@@ -1,4 +1,5 @@
 import { MUSIC_OPTIONS as MUSIC_TAG_OPTIONS } from "@/lib/preferenceOptions";
+import { RegularHours } from "@/lib/venueHours";
 
 export type CrowdLevel = "empty" | "filling_up" | "busy" | "packed";
 
@@ -75,6 +76,7 @@ export interface VenuePin {
   lat: number;
   lng: number;
   crowdLevel: CrowdLevel | null;
+  regularHours: RegularHours | null;
 }
 
 // Same 8-genre taxonomy as onboarding/profile music_prefs — must stay in
