@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { haversineMeters } from "@/lib/geo";
-import { NearbyVenue } from "@/lib/checkin";
+import { CHECKINABLE_VENUE_CATEGORIES, NearbyVenue } from "@/lib/checkin";
 
 // "reasonable proximity" for the GPS check-in entry point — wide enough to
 // tolerate phone GPS drift, tight enough that the confirmation card is
@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabaseAdmin
     .from("venues")
     .select("id, name, neighborhood, place_id, lat, lng")
+    .in("venue_category", [...CHECKINABLE_VENUE_CATEGORIES])
     .not("lat", "is", null)
     .not("lng", "is", null)
     .gte("lat", lat - latDelta)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { CrowdLevel, VenuePin } from "@/lib/checkin";
+import { CHECKINABLE_VENUE_CATEGORIES, CrowdLevel, VenuePin } from "@/lib/checkin";
 import { RegularHours } from "@/lib/venueHours";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export async function GET() {
     supabaseAdmin
       .from("venues")
       .select("id, name, neighborhood, lat, lng, regular_hours")
+      .in("venue_category", [...CHECKINABLE_VENUE_CATEGORIES])
       .not("lat", "is", null)
       .not("lng", "is", null),
     supabaseAdmin.from("venue_checkins_recent").select("venue_id, crowd_level"),

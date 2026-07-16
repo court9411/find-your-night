@@ -69,6 +69,15 @@ export function crowdLevelPinColor(level: CrowdLevel | null | undefined): string
   return level ? CROWD_LEVEL_PIN_COLORS[level] : NO_DATA_PIN_COLOR;
 }
 
+// Categories that belong on the nightlife map + check-in surface. Daytime
+// spots (venue_category "daytime_outdoor" — cafes like Panera, parks) live in
+// the DB for other purposes but must never show up with nightlife styling
+// ("Filling Up", after-work tags) or be check-in-able. Keep this the single
+// source of truth so the map pins, GPS/proximity match, and name search all
+// stay in sync. Declared readonly string[] so it filters (.includes) and
+// feeds Supabase `.in()` (spread it) without literal-union friction.
+export const CHECKINABLE_VENUE_CATEGORIES: readonly string[] = ["nightlife", "entertainment"];
+
 export interface VenuePin {
   id: string;
   name: string;
