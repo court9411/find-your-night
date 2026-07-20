@@ -20,6 +20,7 @@ dotenv.config({ path: ".env.local" });
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_SERVER_KEY;
+const APPLY = process.argv.includes("--apply");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const BOX = { latMin: 38.7, latMax: 39.5, lngMin: -85.0, lngMax: -84.0 };
@@ -135,7 +136,46 @@ async function run() {
         `    ${c.place_id}  |  ${c.lat},${c.lng}`
     );
   }
-  console.log(`\n(${candidates.length} candidates — nothing written. Decide which to add and where.)`);
+
+  if (!APPLY) {
+    console.log(`\n(${candidates.length} candidates — DRY RUN, nothing written. Re-run with --apply to insert.)`);
+    return;
+  }
+
+  // Insert live into venues: nightlife, source='google', market resolved per
+  // venue from its coords (same RPC the submit flow uses). place_id is unique
+  // NOT NULL, so a race/dup fails that one row and continues.
+  console.log(`\n--- APPLY: inserting ${candidates.length} venues into venues ---`);
+  let inserted = 0;
+  let failed = 0;
+  for (const c of candidates) {
+    const { data: marketId } = await supabase.rpc("resolve_market_id", {
+      p_venue_id: null,
+      p_lat: c.lat,
+      p_lng: c.lng,
+    });
+    const { error } = await supabase.from("venues").insert({
+      place_id: c.place_id,
+      name: c.name,
+      address: c.address,
+      lat: c.lat,
+      lng: c.lng,
+      venue_category: "nightlife",
+      source: "google",
+      market_id: marketId ?? null,
+      rating: c.rating,
+      types: c.primaryType ? [c.primaryType] : [],
+      vibe_tags: [],
+    });
+    if (error) {
+      console.log(`  [FAIL] ${c.name}: ${error.message}`);
+      failed++;
+    } else {
+      inserted++;
+    }
+    await sleep(80);
+  }
+  console.log(`\nInserted ${inserted}, failed ${failed}. Run backfill-venue-photos.mjs next for photos.`);
 }
 
 run().catch((err) => {
