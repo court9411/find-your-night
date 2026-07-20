@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Outfit, Syne, Inter } from "next/font/google";
+import { Bebas_Neue, Outfit, Syne, Inter, Dancing_Script } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import InstallPrompt from "@/components/InstallPrompt";
 import PostHogProvider from "@/components/PostHogProvider";
@@ -32,6 +32,13 @@ const inter = Inter({
   display: "swap",
 });
 
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-script",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Find Your Night",
   description: "AI-powered nightlife and experience discovery for tonight.",
@@ -60,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${syne.variable} ${inter.variable}`}>
+    <html lang="en" className={`${syne.variable} ${inter.variable} ${dancingScript.variable}`}>
       <body className={`${bebasNeue.variable} ${outfit.variable} font-body antialiased`}>
         <PostHogProvider>
           <AppShell>{children}</AppShell>

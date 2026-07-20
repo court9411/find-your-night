@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Zap } from "lucide-react";
+import { Zap, Moon, Sparkles, Sparkle } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { readCachedCoords } from "@/lib/geoStorage";
@@ -197,17 +197,11 @@ function TonightContent() {
   return (
     <main className="flex flex-col min-h-screen pb-12">
       {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-12 pb-4">
-        <div>
-          <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight">
-            Your <span className="text-accent">Night</span> Picks
-          </h1>
-          <p className="text-sm text-muted mt-1">Pick what feels right — we&apos;ll get smarter as you go.</p>
-        </div>
+      <div className="relative flex flex-col items-center px-5 pt-8 pb-5 text-center overflow-hidden">
         <button
           onClick={() => router.push("/profile")}
           aria-label="Profile"
-          className="w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 mt-1"
+          className="absolute top-2 right-5 w-9 h-9 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center shrink-0 z-10"
         >
           <svg
             className="w-5 h-5 text-white/70"
@@ -222,6 +216,37 @@ function TonightContent() {
             <path d="M4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
           </svg>
         </button>
+
+        {/* Decorative sparkles scattered around the neon lockup */}
+        <Sparkle className="absolute top-3 left-9 text-accent-pink/70 fill-current" size={16} aria-hidden />
+        <Sparkles className="absolute top-1 left-1/2 -translate-x-24 text-accent/80 fill-current" size={22} aria-hidden />
+        <Sparkle className="absolute top-16 left-6 text-accent/60 fill-current" size={12} aria-hidden />
+        <Sparkles className="absolute top-6 right-16 text-accent-pink/60 fill-current" size={14} aria-hidden />
+        <Sparkle className="absolute bottom-6 right-10 text-accent/70 fill-current" size={14} aria-hidden />
+
+        {/* Crescent moon neon outline, arcing behind the lockup */}
+        <Moon
+          className="absolute top-0 right-2 text-accent-pink/90"
+          size={110}
+          strokeWidth={1.25}
+          style={{ filter: "drop-shadow(0 0 6px rgba(255,61,187,0.65)) drop-shadow(0 0 16px rgba(255,61,187,0.35))" }}
+          aria-hidden
+        />
+
+        <h1 className="relative z-10 font-script text-5xl sm:text-6xl leading-[0.95]">
+          <span className="text-neon-pink block">Tonight&apos;s</span>
+          <span className="text-neon-green block -mt-2">Picks</span>
+        </h1>
+
+        <div className="relative z-10 flex items-center gap-2.5 mt-3 text-accent-pink/60">
+          <span className="tracking-[6px] text-xs">•••</span>
+          <span className="text-lg" aria-hidden>🍸</span>
+          <span className="tracking-[6px] text-xs">•••</span>
+        </div>
+
+        <p className="relative z-10 text-sm text-muted mt-3 max-w-[16rem]">
+          Handpicked spots &amp; events to make your night unforgettable.
+        </p>
       </div>
 
       {/* Search venues & events — hides the normal rails while active */}
@@ -283,9 +308,15 @@ function TonightContent() {
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
           <div>
-            <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3 flex items-center gap-2">
-              <Zap className="text-accent" size={20} aria-hidden />
-              Tonight
+            <h3 className="px-5 mb-3 flex items-center gap-2">
+              <Zap className="text-accent fill-current shrink-0" size={18} aria-hidden />
+              <span className="font-script text-neon-pink text-2xl leading-none">Tonight</span>
+              <span
+                className="flex-1 h-px bg-gradient-to-r from-accent-pink/70 to-transparent"
+                style={{ boxShadow: "0 0 6px rgba(255,61,187,0.6)" }}
+                aria-hidden
+              />
+              <Sparkle className="text-accent fill-current shrink-0" size={14} aria-hidden />
             </h3>
             <div
               className="flex gap-3.5 overflow-x-auto px-5 pb-1"

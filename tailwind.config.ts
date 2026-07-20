@@ -28,6 +28,7 @@ const config: Config = {
       fontFamily: {
         display: ["var(--font-syne)", "sans-serif"],
         body: ["var(--font-inter)", "sans-serif"],
+        script: ["var(--font-script)", "cursive"],
       },
       keyframes: {
         fadeUp: {
