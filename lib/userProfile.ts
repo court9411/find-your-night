@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export interface UserProfile {
   id: string;
   email: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
   home_city: string | null;
   home_neighborhood: string | null;
   home_lat: number | null;
@@ -20,6 +22,8 @@ export interface UserProfile {
 export type ProfileUpdate = Partial<
   Pick<
     UserProfile,
+    | "display_name"
+    | "avatar_url"
     | "home_city"
     | "home_neighborhood"
     | "home_lat"

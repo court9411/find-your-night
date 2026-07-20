@@ -12,6 +12,7 @@ import TasteSummaryCard from "@/components/TasteSummaryCard";
 import NightHistorySection from "@/components/NightHistorySection";
 import SavedNightsSection from "@/components/SavedNightsSection";
 import ScoutStatusCard from "@/components/ScoutStatusCard";
+import ProfileIdentityForm from "@/components/profile/ProfileIdentityForm";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -139,6 +140,16 @@ export default function ProfilePage() {
           Sign out
         </button>
       </div>
+
+      <ProfileIdentityForm
+        userId={userId}
+        initialDisplayName={profile?.display_name}
+        initialAvatarUrl={profile?.avatar_url}
+        context="profile"
+        onSaved={({ displayName, avatarUrl }) => {
+          setProfile((current) => (current ? { ...current, display_name: displayName, avatar_url: avatarUrl } : current));
+        }}
+      />
 
       {profile ? (
         <TasteSummaryCard

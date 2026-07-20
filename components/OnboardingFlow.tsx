@@ -24,6 +24,7 @@ import { sortByProximity } from "@/lib/geo";
 import { getAnonId } from "@/lib/anon";
 import { pickTopVenues } from "@/lib/personalize";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
+import ProfileIdentityForm from "@/components/profile/ProfileIdentityForm";
 
 export const ONBOARDED_KEY = "fyn:onboarded";
 export const ONBOARD_PREFS_KEY = "fyn:onboardPrefs";
@@ -37,6 +38,7 @@ type Step =
   | "learning"
   | "location"
   | "email"
+  | "identity"
   | "finding"
   | "picks";
 
@@ -157,6 +159,7 @@ export default function OnboardingFlow() {
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [emailStep, setEmailStep] = useState<"email" | "code">("email");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
@@ -286,7 +289,11 @@ export default function OnboardingFlow() {
       return;
     }
 
-    setStep("finding");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id ?? null);
+    setStep("identity");
   }
 
   function resultsUrl() {
@@ -621,6 +628,37 @@ export default function OnboardingFlow() {
           >
             Skip for now
           </SecondaryLink>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === "identity") {
+    return (
+      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
+        <div className="animate-fadeUp opacity-0">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-[#1A1A1A] border border-[#2E2E2E]">
+            <svg className="w-[22px] h-[22px] text-accent" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+              <path d="M4 20a8 8 0 1 1 16 0" />
+            </svg>
+          </div>
+          <h2 className="font-display font-bold text-white text-[28px]">Add your name for tonight</h2>
+          <p className="mt-3 text-[15px] text-muted">
+            This shows up on live check-ins and helps friends recognize you.
+          </p>
+          <div className="mt-6">
+            <ProfileIdentityForm
+              userId={currentUserId}
+              context="onboarding"
+              onSaved={() => setStep("finding")}
+              onSkip={() => setStep("finding")}
+            />
+          </div>
+        </div>
+
+        <div>
+          <SecondaryLink onClick={() => setStep("finding")}>Skip for now</SecondaryLink>
         </div>
       </main>
     );

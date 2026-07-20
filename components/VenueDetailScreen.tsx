@@ -11,6 +11,7 @@ import HostEventLink from "@/components/HostEventLink";
 import RightNowBlock from "@/components/RightNowBlock";
 import VisitorInsightsCard from "@/components/VisitorInsightsCard";
 import TicketLink from "@/components/TicketLink";
+import CheckedInTonight from "@/components/venue/CheckedInTonight";
 
 interface ProgressDots {
   total: number;
@@ -180,6 +181,7 @@ function VenueDetailScreenBody({
 
         <RightNowBlock venueId={venue.id} />
         <VisitorInsightsCard venueId={venue.id} />
+        <CheckedInTonight venueId={venue.id} />
 
         {/* Address / Hours / Happy Hour */}
         {(venue.address || venue.hours || venue.happyHour) && (

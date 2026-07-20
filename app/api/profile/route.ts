@@ -31,6 +31,8 @@ export async function PATCH(request: Request) {
 
   // Only allow known fields
   const allowed: (keyof ProfileUpdate)[] = [
+    "display_name",
+    "avatar_url",
     "home_city",
     "home_neighborhood",
     "home_lat",

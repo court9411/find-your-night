@@ -7,6 +7,8 @@
 create table public.user_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
+  display_name text,
+  avatar_url text,
   home_city text,
   home_neighborhood text,
   vibe_prefs text[] default '{}',
