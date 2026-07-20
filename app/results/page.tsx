@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Zap, Moon, Sparkles, Sparkle } from "lucide-react";
+import { Zap, Moon, Sparkles, Sparkle, Star } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { readCachedCoords } from "@/lib/geoStorage";
@@ -217,19 +217,44 @@ function TonightContent() {
           </svg>
         </button>
 
-        {/* Decorative sparkles scattered around the neon lockup */}
-        <Sparkle className="absolute top-3 left-9 text-accent-pink/70 fill-current" size={16} aria-hidden />
-        <Sparkles className="absolute top-1 left-1/2 -translate-x-24 text-accent/80 fill-current" size={22} aria-hidden />
-        <Sparkle className="absolute top-16 left-6 text-accent/60 fill-current" size={12} aria-hidden />
-        <Sparkles className="absolute top-6 right-16 text-accent-pink/60 fill-current" size={14} aria-hidden />
-        <Sparkle className="absolute bottom-6 right-10 text-accent/70 fill-current" size={14} aria-hidden />
+        {/* Decorative star/sparkle scatter around the neon lockup */}
+        <Sparkle
+          className="absolute top-3 left-9 text-accent-pink fill-current"
+          size={16}
+          style={{ filter: "drop-shadow(0 0 4px rgba(255,20,147,0.8))" }}
+          aria-hidden
+        />
+        <Star
+          className="absolute top-0 left-1/2 -translate-x-24 text-amber-300 fill-current"
+          size={20}
+          style={{ filter: "drop-shadow(0 0 5px rgba(253,224,71,0.85))" }}
+          aria-hidden
+        />
+        <Sparkle
+          className="absolute top-16 left-6 text-accent-pink/80 fill-current"
+          size={12}
+          style={{ filter: "drop-shadow(0 0 3px rgba(255,20,147,0.7))" }}
+          aria-hidden
+        />
+        <Star
+          className="absolute top-7 right-16 text-amber-300/90 fill-current"
+          size={13}
+          style={{ filter: "drop-shadow(0 0 4px rgba(253,224,71,0.75))" }}
+          aria-hidden
+        />
+        <Sparkle
+          className="absolute bottom-6 right-11 text-accent-pink/80 fill-current"
+          size={14}
+          style={{ filter: "drop-shadow(0 0 4px rgba(255,20,147,0.7))" }}
+          aria-hidden
+        />
 
         {/* Crescent moon neon outline, arcing behind the lockup */}
         <Moon
-          className="absolute top-0 right-2 text-accent-pink/90"
+          className="absolute top-0 right-2 text-[#ff54c8]"
           size={110}
           strokeWidth={1.25}
-          style={{ filter: "drop-shadow(0 0 6px rgba(255,61,187,0.65)) drop-shadow(0 0 16px rgba(255,61,187,0.35))" }}
+          style={{ filter: "drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255,20,147,0.9)) drop-shadow(0 0 20px rgba(255,20,147,0.6))" }}
           aria-hidden
         />
 
