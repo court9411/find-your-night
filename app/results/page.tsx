@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import NotInterestedButton from "@/components/NotInterestedButton";
 import HostEventLink from "@/components/HostEventLink";
 import VenueRailCard from "@/components/VenueRailCard";
+import PicksSearch from "@/components/PicksSearch";
 import DidYouGoCard from "@/components/DidYouGoCard";
 import VisitSurveyModal from "@/components/VisitSurveyModal";
 import { PendingVisit } from "@/lib/visitSurvey";
@@ -55,6 +56,7 @@ function TonightContent() {
   const [activeRails, setActiveRails] = useState<RailConfig[]>([]);
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
 
   async function fetchPendingVisit() {
     try {
@@ -222,6 +224,11 @@ function TonightContent() {
         </button>
       </div>
 
+      {/* Search venues & events — hides the normal rails while active */}
+      <PicksSearch userId={userId} onActiveChange={setSearchActive} />
+
+      {!searchActive && (
+        <>
       {/* Loading skeleton */}
       {loading && (
         <div className="flex flex-col gap-4 px-5 mt-2">
@@ -334,6 +341,8 @@ function TonightContent() {
       <div className="flex justify-center pt-6 pb-2">
         <HostEventLink />
       </div>
+        </>
+      )}
 
       {surveyOpen && pendingVisit && (
         <VisitSurveyModal
