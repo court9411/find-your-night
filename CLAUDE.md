@@ -36,8 +36,8 @@ Sequencing is deliberate: free product builds trust and volume → trust makes t
 
 ## App Structure (built)
 Bottom nav, 3 tabs, each with a distinct job:
-- **🏠 Picks** — curated/ranked rail system (Popular Picks, Date Night, Budget-Friendly, The Lineup). "Tell me what to do." Doesn't depend on live density, so it holds up even while Scout coverage is thin.
-- **🗺️ Live Map** — default landing route (`/map`). Purely geographic + real-time. Map pins colored by live crowd_level (v1: simple colored pins, not a true heatmap — that comes later once check-in volume justifies it). Check-in entry point lives here (tap a pin, or the silent proximity prompt described below).
+- **🏠 Picks** — default landing route (`/results`, reverted from Live Map on 2026-07-21 — a map with sparse pins read as confusing for a first/returning impression rather than inviting). Curated/ranked rail system (The Lineup, Popular Picks, Date Night, Budget-Friendly, Casual Fun). "Tell me what to do." Doesn't depend on live density, so it holds up even while Scout coverage is thin.
+- **🗺️ Live Map** — (`/map`). Purely geographic + real-time. Map pins colored by live crowd_level (v1: simple colored pins, not a true heatmap — that comes later once check-in volume justifies it). Check-in entry point lives here (tap a pin, or the silent proximity prompt described below).
 - **👤 Profile** — reflective side only: Taste (Spotify-style), Night History, Saved Nights, Scout tier/status. Not the action side.
 
 Floating **+ button** opens `/submit` — the promoter submission flow.

@@ -31,15 +31,18 @@ export default function JustAsk() {
     setSeenIntro(true);
   }
 
-  // Live Map is the default landing tab (see Part 1 of the nav-shell
-  // handoff) — send onboarded/bypassed users straight there instead of
-  // rendering the location-ask screen below. Withheld until the one-time
+  // Picks is the default landing tab — send onboarded/bypassed users
+  // straight there instead of rendering the location-ask screen below.
+  // (Previously Live Map; reverted since a cold/returning visitor landing
+  // on a map with sparse pins reads as confusing, not inviting — Picks
+  // degrades gracefully with cached-or-fallback coords even with no query
+  // params, see app/results/page.tsx.) Withheld until the one-time
   // WelcomeIntro screen has been dismissed, since SKIP_ONBOARDING means the
   // full OnboardingFlow never runs and a cold visitor would otherwise land
-  // on Live Map with zero explanation of what the app is.
+  // on Picks with zero explanation of what the app is.
   useEffect(() => {
     if (onboarded === null || seenIntro === null || !seenIntro) return;
-    if (onboarded || SKIP_ONBOARDING) router.replace("/map");
+    if (onboarded || SKIP_ONBOARDING) router.replace("/results");
   }, [onboarded, seenIntro, router]);
 
   useEffect(() => {
@@ -142,11 +145,11 @@ export default function JustAsk() {
   }
 
   // Onboarded (or bypassed via SKIP_ONBOARDING) — the effect above is
-  // already redirecting to /map, the default landing tab. Render nothing
-  // rather than flashing this legacy location-ask screen. Left intact below
-  // (unreachable while the redirect stands) rather than deleted, since
-  // Part 1 of the nav-shell handoff only changes the default route, not
-  // this screen's architecture.
+  // already redirecting to /results, the default landing tab. Render
+  // nothing rather than flashing this legacy location-ask screen. Left
+  // intact below (unreachable while the redirect stands) rather than
+  // deleted, since changing the default route doesn't retire this screen's
+  // architecture.
   if (onboarded || SKIP_ONBOARDING) {
     return <main className="min-h-screen" />;
   }
