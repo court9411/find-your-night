@@ -8,6 +8,12 @@ interface RankedQueryParams {
   lat?: number | null;
   lng?: number | null;
   limit?: number;
+  /** Venue ids to omit from the result — used by the Smart Night Picker's
+   * refill queue so repeat swipe batches don't resurface already-seen
+   * venues. Passed through to get_ranked_venues's p_exclude_ids param;
+   * see app/api/rank/venues/route.ts for the degrade behavior while that
+   * param isn't deployed DB-side yet. */
+  excludeIds?: string[];
 }
 
 interface RankedEventQueryParams extends RankedQueryParams {
@@ -38,11 +44,12 @@ export async function getRankedVenues({
   lat,
   lng,
   limit,
+  excludeIds,
 }: RankedQueryParams): Promise<Venue[]> {
   const res = await fetch("/api/rank/venues", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, anonId, lat, lng, limit }),
+    body: JSON.stringify({ userId, anonId, lat, lng, limit, excludeIds }),
   });
   if (!res.ok) throw new Error(`getRankedVenues failed: ${res.status}`);
   const data = await res.json();

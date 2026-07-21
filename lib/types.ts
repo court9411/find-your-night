@@ -30,6 +30,10 @@ export interface Venue {
   budgetMatch?: boolean | null;
   distanceMi?: number | null;
   venueCategory?: string | null;
+  /** Raw 0-1ish score from get_ranked_venues, before any percentage framing
+   * — only get_ranked_venues sets this (get_rail_venues doesn't return a
+   * comparable score), so it's null for rail-sourced venues. */
+  finalScore?: number | null;
 }
 
 export interface FeaturedVenueEvent {

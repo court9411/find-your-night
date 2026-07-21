@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Venue, FeaturedVenueEvent } from "@/lib/types";
+import { Venue } from "@/lib/types";
 import { getRankedVenues } from "@/lib/scoring";
 import { readCachedCoords } from "@/lib/geoStorage";
 import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
-import { pickPickerVenues, NightOrDay, GroupSize, AgeRange } from "@/lib/pickerMatch";
+import { pickPickerVenues, sortByCategoryPreference, NightOrDay, GroupSize, AgeRange } from "@/lib/pickerMatch";
 import { logPickerSwipe } from "@/lib/pickerSwipe";
+import { haversineMiles } from "@/lib/geo";
 import PickerSwipeStack from "@/components/PickerSwipeStack";
-import VenueDetailScreen from "@/components/VenueDetailScreen";
+import PickerMatchCard from "@/components/PickerMatchCard";
 
 type Step = "night_or_day" | "group_age" | "loading" | "swipe" | "done" | "empty";
+
+const NEARBY_MILES = 0.5;
 
 const NIGHT_OR_DAY_OPTIONS: { value: NightOrDay; label: string; sub: string }[] = [
   { value: "night", label: "Night person", sub: "Bars, clubs, late-night energy" },
@@ -61,7 +64,10 @@ export default function SmartNightPicker() {
   const [sparse, setSparse] = useState(false);
   const [interested, setInterested] = useState<Venue[]>([]);
   const [winner, setWinner] = useState<Venue | null>(null);
-  const [winnerEvent, setWinnerEvent] = useState<FeaturedVenueEvent | null>(null);
+  // Every venue id fetched so far (shown or queued) — passed as excludeIds
+  // on refill so the queue never duplicates a venue within one session.
+  // Ref, not state: doesn't need to trigger a render on its own.
+  const seenIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -90,12 +96,44 @@ export default function SmartNightPicker() {
       }
 
       const { picks: nextPicks, sparse: nextSparse } = pickPickerVenues(ranked, { nightOrDay });
+      nextPicks.forEach((v) => {
+        if (v.id) seenIdsRef.current.add(v.id);
+      });
       setPicks(nextPicks);
       setSparse(nextSparse);
       setStep("swipe");
     } catch (err) {
       console.error("Smart Night Picker: failed to load ranked venues:", err);
       setStep("empty");
+    }
+  }
+
+  // Fires while a few cards are still left in the stack, so a fresh batch
+  // is ready before the user actually runs out. Silently no-ops if nothing
+  // new comes back — the swipe stack just reaches onExhausted naturally
+  // once the cursor catches up, same as if this were never called.
+  async function fetchMoreVenues() {
+    if (!nightOrDay) return;
+    try {
+      const coords = readCachedCoords();
+      const anonId = getAnonId();
+      const ranked = await getRankedVenues({
+        userId,
+        anonId,
+        lat: coords.lat,
+        lng: coords.lng,
+        limit: 20,
+        excludeIds: Array.from(seenIdsRef.current),
+      });
+      if (ranked.length === 0) return;
+
+      const ordered = sortByCategoryPreference(ranked, nightOrDay);
+      ordered.forEach((v) => {
+        if (v.id) seenIdsRef.current.add(v.id);
+      });
+      setPicks((prev) => [...prev, ...ordered]);
+    } catch (err) {
+      console.error("Smart Night Picker: refill fetch failed:", err);
     }
   }
 
@@ -108,24 +146,8 @@ export default function SmartNightPicker() {
     }
   }
 
-  async function handleExhausted() {
-    const top = interested[0] ?? picks[0] ?? null;
-    setWinner(top);
-    if (top?.id) {
-      try {
-        const res = await fetch("/api/venue-detail", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ venueId: top.id, eventId: top.liveTonight?.id ?? null }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setWinnerEvent(data.event ?? null);
-        }
-      } catch (err) {
-        console.error("Smart Night Picker: failed to load winner event detail:", err);
-      }
-    }
+  function handleExhausted() {
+    setWinner(interested[0] ?? picks[0] ?? null);
     setStep("done");
   }
 
@@ -252,7 +274,12 @@ export default function SmartNightPicker() {
           </p>
         )}
         <div className="flex-1 flex items-center justify-center mt-4">
-          <PickerSwipeStack venues={picks} onSwipe={handleSwipe} onExhausted={handleExhausted} />
+          <PickerSwipeStack
+            venues={picks}
+            onSwipe={handleSwipe}
+            onExhausted={handleExhausted}
+            onLowOnCards={fetchMoreVenues}
+          />
         </div>
       </main>
     );
@@ -287,12 +314,15 @@ export default function SmartNightPicker() {
     );
   }
 
-  return (
-    <VenueDetailScreen
-      venue={winner}
-      event={winnerEvent}
-      onBack={() => router.push("/results")}
-      onSkip={() => router.push("/results")}
-    />
-  );
+  const nearbyCount = picks.filter(
+    (v) =>
+      v !== winner &&
+      typeof v.lat === "number" &&
+      typeof v.lng === "number" &&
+      typeof winner.lat === "number" &&
+      typeof winner.lng === "number" &&
+      haversineMiles({ lat: winner.lat, lng: winner.lng }, { lat: v.lat, lng: v.lng }) <= NEARBY_MILES
+  ).length;
+
+  return <PickerMatchCard venue={winner} nearbyCount={nearbyCount} onBack={() => router.push("/results")} />;
 }

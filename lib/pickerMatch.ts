@@ -22,32 +22,38 @@ function venueKey(venue: Venue): string {
 }
 
 /**
- * Picks up to STACK_SIZE venues for the swipe stack from an already-ranked
- * list (get_ranked_venues, unmodified) — filters toward the night/day
- * answer's venue_category, then backfills from the unfiltered ranking if
- * the category-matched set runs thin, so the stack still fills whenever
- * the overall ranked pool can support it. `sparse` only reflects the
- * overall pool being thin (fewer than STACK_SIZE ranked venues total,
- * regardless of category) — that's the honest case worth surfacing, not
- * "this category was thin but we backfilled fine."
+ * Reorders an already-ranked list (get_ranked_venues, unmodified) so
+ * venue_category matches for the night/day answer come first, followed by
+ * everything else — same relative order within each group, no venues
+ * dropped. Shared by the initial pick (capped to STACK_SIZE) and refill
+ * batches (used in full, no cap) so both apply the same category
+ * preference consistently.
+ */
+export function sortByCategoryPreference(rankedVenues: Venue[], nightOrDay: NightOrDay): Venue[] {
+  const categories = CATEGORY_MATCH[nightOrDay];
+  const matched = rankedVenues.filter((v) => v.venueCategory && categories.includes(v.venueCategory));
+
+  const ordered: Venue[] = [];
+  const seen = new Set<string>();
+  for (const venue of [...matched, ...rankedVenues]) {
+    const key = venueKey(venue);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(venue);
+  }
+  return ordered;
+}
+
+/**
+ * Picks up to STACK_SIZE venues for the initial swipe stack. `sparse` only
+ * reflects the overall pool being thin (fewer than STACK_SIZE ranked
+ * venues total, regardless of category) — that's the honest case worth
+ * surfacing, not "this category was thin but we backfilled fine."
  */
 export function pickPickerVenues(
   rankedVenues: Venue[],
   answers: Pick<PickerAnswers, "nightOrDay">
 ): { picks: Venue[]; sparse: boolean } {
-  const categories = CATEGORY_MATCH[answers.nightOrDay];
-  const matched = rankedVenues.filter((v) => v.venueCategory && categories.includes(v.venueCategory));
-
-  const picks: Venue[] = [];
-  const seen = new Set<string>();
-
-  for (const venue of [...matched, ...rankedVenues]) {
-    if (picks.length >= STACK_SIZE) break;
-    const key = venueKey(venue);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    picks.push(venue);
-  }
-
+  const picks = sortByCategoryPreference(rankedVenues, answers.nightOrDay).slice(0, STACK_SIZE);
   return { picks, sparse: rankedVenues.length < STACK_SIZE };
 }

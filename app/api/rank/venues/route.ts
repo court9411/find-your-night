@@ -36,8 +36,11 @@ interface DbVenue {
   venue_photos: VenuePhotoRow | VenuePhotoRow[] | null;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_EXCLUDE_IDS = 100;
+
 export async function POST(request: Request) {
-  let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown };
+  let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown; excludeIds?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -49,6 +52,9 @@ export async function POST(request: Request) {
   const lat = typeof body.lat === "number" ? body.lat : null;
   const lng = typeof body.lng === "number" ? body.lng : null;
   const limit = typeof body.limit === "number" ? body.limit : 20;
+  const excludeIds = Array.isArray(body.excludeIds)
+    ? body.excludeIds.filter((id): id is string => typeof id === "string" && UUID_REGEX.test(id)).slice(0, MAX_EXCLUDE_IDS)
+    : [];
 
   const { data: ranked, error: rankError } = await supabaseAdmin.rpc("get_ranked_venues", {
     p_user_id: userId,
@@ -56,10 +62,24 @@ export async function POST(request: Request) {
     p_lat: lat,
     p_lng: lng,
     p_limit: limit,
+    // Omitted entirely (rather than passed empty) when there's nothing to
+    // exclude, since get_ranked_venues doesn't have this param deployed
+    // yet — Supabase rejects an unrecognized named RPC param outright, so
+    // this only gets attempted on the Smart Night Picker's refill calls.
+    ...(excludeIds.length > 0 ? { p_exclude_ids: excludeIds } : {}),
   });
 
   if (rankError) {
+    // p_exclude_ids isn't live in get_ranked_venues yet (DB-side migration
+    // still pending) — an exclude-bearing call failing is expected right
+    // now, and the correct picker-side behavior is "no more venues" (which
+    // the picker already treats as end-of-queue), not a hard error. Calls
+    // without excludeIds (Picks, Onboarding) keep the original hard-fail
+    // behavior unchanged.
     console.error("get_ranked_venues RPC error:", rankError);
+    if (excludeIds.length > 0) {
+      return NextResponse.json({ venues: [] });
+    }
     return NextResponse.json({ error: "Couldn't rank venues right now." }, { status: 500 });
   }
 
@@ -135,6 +155,7 @@ export async function POST(request: Request) {
       budgetMatch: rankedRow.budget_match ?? null,
       distanceMi: rankedRow.distance_mi ?? null,
       venueCategory: row.venue_category ?? null,
+      finalScore: rankedRow.final_score ?? null,
     };
   });
 

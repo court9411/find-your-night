@@ -9,10 +9,14 @@ interface Props {
   venues: Venue[];
   onSwipe: (venue: Venue, direction: "left" | "right") => void;
   onExhausted: () => void;
+  /** Fired once when the remaining stack drops to LOW_CARDS_THRESHOLD, so the
+   * parent can fetch + append another batch before the user actually runs out. */
+  onLowOnCards?: () => void;
 }
 
 const SWIPE_THRESHOLD = 100;
 const EXIT_DURATION_MS = 220;
+const LOW_CARDS_THRESHOLD = 2;
 
 /**
  * Tinder-style swipeable card stack — plain Pointer Events, no gesture
@@ -21,7 +25,7 @@ const EXIT_DURATION_MS = 220;
  * fires onSwipe, otherwise snaps back. X/heart buttons drive the same
  * handleSwipe path for non-drag input.
  */
-export default function PickerSwipeStack({ venues, onSwipe, onExhausted }: Props) {
+export default function PickerSwipeStack({ venues, onSwipe, onExhausted, onLowOnCards }: Props) {
   const [index, setIndex] = useState(0);
   const [dragX, setDragX] = useState(0);
   const [exiting, setExiting] = useState<"left" | "right" | null>(null);
@@ -40,7 +44,11 @@ export default function PickerSwipeStack({ venues, onSwipe, onExhausted }: Props
       setExiting(null);
       const next = index + 1;
       setIndex(next);
-      if (next >= venues.length) onExhausted();
+      if (next >= venues.length) {
+        onExhausted();
+      } else if (venues.length - next <= LOW_CARDS_THRESHOLD) {
+        onLowOnCards?.();
+      }
     }, EXIT_DURATION_MS);
   }
 
@@ -84,12 +92,13 @@ export default function PickerSwipeStack({ venues, onSwipe, onExhausted }: Props
           return (
             <div
               key={venue.id ?? venue.placeId ?? venue.name}
-              className="absolute inset-0 rounded-3xl border border-card-border bg-card overflow-hidden select-none"
+              className="absolute inset-0 rounded-3xl border border-card-border bg-zinc-900 overflow-hidden select-none"
               style={{
                 transform: exitTransform,
                 transition: isTop && !dragging.current ? "transform 220ms ease-out" : undefined,
                 zIndex: 10 - i,
                 touchAction: isTop ? "none" : undefined,
+                pointerEvents: isTop ? "auto" : "none",
               }}
               onPointerDown={isTop ? onPointerDown : undefined}
               onPointerMove={isTop ? onPointerMove : undefined}
