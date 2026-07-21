@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Zap, Moon, Sparkles, Sparkle, Star } from "lucide-react";
+import { Zap, Moon, Sparkle, Star } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { readCachedCoords } from "@/lib/geoStorage";
@@ -218,44 +218,56 @@ function TonightContent() {
           </svg>
         </button>
 
-        {/* Decorative star/sparkle scatter around the neon lockup */}
+        {/* Decorative star/sparkle scatter around the neon lockup — stroke
+            explicitly off (fill-only), same convention VenueRailCard's Moon
+            fallback already uses: leaving lucide's default stroke on top of
+            a fill renders these as bulky plus-signs at small sizes instead
+            of delicate glints. */}
         <Sparkle
           className="absolute top-3 left-9 text-accent-pink fill-current"
-          size={16}
+          size={14}
+          stroke="none"
           style={{ filter: "drop-shadow(0 0 4px rgba(255,20,147,0.8))" }}
           aria-hidden
         />
         <Star
           className="absolute top-0 left-1/2 -translate-x-24 text-amber-300 fill-current"
-          size={20}
+          size={16}
+          stroke="none"
           style={{ filter: "drop-shadow(0 0 5px rgba(253,224,71,0.85))" }}
           aria-hidden
         />
         <Sparkle
           className="absolute top-16 left-6 text-accent-pink/80 fill-current"
-          size={12}
+          size={10}
+          stroke="none"
           style={{ filter: "drop-shadow(0 0 3px rgba(255,20,147,0.7))" }}
           aria-hidden
         />
         <Star
-          className="absolute top-7 right-16 text-amber-300/90 fill-current"
-          size={13}
+          className="absolute top-7 right-20 text-amber-300/90 fill-current"
+          size={11}
+          stroke="none"
           style={{ filter: "drop-shadow(0 0 4px rgba(253,224,71,0.75))" }}
           aria-hidden
         />
         <Sparkle
           className="absolute bottom-6 right-11 text-accent-pink/80 fill-current"
-          size={14}
+          size={12}
+          stroke="none"
           style={{ filter: "drop-shadow(0 0 4px rgba(255,20,147,0.7))" }}
           aria-hidden
         />
 
-        {/* Crescent moon neon outline, arcing behind the lockup */}
+        {/* Crescent moon neon outline, arcing behind the lockup — kept
+            small and tucked behind the text rather than overlapping the
+            profile button (lucide strokes scale with `size`, so a 110px
+            icon at strokeWidth 1.25 rendered much heavier than intended). */}
         <Moon
-          className="absolute top-0 right-2 text-[#ff54c8]"
-          size={110}
-          strokeWidth={1.25}
-          style={{ filter: "drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255,20,147,0.9)) drop-shadow(0 0 20px rgba(255,20,147,0.6))" }}
+          className="absolute top-11 right-1 text-[#ff54c8]/90"
+          size={72}
+          strokeWidth={0.75}
+          style={{ filter: "drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px rgba(255,20,147,0.7))" }}
           aria-hidden
         />
 
@@ -283,6 +295,13 @@ function TonightContent() {
       <div className="pb-4">
         <PickerEntryCard />
       </div>
+
+      {/* The Lineup — promoter events, first rail on the page per Courtney's
+          request. Fully self-contained (fetches its own data on mount,
+          self-hides when empty) so it's safe to render ahead of the
+          Tonight venues block without depending on that block's
+          loading/error/venues state. */}
+      <LineupSection userId={userId} />
 
       {/* Loading skeleton */}
       {loading && (
@@ -346,7 +365,7 @@ function TonightContent() {
                 style={{ boxShadow: "0 0 6px rgba(255,61,187,0.6)" }}
                 aria-hidden
               />
-              <Sparkle className="text-accent fill-current shrink-0" size={14} aria-hidden />
+              <Sparkle className="text-accent fill-current shrink-0" size={14} stroke="none" aria-hidden />
             </h3>
             <div
               className="flex gap-3.5 overflow-x-auto px-5 pb-1"
@@ -394,8 +413,6 @@ function TonightContent() {
           ))}
 
           <BigShowsSection userId={userId} />
-
-          <LineupSection userId={userId} />
         </div>
       )}
 
