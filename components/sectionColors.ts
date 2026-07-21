@@ -1,4 +1,4 @@
-import { Flame, Heart, CircleDollarSign, Sun, LucideIcon } from "lucide-react";
+import { Flame, Heart, CircleDollarSign, Sun, PartyPopper, LucideIcon } from "lucide-react";
 
 // Literal Tailwind class strings, kept in a scanned directory (tailwind.config.ts's
 // content globs don't cover lib/**) so the JIT compiler actually generates these
@@ -24,6 +24,7 @@ export const RAIL_ICONS: Record<string, LucideIcon> = {
   date_night: Heart,
   budget_friendly: CircleDollarSign,
   daytime_picks: Sun,
+  casual_fun: PartyPopper,
 };
 
 export function railIcon(id: string): LucideIcon {

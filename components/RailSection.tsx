@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Venue } from "@/lib/types";
-import { RailConfig } from "@/lib/homeRails";
+import { RailConfig, MIN_RAIL_VENUES } from "@/lib/homeRails";
 import { VENUE_DETAIL_BACK_KEY } from "@/lib/storageKeys";
 import NotInterestedButton from "@/components/NotInterestedButton";
 import VenueRailCard from "@/components/VenueRailCard";
@@ -19,9 +19,10 @@ interface Props {
  * One themed home rail (Trending, Date Night, Budget-Friendly, ...) — same
  * ranked-venue engine as the main Tonight rail, filtered server-side by
  * config.railType (and config.categories, for daytime rails) via
- * get_rail_venues. Hides itself entirely on an empty or errored fetch,
- * same convention as WhatsHappeningSection, so a rail with no matches
- * (or a not-yet-deployed RPC) just doesn't render.
+ * get_rail_venues. Hides itself entirely on an errored fetch or a
+ * below-threshold result count (MIN_RAIL_VENUES), same convention as
+ * WhatsHappeningSection, so a rail with too few matches (or a
+ * not-yet-deployed RPC) just doesn't render rather than looking thin.
  */
 export function RailSection({ config, lat = null, lng = null, userId }: Props) {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -95,7 +96,7 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
     );
   }
 
-  if (venues.length === 0) return null;
+  if (venues.length < MIN_RAIL_VENUES) return null;
 
   const Icon = railIcon(config.id);
   const colorClass = sectionTextClass(config.colorClass);

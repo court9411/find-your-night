@@ -8,7 +8,7 @@ import { getCincyDateString, getNightlifeContext, getTonightDateString } from "@
 
 // Keep in sync with lib/homeRails.ts's railType values and the p_rail_type
 // cases inside the get_rail_venues Postgres function.
-const RAIL_TYPES = new Set(["trending", "date_night", "free"]);
+const RAIL_TYPES = new Set(["trending", "date_night", "free", "casual_fun"]);
 
 interface RankedVenueRow {
   venue_id: string;
