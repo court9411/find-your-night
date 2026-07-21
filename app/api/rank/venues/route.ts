@@ -4,7 +4,8 @@ import { mapPriceLevel, deriveType, pickVenuePhoto, VenuePhotoRow } from "@/lib/
 import { isVenueOpenNow, getHoursStatus, RegularHours } from "@/lib/venueHours";
 import { Venue } from "@/lib/types";
 import { fetchVenueLiveEvents } from "@/lib/venueLiveEvents";
-import { getCincyDateString, getTonightDateString } from "@/lib/cincyDate";
+import { getCincyDateString, getNightlifeContext, getTonightDateString } from "@/lib/cincyDate";
+import { findDailySpecial } from "@/lib/dailySpecials";
 
 interface RankedVenueRow {
   venue_id: string;
@@ -128,6 +129,8 @@ export async function POST(request: Request) {
     })
   );
 
+  const { dayOfWeek } = getNightlifeContext();
+
   const venues: Venue[] = hydratedVenues.map(({ dbVenue: row, rankedRow }) => {
     const photo = pickVenuePhoto(row.venue_photos);
     return {
@@ -156,6 +159,7 @@ export async function POST(request: Request) {
       distanceMi: rankedRow.distance_mi ?? null,
       venueCategory: row.venue_category ?? null,
       finalScore: rankedRow.final_score ?? null,
+      dailySpecial: findDailySpecial(row.vibe_tags, dayOfWeek),
     };
   });
 

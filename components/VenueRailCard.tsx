@@ -83,6 +83,11 @@ export default function VenueRailCard({
             <span className="text-[9px] font-bold uppercase tracking-widest text-accent">Live Tonight</span>
           </div>
         )}
+        {venue.dailySpecial && (
+          <p className="text-[9px] font-bold uppercase tracking-widest text-accent-amber mb-0.5 truncate">
+            ⭐ {venue.dailySpecial}
+          </p>
+        )}
         <p className="font-display text-base tracking-wide leading-tight line-clamp-2">{venue.name}</p>
         <p className="text-[11px] text-muted leading-tight line-clamp-1">
           {venue.type} · {venue.neighborhood}

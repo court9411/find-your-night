@@ -143,6 +143,11 @@ function TonightContent() {
         const submitted: Venue[] = submittedRes.ok ? (submittedData.venues ?? []) : [];
 
         const sorted = sortByProximity([...submitted, ...rankedVenues], coords);
+        // Recurring weekly specials (vibe_tags matching today's Cincinnati
+        // weekday — see lib/dailySpecials.ts) float to the front of Tonight
+        // rather than getting buried in proximity order. Stable sort, so
+        // everything else keeps its existing relative order.
+        sorted.sort((a, b) => (b.dailySpecial ? 1 : 0) - (a.dailySpecial ? 1 : 0));
         sessionStorage.setItem(RESULTS_KEY, JSON.stringify(sorted));
         sessionStorage.setItem(RESULT_BACK_KEY, `/results?${params.toString()}`);
         setVenues(sorted);

@@ -34,6 +34,10 @@ export interface Venue {
    * — only get_ranked_venues sets this (get_rail_venues doesn't return a
    * comparable score), so it's null for rail-sourced venues. */
   finalScore?: number | null;
+  /** Matching vibe_tag text when one contains today's Cincinnati weekday
+   * (e.g. "Taco Tuesday" on a Tuesday) — see lib/dailySpecials.ts. Only the
+   * main Tonight rail (app/api/rank/venues) computes this. */
+  dailySpecial?: string | null;
 }
 
 export interface FeaturedVenueEvent {

@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
-import { getNightlifeContext } from "@/lib/cincyDate";
 import { TONIGHT_RAILS, TODAY_RAILS } from "@/lib/homeRails";
 
-// This has no request-dependent inputs Next.js recognizes (no cookies,
-// headers, searchParams, or body), so without this it gets statically
-// optimized at build time — the day/night mode would freeze at whatever
-// it was during the Vercel build, forever. Force it to run per-request.
+// No cookies/headers/request-dependent input, so Next 14 would statically
+// cache this at build time otherwise (see CLAUDE.md's pins-route gotcha).
+// Harmless today since the rails are static config either way, but this
+// keeps the route correct if rail selection ever becomes conditional again.
 export const dynamic = "force-dynamic";
 
 /**
- * Tells the client which set of home rails to render right now. This has
- * to be a server round-trip rather than a client-side `new Date()` check —
- * the browser's clock reflects the device's own timezone, not
- * Cincinnati's, and get_rail_venues's day-scoping needs to agree with
- * whichever rail set actually renders (both derive from the same 4am
- * rollover in getNightlifeContext, see app/api/rank/rail/route.ts).
+ * All home rails (Daytime Picks, Popular Picks, Date Night, Budget-Friendly,
+ * Casual Fun) render together on Picks regardless of time of day — no more
+ * 4am-4pm daytime/nightlife mode switch (that split made a Tuesday-afternoon
+ * visitor see one Daytime rail and nothing else). Each rail already
+ * self-hides via MIN_RAIL_VENUES if its category is thin, so combining them
+ * doesn't risk a sparse-feeling page.
  */
 export async function GET() {
-  const { mode, dayOfWeek } = getNightlifeContext();
-  const rails = mode === "daytime" ? TODAY_RAILS : TONIGHT_RAILS;
-  return NextResponse.json({ mode, dayOfWeek, rails });
+  return NextResponse.json({ rails: [...TODAY_RAILS, ...TONIGHT_RAILS] });
 }
