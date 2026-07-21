@@ -29,6 +29,7 @@ export interface Venue {
   matchedTags?: string[] | null;
   budgetMatch?: boolean | null;
   distanceMi?: number | null;
+  venueCategory?: string | null;
 }
 
 export interface FeaturedVenueEvent {

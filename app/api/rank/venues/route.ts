@@ -32,6 +32,7 @@ interface DbVenue {
   hours: string | null;
   happy_hour: string | null;
   regular_hours: RegularHours | null;
+  venue_category: string | null;
   venue_photos: VenuePhotoRow | VenuePhotoRow[] | null;
 }
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
   const { data: dbVenues, error: hydrateError } = await supabaseAdmin
     .from("venues")
     .select(
-      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour, regular_hours, venue_photos(photo_url, attribution_name, attribution_uri, photo_source)"
+      "id, place_id, name, address, lat, lng, types, price_level, vibe_tags, black_owned, neighborhood, why_tonight, hours, happy_hour, regular_hours, venue_category, venue_photos(photo_url, attribution_name, attribution_uri, photo_source)"
     )
     .in("id", ids);
 
@@ -133,6 +134,7 @@ export async function POST(request: Request) {
       matchedTags: rankedRow.matched_tags ?? [],
       budgetMatch: rankedRow.budget_match ?? null,
       distanceMi: rankedRow.distance_mi ?? null,
+      venueCategory: row.venue_category ?? null,
     };
   });
 

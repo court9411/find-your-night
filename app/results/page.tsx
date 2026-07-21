@@ -20,6 +20,7 @@ import NotInterestedButton from "@/components/NotInterestedButton";
 import HostEventLink from "@/components/HostEventLink";
 import VenueRailCard from "@/components/VenueRailCard";
 import PicksSearch from "@/components/PicksSearch";
+import PickerEntryCard from "@/components/PickerEntryCard";
 import DidYouGoCard from "@/components/DidYouGoCard";
 import VisitSurveyModal from "@/components/VisitSurveyModal";
 import { PendingVisit } from "@/lib/visitSurvey";
@@ -279,6 +280,10 @@ function TonightContent() {
 
       {!searchActive && (
         <>
+      <div className="pb-4">
+        <PickerEntryCard />
+      </div>
+
       {/* Loading skeleton */}
       {loading && (
         <div className="flex flex-col gap-4 px-5 mt-2">
