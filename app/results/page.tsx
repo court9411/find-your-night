@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Zap, Moon, Sparkle, Star } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
-import { readCachedCoords } from "@/lib/geoStorage";
+import { readCachedCoords, GEO_COORDS_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
+import { useLocation } from "@/lib/useLocation";
 import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { LineupSection } from "@/components/LineupSection";
 import { BigShowsSection } from "@/components/BigShowsSection";
@@ -43,11 +44,66 @@ function TonightContent() {
   // renders something.
   const cachedCoords = !hasParamCoords ? readCachedCoords() : null;
 
-  const userCoords: Coords = hasParamCoords
+  const initialCoords: Coords = hasParamCoords
     ? { lat: Number(latParam), lng: Number(lngParam) }
     : { lat: cachedCoords!.lat, lng: cachedCoords!.lng };
 
-  const isPrecise = hasParamCoords ? params.get("precise") === "1" : (cachedCoords?.precise ?? false);
+  const initialIsPrecise = hasParamCoords ? params.get("precise") === "1" : (cachedCoords?.precise ?? false);
+
+  // Both start pinned to whatever's immediately available (URL params, or a
+  // cached-or-fallback read) so the page paints instantly, but neither is
+  // trustworthy for rail/distance queries until locationReady flips true —
+  // see the geolocation effect below, which is the only thing allowed to
+  // move them off that starting point.
+  const [userCoords, setUserCoords] = useState<Coords>(initialCoords);
+  const [isPrecise, setIsPrecise] = useState<boolean>(initialIsPrecise);
+  // True once we have a coordinate worth querying with: either an explicit
+  // URL-provided fix, an already-cached precise fix, or the geolocation
+  // request below has resolved/denied/failed. Gates the Tonight fetch (and
+  // therefore the rails, which only mount inside that same loading block)
+  // so nothing ever queries get_ranked_venues/get_rail_venues against the
+  // downtown fallback and then silently re-queries once real coords land —
+  // that's the "flash wrong distance then jump" bug. The existing loading
+  // skeleton doubles as the "resolving location" state for free.
+  const [locationReady, setLocationReady] = useState<boolean>(hasParamCoords || !!cachedCoords?.precise);
+
+  const { request: requestLocation } = useLocation();
+
+  useEffect(() => {
+    if (locationReady) return;
+    if (typeof window !== "undefined" && sessionStorage.getItem(GEO_DENIED_KEY) === "1") {
+      // Already said no this session — proceed on the fallback intentionally,
+      // not silently: isPrecise stays false so distance is hidden downstream.
+      setLocationReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    requestLocation()
+      .then((loc) => {
+        if (cancelled) return;
+        const next = { lat: loc.lat, lng: loc.lng };
+        setUserCoords(next);
+        setIsPrecise(true);
+        try {
+          sessionStorage.setItem(GEO_COORDS_KEY, JSON.stringify(next));
+        } catch {}
+      })
+      .catch(() => {
+        if (cancelled) return;
+        try {
+          sessionStorage.setItem(GEO_DENIED_KEY, "1");
+        } catch {}
+        // Denied or failed — stay on the fallback coords, isPrecise stays false.
+      })
+      .finally(() => {
+        if (!cancelled) setLocationReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +167,12 @@ function TonightContent() {
   }, []);
 
   useEffect(() => {
+    // Don't fire against the fallback coords while the real fix (or an
+    // intentional denial) is still in flight — loading just stays true
+    // (its initial state) until locationReady flips, which doubles as the
+    // "resolving location" UI with no extra state needed.
+    if (!locationReady) return;
+
     const coords = userCoords;
 
     let cancelled = false;
@@ -168,7 +230,7 @@ function TonightContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCoords.lat, userCoords.lng, userId]);
+  }, [userCoords.lat, userCoords.lng, userId, locationReady]);
 
   function toStory(index: number) {
     router.push(`/tonight/${index}`);
@@ -414,7 +476,7 @@ function TonightContent() {
           </div>
 
           {activeRails.map((rail) => (
-            <RailSection key={rail.id} config={rail} lat={userCoords.lat} lng={userCoords.lng} userId={userId} />
+            <RailSection key={rail.id} config={rail} lat={userCoords.lat} lng={userCoords.lng} precise={isPrecise} userId={userId} />
           ))}
 
           <BigShowsSection userId={userId} />

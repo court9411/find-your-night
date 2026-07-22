@@ -12,6 +12,11 @@ interface Props {
   config: RailConfig;
   lat?: number | null;
   lng?: number | null;
+  /** Whether lat/lng is a real device fix vs. the downtown fallback —
+   * gates whether cards show a distance figure at all. Defaults to false
+   * so a caller that forgets to pass it fails safe (hides distance) rather
+   * than showing a distance computed from a coordinate that isn't real. */
+  precise?: boolean;
   userId: string | null;
 }
 
@@ -24,7 +29,7 @@ interface Props {
  * WhatsHappeningSection, so a rail with too few matches (or a
  * not-yet-deployed RPC) just doesn't render rather than looking thin.
  */
-export function RailSection({ config, lat = null, lng = null, userId }: Props) {
+export function RailSection({ config, lat = null, lng = null, precise = false, userId }: Props) {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -116,7 +121,7 @@ export function RailSection({ config, lat = null, lng = null, userId }: Props) {
             <VenueRailCard
               venue={venue}
               userId={userId}
-              showDistance={!!lat}
+              showDistance={precise}
               href={venue.id ? `/venue/${venue.id}` : undefined}
               onClick={rememberBackUrl}
               accentClass={colorClass}
