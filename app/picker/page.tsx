@@ -9,6 +9,7 @@ import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
 import { pickPickerVenues, sortByCategoryPreference, NightOrDay, GroupSize, AgeRange } from "@/lib/pickerMatch";
 import { logPickerSwipe } from "@/lib/pickerSwipe";
+import { seedPickerAffinity } from "@/lib/pickerAffinity";
 import { haversineMiles } from "@/lib/geo";
 import PickerSwipeStack from "@/components/PickerSwipeStack";
 import PickerMatchCard from "@/components/PickerMatchCard";
@@ -68,6 +69,12 @@ export default function SmartNightPicker() {
   // on refill so the queue never duplicates a venue within one session.
   // Ref, not state: doesn't need to trigger a render on its own.
   const seenIdsRef = useRef<Set<string>>(new Set());
+  // Venue ids already sent to seed_tag_affinity_from_picker — the RPC adds
+  // weight per call rather than replacing it, so re-sending an id already
+  // seeded would double-count that venue's tags. Tracked separately from
+  // seenIdsRef (that one's about avoiding duplicate *cards*, this one's
+  // about avoiding duplicate *affinity weight*).
+  const seededIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +115,18 @@ export default function SmartNightPicker() {
     }
   }
 
+  // Sends only the swipes not yet seeded this session (see seededIdsRef) so
+  // get_ranked_venues's pref_match signal actually reflects what's been
+  // swiped, instead of scoring everyone flat.
+  async function seedAffinity() {
+    const newlyLiked = interested
+      .filter((v) => v.id && !seededIdsRef.current.has(v.id))
+      .map((v) => v.id as string);
+    if (newlyLiked.length === 0) return;
+    newlyLiked.forEach((id) => seededIdsRef.current.add(id));
+    await seedPickerAffinity({ userId, anonId: getAnonId(), likedVenueIds: newlyLiked });
+  }
+
   // Fires while a few cards are still left in the stack, so a fresh batch
   // is ready before the user actually runs out. Silently no-ops if nothing
   // new comes back — the swipe stack just reaches onExhausted naturally
@@ -115,6 +134,10 @@ export default function SmartNightPicker() {
   async function fetchMoreVenues() {
     if (!nightOrDay) return;
     try {
+      // Before asking for more, make sure this session's swipes-so-far have
+      // actually landed in user_tag_affinity — otherwise the refill is just
+      // as blind to preference as the very first fetch was.
+      await seedAffinity();
       const coords = readCachedCoords();
       const anonId = getAnonId();
       const ranked = await getRankedVenues({
@@ -147,6 +170,9 @@ export default function SmartNightPicker() {
   }
 
   function handleExhausted() {
+    // Fire-and-forget: the winner screen shouldn't wait on a network call
+    // whose payoff is future sessions, not this one.
+    seedAffinity();
     setWinner(interested[0] ?? picks[0] ?? null);
     setStep("done");
   }
