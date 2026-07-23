@@ -2,12 +2,10 @@ import { Venue } from "@/lib/types";
 
 export type NightOrDay = "night" | "day";
 export type GroupSize = "solo" | "2" | "3-5" | "6+";
-export type AgeRange = "21-24" | "25-29" | "30-34" | "35-44" | "45+";
 
 export interface PickerAnswers {
   nightOrDay: NightOrDay;
   groupSize: GroupSize;
-  ageRange: AgeRange;
 }
 
 const CATEGORY_MATCH: Record<NightOrDay, string[]> = {

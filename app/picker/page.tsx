@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Venue } from "@/lib/types";
 import { getRankedVenues } from "@/lib/scoring";
 import { readCachedCoords } from "@/lib/geoStorage";
 import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
-import { pickPickerVenues, sortByCategoryPreference, NightOrDay, GroupSize, AgeRange } from "@/lib/pickerMatch";
+import { pickPickerVenues, NightOrDay, GroupSize } from "@/lib/pickerMatch";
 import { logPickerSwipe } from "@/lib/pickerSwipe";
 import { seedPickerAffinity } from "@/lib/pickerAffinity";
 import { haversineMiles } from "@/lib/geo";
@@ -17,7 +17,7 @@ import StaticPreferenceOnboarding, {
   StaticPreferenceAnswers,
 } from "@/components/onboarding/StaticPreferenceOnboarding";
 
-type Step = "checking" | "onboarding" | "night_or_day" | "group_age" | "loading" | "swipe" | "done" | "empty";
+type Step = "checking" | "onboarding" | "night_or_day" | "group_size" | "loading" | "swipe" | "done" | "empty";
 
 const NEARBY_MILES = 0.5;
 
@@ -26,8 +26,12 @@ const NIGHT_OR_DAY_OPTIONS: { value: NightOrDay; label: string; sub: string }[] 
   { value: "day", label: "Daytime adventure", sub: "Outdoor, brunch, daylight hours" },
 ];
 
-const GROUP_SIZE_OPTIONS: GroupSize[] = ["solo", "2", "3-5", "6+"];
-const AGE_RANGE_OPTIONS: AgeRange[] = ["21-24", "25-29", "30-34", "35-44", "45+"];
+const GROUP_SIZE_OPTIONS: { value: GroupSize; label: string; sub: string }[] = [
+  { value: "solo", label: "Solo", sub: "Just me tonight" },
+  { value: "2", label: "2", sub: "Me and one other" },
+  { value: "3-5", label: "3-5", sub: "Small group" },
+  { value: "6+", label: "6+", sub: "Big crew" },
+];
 
 function PrimaryButton({
   children,
@@ -62,22 +66,11 @@ export default function SmartNightPicker() {
   const [step, setStep] = useState<Step>("checking");
   const [nightOrDay, setNightOrDay] = useState<NightOrDay | null>(null);
   const [groupSize, setGroupSize] = useState<GroupSize | null>(null);
-  const [ageRange, setAgeRange] = useState<AgeRange | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [picks, setPicks] = useState<Venue[]>([]);
   const [sparse, setSparse] = useState(false);
   const [interested, setInterested] = useState<Venue[]>([]);
   const [winner, setWinner] = useState<Venue | null>(null);
-  // Every venue id fetched so far (shown or queued) — passed as excludeIds
-  // on refill so the queue never duplicates a venue within one session.
-  // Ref, not state: doesn't need to trigger a render on its own.
-  const seenIdsRef = useRef<Set<string>>(new Set());
-  // Venue ids already sent to seed_tag_affinity_from_picker — the RPC adds
-  // weight per call rather than replacing it, so re-sending an id already
-  // seeded would double-count that venue's tags. Tracked separately from
-  // seenIdsRef (that one's about avoiding duplicate *cards*, this one's
-  // about avoiding duplicate *affinity weight*).
-  const seededIdsRef = useRef<Set<string>>(new Set());
 
   // One-time gate: an existing user who never completed the static
   // onboarding questions (checked via onboarding_completed_at, not the
@@ -134,6 +127,10 @@ export default function SmartNightPicker() {
     setStep("night_or_day");
   }
 
+  // Picker promises "3 quick swipes, one solid answer" (PickerEntryCard) —
+  // pickPickerVenues already caps at exactly 3, and there's deliberately no
+  // mid-session refill/backfill here anymore, so the stack never grows
+  // past what that promise says.
   async function findPicks() {
     if (!nightOrDay) return;
     setStep("loading");
@@ -148,9 +145,6 @@ export default function SmartNightPicker() {
       }
 
       const { picks: nextPicks, sparse: nextSparse } = pickPickerVenues(ranked, { nightOrDay });
-      nextPicks.forEach((v) => {
-        if (v.id) seenIdsRef.current.add(v.id);
-      });
       setPicks(nextPicks);
       setSparse(nextSparse);
       setStep("swipe");
@@ -160,64 +154,24 @@ export default function SmartNightPicker() {
     }
   }
 
-  // Sends only the swipes not yet seeded this session (see seededIdsRef) so
-  // get_ranked_venues's pref_match signal actually reflects what's been
-  // swiped, instead of scoring everyone flat.
-  async function seedAffinity() {
-    const newlyLiked = interested
-      .filter((v) => v.id && !seededIdsRef.current.has(v.id))
-      .map((v) => v.id as string);
-    if (newlyLiked.length === 0) return;
-    newlyLiked.forEach((id) => seededIdsRef.current.add(id));
-    await seedPickerAffinity({ userId, anonId: getAnonId(), likedVenueIds: newlyLiked });
-  }
-
-  // Fires while a few cards are still left in the stack, so a fresh batch
-  // is ready before the user actually runs out. Silently no-ops if nothing
-  // new comes back — the swipe stack just reaches onExhausted naturally
-  // once the cursor catches up, same as if this were never called.
-  async function fetchMoreVenues() {
-    if (!nightOrDay) return;
-    try {
-      // Before asking for more, make sure this session's swipes-so-far have
-      // actually landed in user_tag_affinity — otherwise the refill is just
-      // as blind to preference as the very first fetch was.
-      await seedAffinity();
-      const coords = readCachedCoords();
-      const anonId = getAnonId();
-      const ranked = await getRankedVenues({
-        userId,
-        anonId,
-        lat: coords.lat,
-        lng: coords.lng,
-        limit: 20,
-        excludeIds: Array.from(seenIdsRef.current),
-      });
-      if (ranked.length === 0) return;
-
-      const ordered = sortByCategoryPreference(ranked, nightOrDay);
-      ordered.forEach((v) => {
-        if (v.id) seenIdsRef.current.add(v.id);
-      });
-      setPicks((prev) => [...prev, ...ordered]);
-    } catch (err) {
-      console.error("Smart Night Picker: refill fetch failed:", err);
-    }
-  }
-
   function handleSwipe(venue: Venue, direction: "left" | "right") {
     if (direction === "right") {
       setInterested((prev) => [...prev, venue]);
-      if (venue.id && nightOrDay && groupSize && ageRange) {
-        logPickerSwipe({ userId, anonId: getAnonId(), venueId: venue.id, nightOrDay, groupSize, ageRange });
-      }
+    }
+    // Both directions get logged now that picker_swipes.direction accepts
+    // 'left' too — passes are cheap negative signal alongside the likes.
+    if (venue.id && nightOrDay && groupSize) {
+      logPickerSwipe({ userId, anonId: getAnonId(), venueId: venue.id, direction, nightOrDay, groupSize });
     }
   }
 
   function handleExhausted() {
+    const likedIds = interested.filter((v) => v.id).map((v) => v.id as string);
     // Fire-and-forget: the winner screen shouldn't wait on a network call
     // whose payoff is future sessions, not this one.
-    seedAffinity();
+    if (likedIds.length > 0) {
+      seedPickerAffinity({ userId, anonId: getAnonId(), likedVenueIds: likedIds });
+    }
     setWinner(interested[0] ?? picks[0] ?? null);
     setStep("done");
   }
@@ -252,7 +206,7 @@ export default function SmartNightPicker() {
         </div>
 
         <div>
-          <PrimaryButton onClick={() => setStep("group_age")} disabled={!nightOrDay}>
+          <PrimaryButton onClick={() => setStep("group_size")} disabled={!nightOrDay}>
             Next
           </PrimaryButton>
         </div>
@@ -260,49 +214,29 @@ export default function SmartNightPicker() {
     );
   }
 
-  if (step === "group_age") {
+  if (step === "group_size") {
     return (
       <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <CloseCorner onClick={() => router.push("/results")} />
         <div className="animate-fadeUp opacity-0">
-          <h2 className="font-display font-bold text-white text-[28px]">Who&apos;s coming, and who are you?</h2>
+          <h2 className="font-display font-bold text-white text-[28px]">Who&apos;s coming tonight?</h2>
           <p className="mt-2 text-sm text-muted">Helps us fine-tune future picks.</p>
 
-          <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-muted">Group size</p>
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-col gap-3">
             {GROUP_SIZE_OPTIONS.map((opt) => {
-              const isOn = groupSize === opt;
+              const isOn = groupSize === opt.value;
               return (
                 <button
-                  key={opt}
-                  onClick={() => setGroupSize(opt)}
-                  className={`px-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
+                  key={opt.value}
+                  onClick={() => setGroupSize(opt.value)}
+                  className={`w-full px-5 py-4 rounded-2xl flex flex-col items-start text-left transition-all active:scale-[0.98] ${
                     isOn
-                      ? "bg-accent text-black animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]"
-                      : "bg-transparent text-white border border-[#2E2E2E]"
+                      ? "bg-accent animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]"
+                      : "bg-transparent border border-[#2E2E2E]"
                   }`}
                 >
-                  {opt === "solo" ? "Solo" : opt}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-muted">Age range</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {AGE_RANGE_OPTIONS.map((opt) => {
-              const isOn = ageRange === opt;
-              return (
-                <button
-                  key={opt}
-                  onClick={() => setAgeRange(opt)}
-                  className={`px-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
-                    isOn
-                      ? "bg-accent text-black animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]"
-                      : "bg-transparent text-white border border-[#2E2E2E]"
-                  }`}
-                >
-                  {opt}
+                  <span className={`font-display font-bold text-lg ${isOn ? "text-black" : "text-accent"}`}>{opt.label}</span>
+                  <span className={`text-sm font-medium mt-0.5 ${isOn ? "text-black" : "text-white"}`}>{opt.sub}</span>
                 </button>
               );
             })}
@@ -310,7 +244,7 @@ export default function SmartNightPicker() {
         </div>
 
         <div>
-          <PrimaryButton onClick={findPicks} disabled={!groupSize || !ageRange}>
+          <PrimaryButton onClick={findPicks} disabled={!groupSize}>
             Find My Picks
           </PrimaryButton>
         </div>
@@ -339,26 +273,22 @@ export default function SmartNightPicker() {
 
   if (step === "swipe") {
     return (
-      <main className="flex flex-col min-h-dvh px-5 pt-12 pb-10">
-        <div className="flex items-center justify-between mb-2">
+      <main className="flex flex-col h-dvh px-3 pt-4 pb-4">
+        <div className="flex items-center justify-between px-2 mb-1 shrink-0">
           <button onClick={() => router.push("/results")} className="flex items-center gap-1 text-muted text-sm active:opacity-70">
             <span aria-hidden>←</span>
             <span>Back</span>
           </button>
+          <h2 className="font-display font-bold text-base tracking-wide">Swipe to decide</h2>
+          <span className="w-10" aria-hidden />
         </div>
-        <h2 className="font-display font-bold text-2xl tracking-wide text-center mt-2">Swipe to decide</h2>
         {sparse && (
-          <p className="text-xs text-muted text-center mt-1 max-w-xs mx-auto">
+          <p className="text-xs text-muted text-center mb-1 max-w-xs mx-auto shrink-0">
             Not many strong matches near you tonight — here&apos;s what we&apos;ve got.
           </p>
         )}
-        <div className="flex-1 flex items-center justify-center mt-4">
-          <PickerSwipeStack
-            venues={picks}
-            onSwipe={handleSwipe}
-            onExhausted={handleExhausted}
-            onLowOnCards={fetchMoreVenues}
-          />
+        <div className="flex-1 min-h-0">
+          <PickerSwipeStack venues={picks} onSwipe={handleSwipe} onExhausted={handleExhausted} />
         </div>
       </main>
     );
