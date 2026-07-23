@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import type { UserProfile } from "@/lib/userProfile";
 import ChipGroup from "@/components/ChipGroup";
-import { VIBE_OPTIONS, MUSIC_OPTIONS, ACTIVITY_OPTIONS, BUDGET_OPTIONS } from "@/lib/preferenceOptions";
+import { VIBE_OPTIONS, MUSIC_OPTIONS, ACTIVITY_OPTIONS, ACTIVITY_OPTION_LABELS, BUDGET_OPTIONS } from "@/lib/preferenceOptions";
 
 export default function ProfileEditPage() {
   const [authChecked, setAuthChecked] = useState(false);
@@ -160,6 +160,7 @@ export default function ProfileEditPage() {
           options={ACTIVITY_OPTIONS}
           selected={activityInterests}
           onChange={setActivityInterests}
+          labels={ACTIVITY_OPTION_LABELS}
         />
 
         <button

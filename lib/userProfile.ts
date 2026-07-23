@@ -17,6 +17,7 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
   is_scout: boolean;
+  onboarding_completed_at: string | null;
 }
 
 export type ProfileUpdate = Partial<

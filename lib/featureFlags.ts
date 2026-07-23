@@ -1,12 +1,12 @@
 // Single source of truth for temporary, hand-flipped feature flags.
 
 /**
- * TEMPORARY — bypasses the forced onboarding redirect in app/page.tsx so new
- * signups land straight in the main app instead of the 9-screen flow.
- * Onboarding itself (routes, components, DB writes) is fully intact and
- * untouched; this only skips the auto-trigger.
- *
- * Flip back to false before App Store submission — onboarding needs to run
- * for new installs again at that point.
+ * Re-enabled 2026-07-23 for new signups going forward (App Store prep phase
+ * needs onboarding running again for new installs). Users who already have
+ * ONBOARDED_KEY set in localStorage, or are already mid-session, are
+ * unaffected — this only gates the very first visit. Existing users who
+ * signed up during the SKIP_ONBOARDING=true window and never completed
+ * onboarding are caught separately, via user_profiles.onboarding_completed_at,
+ * the first time they open the Smart Picker (see app/picker/page.tsx).
  */
-export const SKIP_ONBOARDING = true;
+export const SKIP_ONBOARDING = false;

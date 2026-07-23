@@ -1,25 +1,19 @@
 import { Venue } from "@/lib/types";
 
-// Loose keyword hints mapping each onboarding vibe to the free-form vibe_tags
-// venues actually carry today. The tagging vocabulary isn't aligned to these
-// categories yet (that's separate DB-side curation work), so this is a
-// best-effort heuristic to make onboarding feel personalized — not a precise
-// match. Swap out once real per-category tagging exists.
+// Keyword hints mapping each onboarding activity to the free-form vibe_tags
+// venues carry. Keys match ACTIVITY_OPTIONS; values are copied from the DB's
+// onboarding_vibe_map.tags (the same table seed_tag_affinity_from_onboarding
+// reads) so this client-side heuristic stays aligned with the real seeding
+// source of truth — keep in sync if that table changes.
 const ACTIVITY_TAG_HINTS: Record<string, string[]> = {
-  "Drinks & Bars": [
-    "cocktails", "cocktail-bar", "craft-cocktails", "dive-bar", "neighborhood-bar",
-    "wine-bar", "wine", "day-drink", "happy-hour", "bottle-service", "craft-beer", "self-pour", "hookah",
-  ],
-  "Food & Drinks": ["food-drinks", "brunch", "grill"],
-  "Live Music": [
-    "live-music", "music", "live-dj", "dj-nights", "music-showcase",
-    "hip-hop", "rnb", "90s-rnb", "international-music", "karaoke",
-  ],
-  "Fresh Air": ["outdoor", "outdoor-patio", "outdoor-seating", "patio", "year-round-outdoor"],
-  "Late Night Eats": ["late-night-food", "late-night"],
-  "Rooftop Vibes": ["rooftop", "elevated-vibes", "upscale", "luxury"],
-  "Casual Fun": ["chill", "relaxed", "low-key", "pool-table", "social", "neighborhood", "dive-bar"],
-  "Arts & Events": ["arts-culture", "events", "artist-community", "award-winning", "black-film", "music-showcase"],
+  drinks: ["cocktails", "day-drink", "happy-hour", "dive-bar", "wine-bar", "craft-cocktails", "cocktail-bar"],
+  live_music: ["live-music", "live music", "live-dj", "dj-nights", "music-showcase"],
+  comedy: ["comedy"],
+  food: ["food", "food-drinks", "brunch", "late-night-food"],
+  rooftops: ["rooftop", "outdoor-patio", "patio", "outdoor-seating"],
+  outdoors: ["outdoor", "outdoor-patio", "outdoor-seating", "year-round-outdoor"],
+  arts: ["arts-culture", "art", "artist-community"],
+  dancing: ["dancing", "dance party", "nightclub", "club", "nightclub-energy"],
 };
 
 // Venue.price only has 3 buckets (see lib/venueMappers.mapPriceLevel), so the

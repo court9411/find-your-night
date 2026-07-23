@@ -2,17 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ACTIVITY_OPTIONS, BUDGET_OPTIONS, MUSIC_OPTIONS } from "@/lib/preferenceOptions";
-import {
-  DrinksIcon,
-  FoodDrinksIcon,
-  LiveMusicIcon,
-  FreshAirIcon,
-  LateNightEatsIcon,
-  RooftopIcon,
-  CasualFunIcon,
-  ArtsEventsIcon,
-} from "@/components/VibeIcons";
+import { ACTIVITY_OPTIONS } from "@/lib/preferenceOptions";
+import StaticPreferenceOnboarding, {
+  ACTIVITY_ICONS,
+  StaticPreferenceAnswers,
+} from "@/components/onboarding/StaticPreferenceOnboarding";
 import CityAutocompleteInput, { CitySelection } from "@/components/CityAutocompleteInput";
 import { loadGoogleMaps, findAddressComponent } from "@/lib/googleMaps";
 import { createClient } from "@/lib/supabase/client";
@@ -32,33 +26,13 @@ export const ONBOARD_PREFS_KEY = "fyn:onboardPrefs";
 type Step =
   | "hook"
   | "value"
-  | "vibes"
-  | "budget"
-  | "music"
+  | "preferences"
   | "learning"
   | "location"
   | "email"
   | "identity"
   | "finding"
   | "picks";
-
-const ACTIVITY_ICONS = [
-  DrinksIcon,
-  FoodDrinksIcon,
-  LiveMusicIcon,
-  FreshAirIcon,
-  LateNightEatsIcon,
-  RooftopIcon,
-  CasualFunIcon,
-  ArtsEventsIcon,
-];
-
-const BUDGET_DESCRIPTIONS: Record<number, string> = {
-  1: "Free / cheap",
-  2: "Casual",
-  3: "Nice night out",
-  4: "Splurge",
-};
 
 const VALUE_CARDS = [
   { emoji: "🍸", name: "Salazar Rooftop" },
@@ -171,16 +145,11 @@ export default function OnboardingFlow() {
     track("onboarding_started");
   }, []);
 
-  function toggleActivity(opt: string) {
-    setActivityInterests((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
-  }
-
-  function toggleBudget(value: number) {
-    setPriceLevels((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
-  }
-
-  function toggleMusic(opt: string) {
-    setMusicPrefs((prev) => (prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]));
+  function handlePreferences(answers: StaticPreferenceAnswers) {
+    setActivityInterests(answers.activityInterests);
+    setPriceLevels(answers.priceLevels);
+    setMusicPrefs(answers.musicPrefs);
+    setStep("learning");
   }
 
   function skipFrom(fromStep: Step) {
@@ -324,35 +293,48 @@ export default function OnboardingFlow() {
       precise_location: !!coords,
     });
 
-    // Write straight to user_profiles so answers aren't stranded in
-    // localStorage for users who never visit /profile. Silently no-ops if
+    // Write location straight to user_profiles so it isn't stranded in
+    // sessionStorage for users who never visit /profile. Silently no-ops if
     // the user skipped the email step and has no session yet — the existing
     // localStorage merge on first Profile visit covers that case.
     const dbUpdate: Record<string, unknown> = {};
-    if (activityInterests.length > 0) dbUpdate.activity_interests = activityInterests;
-    if (priceLevels.length > 0) dbUpdate.price_levels = priceLevels;
-    if (musicPrefs.length > 0) dbUpdate.music_prefs = musicPrefs;
     if (coords) {
       dbUpdate.home_lat = coords.lat;
       dbUpdate.home_lng = coords.lng;
     }
     if (areaName) dbUpdate.home_city = areaName;
 
-    if (Object.keys(dbUpdate).length > 0) {
-      try {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          await fetch("/api/profile", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dbUpdate),
-          });
-        }
-      } catch {}
-    }
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user && Object.keys(dbUpdate).length > 0) {
+        await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dbUpdate),
+        });
+      }
+
+      // Marks onboarding_completed_at and seeds user_tag_affinity — the
+      // one-time DB signal app/picker/page.tsx checks so an already-onboarded
+      // user is never asked again.
+      if (activityInterests.length > 0 || priceLevels.length > 0 || musicPrefs.length > 0) {
+        await fetch("/api/onboarding/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user?.id ?? null,
+            anonId: getAnonId(),
+            activityInterests,
+            musicPrefs,
+            priceLevels,
+          }),
+        });
+      }
+    } catch {}
   }
 
   function finalizeAndRoute() {
@@ -394,116 +376,12 @@ export default function OnboardingFlow() {
 
   // ── Screen 2: How It Works ────────────────────────────────────────────────
   if (step === "value") {
-    return <ValueScreen onNext={() => setStep("vibes")} onSkip={() => skipFrom("value")} />;
+    return <ValueScreen onNext={() => setStep("preferences")} onSkip={() => skipFrom("value")} />;
   }
 
-  // ── Screen 3: Build Your Vibe ─────────────────────────────────────────────
-  if (step === "vibes") {
-    return (
-      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
-        <SkipCorner onClick={() => skipFrom("vibes")} />
-        <div key="vibes" className="animate-fadeUp opacity-0">
-          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s your vibe?</h2>
-          <p className="mt-2 text-sm text-muted">Pick a few. We&apos;ll do the rest.</p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            {ACTIVITY_OPTIONS.map((opt, i) => {
-              const Icon = ACTIVITY_ICONS[i];
-              const isOn = activityInterests.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  onClick={() => toggleActivity(opt)}
-                  className={`px-4 py-3 rounded-2xl flex items-center gap-2 text-sm font-semibold transition-all active:scale-95 ${
-                    isOn ? "bg-accent text-black animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]" : "bg-transparent text-white border border-[#2E2E2E]"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{opt}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <PrimaryButton onClick={() => setStep("budget")}>Lock It In</PrimaryButton>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Screen 4: Budget ──────────────────────────────────────────────────────
-  if (step === "budget") {
-    return (
-      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
-        <SkipCorner onClick={() => skipFrom("budget")} />
-        <div key="budget" className="animate-fadeUp opacity-0">
-          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s tonight worth to you?</h2>
-          <p className="mt-2 text-sm text-muted">So we don&apos;t send you somewhere that blows your night.</p>
-
-          <div className="mt-6 flex flex-col gap-3">
-            {BUDGET_OPTIONS.map((opt) => {
-              const isOn = priceLevels.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => toggleBudget(opt.value)}
-                  className={`w-full px-5 py-4 rounded-2xl flex items-center justify-between transition-all active:scale-[0.98] ${
-                    isOn ? "bg-accent animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]" : "bg-transparent border border-[#2E2E2E]"
-                  }`}
-                >
-                  <span className={`font-display font-bold text-lg ${isOn ? "text-black" : "text-accent"}`}>
-                    {opt.label}
-                  </span>
-                  <span className={`text-sm font-medium ${isOn ? "text-black" : "text-white"}`}>
-                    {BUDGET_DESCRIPTIONS[opt.value]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <PrimaryButton onClick={() => setStep("music")}>Lock It In</PrimaryButton>
-        </div>
-      </main>
-    );
-  }
-
-  // ── Screen 4.5: Music ─────────────────────────────────────────────────────
-  if (step === "music") {
-    return (
-      <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
-        <SkipCorner onClick={() => skipFrom("music")} />
-        <div key="music" className="animate-fadeUp opacity-0">
-          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s the soundtrack?</h2>
-          <p className="mt-2 text-sm text-muted">Pick your genres. We&apos;ll match the room.</p>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            {MUSIC_OPTIONS.map((opt) => {
-              const isOn = musicPrefs.includes(opt);
-              return (
-                <button
-                  key={opt}
-                  onClick={() => toggleMusic(opt)}
-                  className={`px-4 py-3 rounded-2xl text-sm font-semibold transition-all active:scale-95 ${
-                    isOn ? "bg-accent text-black animate-cardPop shadow-[0_0_16px_rgba(34,197,94,0.35)]" : "bg-transparent text-white border border-[#2E2E2E]"
-                  }`}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <PrimaryButton onClick={() => setStep("learning")}>Lock It In</PrimaryButton>
-        </div>
-      </main>
-    );
+  // ── Screens 3–5: activity / music / price (shared static onboarding) ──────
+  if (step === "preferences") {
+    return <StaticPreferenceOnboarding onComplete={handlePreferences} />;
   }
 
   // ── Screen 5: It's Learning ───────────────────────────────────────────────

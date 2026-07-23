@@ -125,6 +125,27 @@ export function ArtsEventsIcon(props: IconProps) {
   );
 }
 
+export function ComedyIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      {/* mask outline */}
+      <path d="M4 6.5c0-2 2.5-3 4-1.5 1-1.5 3.5-1.5 4 .5.5-2 3-2 4-.5 1.5-1.5 4-.5 4 1.5 0 6-4 10-8 10s-8-4-8-10Z" />
+      {/* smiling eyes */}
+      <path d="M8 9.5q1 1.2 2 0M14 9.5q1 1.2 2 0" />
+    </svg>
+  );
+}
+
+export function DancingIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      {/* raised arm + head */}
+      <circle cx="9" cy="4" r="1.8" />
+      <path d="M9 6.2v5M9 11.2 5 8M9 11.2l4.5-3.5M9 11.2 7 20M9 11.2l4 2 2-4.5" />
+    </svg>
+  );
+}
+
 const SPARKLE =
   "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L13.937 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.563 1.594Z";
 

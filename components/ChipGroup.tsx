@@ -5,11 +5,16 @@ export default function ChipGroup({
   options,
   selected,
   onChange,
+  labels,
 }: {
   label: string;
   options: string[];
   selected: string[];
   onChange: (next: string[]) => void;
+  // Optional display-label override per option value — lets `options` stay
+  // the raw stored value (e.g. "live_music") while the chip shows something
+  // readable ("Live Music").
+  labels?: Record<string, string>;
 }) {
   function toggle(opt: string) {
     onChange(
@@ -33,7 +38,7 @@ export default function ChipGroup({
                 : "bg-white/[0.06] border border-card-border text-muted hover:text-white"
             }`}
           >
-            {opt}
+            {labels?.[opt] ?? opt}
           </button>
         ))}
       </div>

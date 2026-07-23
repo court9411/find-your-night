@@ -13,8 +13,11 @@ import { seedPickerAffinity } from "@/lib/pickerAffinity";
 import { haversineMiles } from "@/lib/geo";
 import PickerSwipeStack from "@/components/PickerSwipeStack";
 import PickerMatchCard from "@/components/PickerMatchCard";
+import StaticPreferenceOnboarding, {
+  StaticPreferenceAnswers,
+} from "@/components/onboarding/StaticPreferenceOnboarding";
 
-type Step = "night_or_day" | "group_age" | "loading" | "swipe" | "done" | "empty";
+type Step = "checking" | "onboarding" | "night_or_day" | "group_age" | "loading" | "swipe" | "done" | "empty";
 
 const NEARBY_MILES = 0.5;
 
@@ -56,7 +59,7 @@ function CloseCorner({ onClick }: { onClick: () => void }) {
 
 export default function SmartNightPicker() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("night_or_day");
+  const [step, setStep] = useState<Step>("checking");
   const [nightOrDay, setNightOrDay] = useState<NightOrDay | null>(null);
   const [groupSize, setGroupSize] = useState<GroupSize | null>(null);
   const [ageRange, setAgeRange] = useState<AgeRange | null>(null);
@@ -76,18 +79,60 @@ export default function SmartNightPicker() {
   // about avoiding duplicate *affinity weight*).
   const seededIdsRef = useRef<Set<string>>(new Set());
 
+  // One-time gate: an existing user who never completed the static
+  // onboarding questions (checked via onboarding_completed_at, not the
+  // narrative flow's localStorage flag — this needs to work cross-device)
+  // sees them here before falling into the Picker's own session questions.
+  // Anonymous users have no profile row to gate on, so they skip straight
+  // through, same as today.
   useEffect(() => {
     let cancelled = false;
-    async function loadUser() {
+    async function loadUserAndGate() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!cancelled) setUserId(user?.id ?? null);
+      if (cancelled) return;
+      setUserId(user?.id ?? null);
+
+      if (!user) {
+        setStep("night_or_day");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/profile", { cache: "no-store" });
+        if (!res.ok) throw new Error(`/api/profile returned ${res.status}`);
+        const { profile } = await res.json();
+        if (cancelled) return;
+        setStep(profile?.onboarding_completed_at ? "night_or_day" : "onboarding");
+      } catch (err) {
+        // Fail closed, not open — a transient fetch/auth hiccup here should
+        // never silently let a never-onboarded user skip straight past the
+        // gate. Worst case on error: an already-onboarded user sees the
+        // questions again, which is far safer than the reverse.
+        console.error("Picker onboarding gate check failed:", err);
+        if (!cancelled) setStep("onboarding");
+      }
     }
-    loadUser();
+    loadUserAndGate();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  function handleOnboardingComplete(answers: StaticPreferenceAnswers) {
+    fetch("/api/onboarding/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        anonId: getAnonId(),
+        activityInterests: answers.activityInterests,
+        musicPrefs: answers.musicPrefs,
+        priceLevels: answers.priceLevels,
+      }),
+    }).catch(() => {});
+    setStep("night_or_day");
+  }
 
   async function findPicks() {
     if (!nightOrDay) return;
@@ -271,6 +316,14 @@ export default function SmartNightPicker() {
         </div>
       </main>
     );
+  }
+
+  if (step === "checking") {
+    return <main className="min-h-dvh" />;
+  }
+
+  if (step === "onboarding") {
+    return <StaticPreferenceOnboarding onComplete={handleOnboardingComplete} />;
   }
 
   if (step === "loading") {

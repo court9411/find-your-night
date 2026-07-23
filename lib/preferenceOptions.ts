@@ -8,10 +8,25 @@ export const MUSIC_OPTIONS = [
   "Latin", "Jazz / Neo Soul", "Live Bands", "Gospel",
 ];
 
+// Stored values match onboarding_vibe_map.ui_option in the DB exactly, so
+// activity_interests entries map 1:1 to seed_tag_affinity_from_onboarding's
+// p_selected_options without a translation step — also matches the
+// lowercase keys already present in existing user_profiles rows.
 export const ACTIVITY_OPTIONS = [
-  "Drinks & Bars", "Food & Drinks", "Live Music", "Fresh Air",
-  "Late Night Eats", "Rooftop Vibes", "Casual Fun", "Arts & Events",
+  "drinks", "live_music", "comedy", "food",
+  "rooftops", "outdoors", "arts", "dancing",
 ];
+
+export const ACTIVITY_OPTION_LABELS: Record<string, string> = {
+  drinks: "Drinks",
+  live_music: "Live Music",
+  comedy: "Comedy",
+  food: "Food",
+  rooftops: "Rooftops",
+  outdoors: "Outdoors",
+  arts: "Arts",
+  dancing: "Dancing",
+};
 
 export const BUDGET_OPTIONS: { label: string; value: number }[] = [
   { label: "$", value: 1 },
