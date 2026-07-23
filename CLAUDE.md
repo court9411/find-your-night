@@ -60,40 +60,88 @@ A `GET` route handler with **no** `Request` param and **no** call to `cookies()`
 - **No localStorage/sessionStorage for anything that matters** (auth, form-in-progress). Supabase-backed state is fine.
 - **Push notifications**: skip browser push polyfills entirely, go straight to Capacitor's plugin later.
 
-## Current phase: past the 3-day sprint, now solving retention
-Nav shell, post-visit survey, check-in flow, Live Map v1, and profile redesign all shipped. The focus now is **why people try FYN once and don't come back** — real numbers as of 2026-07-11: ~200 visitors, 1900+ page views, 48% bounce rate, and Courtney has personally walked most of those 200 through the concept (they get it, they just don't return on their own).
+## Current phase: pre-App-Store polish (as of 2026-07-23)
 
-Two distinct problems, two different fixes:
-- **Bounce (single-page sessions)** — first-impression problem. Onboarding is still bypassed (`SKIP_ONBOARDING` in [lib/featureFlags.ts](lib/featureFlags.ts)), so a cold visitor lands straight on Live Map with zero framing. Suspected (not yet confirmed) contributor to the 48%.
-- **No return** — habit-formation problem. Nothing currently reminds anyone to open the app again (no push infra yet), and the live-vibe content is still too thin to be worth remembering on its own. This is the Scout-density bottleneck described above, showing up as real churn.
+Retention/Scout-density work (below) is real and not abandoned, but it is
+not what's being actively worked right now. Active focus is finishing
+Picks + Profile to a "premium feel" bar before Capacitor wrap + App Store
+submission. Target: submit within the next 1-2 weeks.
 
-**Fixed this session**:
-- Live Map pins never visually updated after a user's own check-in — client only fetched `/api/venues/pins` once on mount, never refetched. Now refetches on successful check-in ([components/MapExplorer.tsx](components/MapExplorer.tsx)).
-- `/api/venues/pins` was missing `dynamic = "force-dynamic"` (see Next.js gotcha above) — could have frozen pin data in production indefinitely.
+**Picks page redesign, in progress:**
+- Neon header treatment: "Tonight's" in hot pink (#FF2E92-ish, exact glow
+  TBD in code), "Picks" in electric green, cocktail-glass divider —
+  landed, keep as-is.
+- Smart Night Picker promoted from a small card to the dominant
+  above-the-fold element, directly under search. It's the app's real
+  differentiator (an answer, not a browse surface) and needs to read
+  that way visually.
+- Live/event content (The Lineup) ranks above algorithmic rails (Popular
+  Picks, Date Night, etc.) — a promoter's submitted event is
+  higher-signal and more time-sensitive than a generic venue match, and
+  should be positioned accordingly. Order, top to bottom: Search → Smart
+  Picker → The Lineup / live event rail → Popular Picks → Date Night →
+  Budget-Friendly → Casual Fun.
+- "Tonight" rail (the match-reason cards, e.g. "Matches your sports-ba...")
+  is being renamed to avoid colliding with the "Tonight's Picks" hero
+  text — working name "Happening Now." Match-reason copy needs to stop
+  truncating mid-word ("Because you like sports bars" not "Matches your
+  sports-ba...").
+- Daytime Picks rail should reorder based on time of day rather than
+  holding a fixed position — a coffee-shop rail ranking high at 10pm
+  doesn't serve anyone. Not yet built.
+- Floating **+** button needs a label/identity — currently ambiguous
+  what it does (Add Event? Post update? Check in?).
+- Profile section: completing remaining gaps (scope TBD, check current
+  state before assuming what's left).
 
-**Built this session**: silent geofenced check-in prompt. On Live Map open, silently checks (via `useLocation()` + `/api/venues/nearby`) whether the user is physically at a known venue; if so, surfaces a dismissible prompt — *"FindYourNight tracks what's actually happening tonight — you're at [venue], want to be the first to report it?"* ([components/ProactiveCheckInPrompt.tsx](components/ProactiveCheckInPrompt.tsx)). Targets Scouts specifically, not a blanket login prompt (most app opens aren't at a venue, so a blanket ask would fail the proximity check most of the time).
+**Retention work below is still real, just not this week's priority** —
+don't let App Store prep silently kill it, revisit once submitted.
 
-**Planned**: a founder-led scouting night — Courtney + ~10-15 people splitting up across venues, checking in live and handing out business cards in person, timed for the weekend following 2026-07-11. This is the deliberate, manual seeding of Scout density and content — the thing the whole retention problem traces back to. Treat requests around this event (geofenced prompts, check-in friction, pin visibility) as high priority since they directly affect whether that night produces usable density.
+## Next phase: Partner Dashboard (starts once App Store submission is in,
+## during Apple review — separate repo, not this one)
 
-**Scouting is open to all users** (not invite-gated). Trust/quality enforced mechanically:
-- Every check-in requires real GPS proximity to the venue (within 75m), enforced at the database level via RLS
-- Rate-limited to one check-in per user per venue per 20 minutes
-- Tier progression from real check-in history (`scout_stats` view): New Scout → Scout (5+) → Verified Scout (25+) → City Scout (100+)
-- The original 5 invited friends keep `is_scout` as a permanent "Founding Scout" badge, not an access gate
+Decision made 2026-07-23: this is a **separate Next.js app**, own repo,
+own Vercel deployment (e.g. `partners.findyournight.app`), **same
+Supabase project** — RLS draws the boundary between partner and consumer
+data, no reason to split the backend. Auth can be Supabase auth in both
+apps; a person can hold both a partner and a consumer account.
 
-**DB tables/views already live**:
-- `venue_visits` — post-visit survey (emotion 1-4, music_quality, optional surprise_note)
-- `venue_checkins` — scout check-ins (checkin_type, crowd_level, wait_minutes, cover_amount, music_tags, checkin_lat/lng), RLS-enforced proximity + rate limit
-- `venue_checkins_recent` — rolling 90-min freshness view per venue, use instead of hand-rolling decay logic client-side
-- `scout_stats` — tier calculation view
-- `search_venues()` — fuzzy/typo-tolerant venue name search (pg_trgm)
-- Saved Nights — covered by existing `user_venue_interactions` / `user_event_interactions` (interaction_type = 'saved')
+Reasoning: the consumer app now has App Store review in its release path.
+A separate partner app can ship changes on its own schedule without ever
+touching something sitting in Apple's queue.
 
-Music genre taxonomy (must stay consistent across user_profiles.music_prefs, check-in tags, rec-engine matching): **Hip-Hop / Rap, R&B / Soul, Afrobeats, House / EDM, Latin, Jazz / Neo Soul, Live Bands, Gospel.** Currently only asked in profile settings, not onboarding — known gap.
+**True MVP scope (do not let this creep back to the full spec):**
+1. Partner auth + roles (owner/admin/manager/editor/viewer) — accounts
+   belong to **organizations**, organizations manage venues/events. Do
+   not attach venues/events directly to a single user — a venue will
+   eventually have an owner, manager, and promoter with different
+   permissions, and retrofitting this later is expensive.
+2. Claim venue/promoter application (simple: pick venue, submit info,
+   wait for approval)
+3. Internal approval queue (events + claims only for v1 — not the full
+   moderation suite)
+4. Event create/edit/draft/submit/cancel
+5. Stretch, if time allows: "Tonight" updates (quick live posts —
+   "DJ starts at 10," "patio open," expiring automatically). Small build,
+   high signal value, ties directly into the Live/Learned signal tiers
+   already established for the consumer app.
 
-**Re-enable `SKIP_ONBOARDING` before App Store submission work begins** — don't forget it's on. Given the bounce-rate hypothesis above, onboarding may also need to come back sooner than that for web, not just for the App Store.
+**Explicitly deferred past MVP, even though an earlier planning pass
+described them in detail:** venue profile editing, basic analytics
+(profile views/saves/clicks), the fuller admin tooling (impersonation,
+duplicate merging, editorial notes, content featuring). Reasonable v1.5/v2
+scope, not now.
 
-**DB-side scoring/curation work** (blending like_count/featured/recency, gating unvetted Google-sourced venues) is handled by a separate Claude session working directly in Supabase — check current DB state rather than assuming it's done.
+**Milestone that defines "done" for v1:** a promoter signs in, submits an
+event, Courtney approves it, it appears correctly inside FindYourNight.
+That's the point this stops requiring Courtney to personally enter every
+event.
+
+Suggested tables (expand existing schema, don't rebuild):
+`organizations`, `organization_members`, `venue_claims`, `promoter_profiles`,
+`event_organizers`, `partner_updates`, `approval_requests`, `audit_logs`.
+Publishing workflow: `draft → submitted → approved → published → expired`,
+with `rejected` and `changes_requested` branches off `submitted`.
 
 ## Product #1 roadmap (set 2026-07-11)
 A full code + DB audit was run this session (grep across every API route, every fetch-on-mount component, and Supabase's security/performance advisors) to find what's weakest in the core loop before scaling Scout volume. Status below.
@@ -123,19 +171,21 @@ DB side (`pending_venues`, `approve_pending_venue()`) already existed — see co
 **Explicit decision (2026-07-11): do not build the Picks rail UI yet.** ~13 dated venues isn't enough density for a "New Venues" rail to feel real — same lesson as the Live Map cold-start problem elsewhere in this doc: a thin rail reads as broken, not as content. Let `opened_date` keep accumulating (via admin approval and periodic research passes) until there's enough volume that the rail wouldn't feel sparse on a random Tuesday. When that threshold is judged to be reached, the build itself is trivial — `get_rail_venues`-independent, just a `venues` query ordered by `opened_date` — the blocker is data density, not engineering.
 
 ## Parked, not this phase
-General gamification/Night Score, "Who's Going" avatar counts, confidence indicator on Live Map ("🟢 Confirmed by 4 Scouts"), full Profile stats dashboard, venue/promoter dashboard (web app, subscription-gated), native wrap via Capacitor, push notification infra. All good ideas — none are the current bottleneck, which is Scout density and retention.
+General gamification/Night Score, "Who's Going" avatar counts, confidence indicator on Live Map ("🟢 Confirmed by 4 Scouts"), full Profile stats dashboard, native wrap via Capacitor, push notification infra. All good ideas — none are the current bottleneck, which is Scout density and retention.
 
 ## Submission Flow (built, deployed)
 Promoter pastes URL or uploads flyer → Claude API extracts structured event details → Promoter confirms in one tap → Stored in Supabase with pending/approved status → /admin review view
 
 ## Skills Available
-**Correction 2026-07-11: none of these exist in this repo** (`skills/` directory isn't present — verified via glob while working on venue research). This section had been carried forward across rewrites without anyone checking the files were actually there. If these are meant to exist, they need to be created; until then, don't assume Claude has access to a codified marketing/UI/venue-research/branding/strategy workflow beyond what's in this file.
-- ~~fyn-marketing~~ — brand voice, social templates, hashtags, campaign planning
-- ~~fyn-uiux~~ — design tokens, component patterns, mobile rules, user flows
-- ~~fyn-venue-intel~~ — research workflow for new venues/events, output formats, Cincinnati sources
-- ~~fyn-branding~~ — brand identity source of truth
-- ~~fyn-build-next~~ — master strategic advisor; prioritized list of what to build next against the full company vision
+Live in `.claude/skills/` as of 2026-07-23. Claude Code should reference these automatically when relevant — don't assume context that should come from a skill instead.
+- **fyn-marketing** — brand voice, social templates, campaign planning
+- **fyn-uiux** — design tokens, component patterns, mobile rules, user flows
+- **fyn-venue-intel** — research workflow for new venues/events, Cincinnati sources
+- **fyn-branding** — brand identity source of truth (colors, type, logo rules)
+- **fyn-database** — Supabase schema, RPCs, conventions, safe migration practices
+- **fyn-build-next** — master strategic advisor against the full company vision
 
+Keep this list and the skill files themselves in sync — if a color, font, or major decision gets locked, update the relevant skill file in the same session, not just this doc.
 ## Ground Rules
 - Mobile-first in all UI decisions
 - LGBTQ+-inclusive by default, not as an afterthought
