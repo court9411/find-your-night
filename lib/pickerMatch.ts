@@ -13,6 +13,20 @@ const CATEGORY_MATCH: Record<NightOrDay, string[]> = {
   day: ["daytime_outdoor"],
 };
 
+// Sent server-side to rank_venues_for_user's p_venue_categories/p_session_vibes.
+// day intentionally omits day-drink — it skews results toward breweries
+// instead of general casual daytime activities.
+export const PICKER_MOOD_CONTEXT: Record<NightOrDay, { venueCategories: string[]; sessionVibes: string[] }> = {
+  night: {
+    venueCategories: ["nightlife", "entertainment"],
+    sessionVibes: ["dancing", "hype", "cocktails", "live-music"],
+  },
+  day: {
+    venueCategories: ["daytime_outdoor", "entertainment"],
+    sessionVibes: ["arts-culture", "casual", "family-friendly", "low-key", "outdoor"],
+  },
+};
+
 const STACK_SIZE = 3;
 
 function venueKey(venue: Venue): string {

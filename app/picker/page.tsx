@@ -7,7 +7,7 @@ import { getRankedVenues } from "@/lib/scoring";
 import { readCachedCoords } from "@/lib/geoStorage";
 import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
-import { pickPickerVenues, NightOrDay, GroupSize } from "@/lib/pickerMatch";
+import { pickPickerVenues, NightOrDay, GroupSize, PICKER_MOOD_CONTEXT } from "@/lib/pickerMatch";
 import { logPickerSwipe } from "@/lib/pickerSwipe";
 import { seedPickerAffinity } from "@/lib/pickerAffinity";
 import { haversineMiles } from "@/lib/geo";
@@ -137,7 +137,17 @@ export default function SmartNightPicker() {
     try {
       const coords = readCachedCoords();
       const anonId = getAnonId();
-      const ranked = await getRankedVenues({ userId, anonId, lat: coords.lat, lng: coords.lng, limit: 20 });
+      const { venueCategories, sessionVibes } = PICKER_MOOD_CONTEXT[nightOrDay];
+      const ranked = await getRankedVenues({
+        userId,
+        anonId,
+        lat: coords.lat,
+        lng: coords.lng,
+        limit: 20,
+        venueCategories,
+        sessionVibes,
+        groupSize,
+      });
 
       if (ranked.length === 0) {
         setStep("empty");

@@ -17,6 +17,17 @@ interface RankedVenueRow {
   budget_match: boolean | null;
 }
 
+// rank_venues_for_user's row shape (session-vibe/category picker path) —
+// different column names than get_ranked_venues, normalized to
+// RankedVenueRow below so hydration downstream doesn't need to branch.
+interface PickerRankedVenueRow {
+  id: string;
+  name: string;
+  vibe_tags: string[] | null;
+  distance_miles: number | null;
+  match_score: number;
+}
+
 interface DbVenue {
   id: string;
   place_id: string | null;
@@ -41,7 +52,18 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 const MAX_EXCLUDE_IDS = 100;
 
 export async function POST(request: Request) {
-  let body: { userId?: unknown; anonId?: unknown; lat?: unknown; lng?: unknown; limit?: unknown; excludeIds?: unknown };
+  let body: {
+    userId?: unknown;
+    anonId?: unknown;
+    lat?: unknown;
+    lng?: unknown;
+    limit?: unknown;
+    excludeIds?: unknown;
+    sessionVibes?: unknown;
+    priceLevels?: unknown;
+    groupSize?: unknown;
+    venueCategories?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -56,35 +78,84 @@ export async function POST(request: Request) {
   const excludeIds = Array.isArray(body.excludeIds)
     ? body.excludeIds.filter((id): id is string => typeof id === "string" && UUID_REGEX.test(id)).slice(0, MAX_EXCLUDE_IDS)
     : [];
+  const sessionVibes = Array.isArray(body.sessionVibes)
+    ? body.sessionVibes.filter((v): v is string => typeof v === "string")
+    : [];
+  const priceLevels = Array.isArray(body.priceLevels)
+    ? body.priceLevels.filter((v): v is number => typeof v === "number")
+    : [];
+  const groupSize = typeof body.groupSize === "string" ? body.groupSize : null;
+  const venueCategories = Array.isArray(body.venueCategories)
+    ? body.venueCategories.filter((v): v is string => typeof v === "string")
+    : [];
 
-  const { data: ranked, error: rankError } = await supabaseAdmin.rpc("get_ranked_venues", {
-    p_user_id: userId,
-    p_anon_id: anonId,
-    p_lat: lat,
-    p_lng: lng,
-    p_limit: limit,
-    // Omitted entirely (rather than passed empty) when there's nothing to
-    // exclude, since get_ranked_venues doesn't have this param deployed
-    // yet — Supabase rejects an unrecognized named RPC param outright, so
-    // this only gets attempted on the Smart Night Picker's refill calls.
-    ...(excludeIds.length > 0 ? { p_exclude_ids: excludeIds } : {}),
-  });
+  // The Smart Night Picker's mood question (night/day) sends session-scoped
+  // vibes + venue categories, which routes to rank_venues_for_user — the
+  // ranking function that actually applies that context. Picks/Onboarding
+  // calls never send these fields, so they keep hitting get_ranked_venues
+  // unchanged.
+  const isPickerCall = sessionVibes.length > 0 || venueCategories.length > 0;
 
-  if (rankError) {
-    // p_exclude_ids isn't live in get_ranked_venues yet (DB-side migration
-    // still pending) — an exclude-bearing call failing is expected right
-    // now, and the correct picker-side behavior is "no more venues" (which
-    // the picker already treats as end-of-queue), not a hard error. Calls
-    // without excludeIds (Picks, Onboarding) keep the original hard-fail
-    // behavior unchanged.
-    console.error("get_ranked_venues RPC error:", rankError);
-    if (excludeIds.length > 0) {
-      return NextResponse.json({ venues: [] });
+  let rankedRows: RankedVenueRow[];
+
+  if (isPickerCall) {
+    const { data: ranked, error: rankError } = await supabaseAdmin.rpc("rank_venues_for_user", {
+      p_user_id: userId,
+      p_anon_id: anonId,
+      p_session_vibes: sessionVibes,
+      p_price_levels: priceLevels,
+      p_lat: lat,
+      p_lng: lng,
+      p_group_size: groupSize,
+      p_venue_categories: venueCategories,
+      p_limit: limit,
+    });
+
+    if (rankError) {
+      console.error("rank_venues_for_user RPC error:", rankError);
+      return NextResponse.json({ error: "Couldn't rank venues right now." }, { status: 500 });
     }
-    return NextResponse.json({ error: "Couldn't rank venues right now." }, { status: 500 });
+
+    rankedRows = ((ranked ?? []) as PickerRankedVenueRow[]).map((row) => ({
+      venue_id: row.id,
+      name: row.name,
+      vibe_tags: row.vibe_tags,
+      distance_mi: row.distance_miles,
+      final_score: row.match_score,
+      matched_tags: null,
+      budget_match: null,
+    }));
+  } else {
+    const { data: ranked, error: rankError } = await supabaseAdmin.rpc("get_ranked_venues", {
+      p_user_id: userId,
+      p_anon_id: anonId,
+      p_lat: lat,
+      p_lng: lng,
+      p_limit: limit,
+      // Omitted entirely (rather than passed empty) when there's nothing to
+      // exclude, since get_ranked_venues doesn't have this param deployed
+      // yet — Supabase rejects an unrecognized named RPC param outright, so
+      // this only gets attempted on the Smart Night Picker's refill calls.
+      ...(excludeIds.length > 0 ? { p_exclude_ids: excludeIds } : {}),
+    });
+
+    if (rankError) {
+      // p_exclude_ids isn't live in get_ranked_venues yet (DB-side migration
+      // still pending) — an exclude-bearing call failing is expected right
+      // now, and the correct picker-side behavior is "no more venues" (which
+      // the picker already treats as end-of-queue), not a hard error. Calls
+      // without excludeIds (Picks, Onboarding) keep the original hard-fail
+      // behavior unchanged.
+      console.error("get_ranked_venues RPC error:", rankError);
+      if (excludeIds.length > 0) {
+        return NextResponse.json({ venues: [] });
+      }
+      return NextResponse.json({ error: "Couldn't rank venues right now." }, { status: 500 });
+    }
+
+    rankedRows = (ranked ?? []) as RankedVenueRow[];
   }
 
-  const rankedRows = (ranked ?? []) as RankedVenueRow[];
   if (rankedRows.length === 0) {
     return NextResponse.json({ venues: [] });
   }

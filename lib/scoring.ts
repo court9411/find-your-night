@@ -14,6 +14,13 @@ interface RankedQueryParams {
    * see app/api/rank/venues/route.ts for the degrade behavior while that
    * param isn't deployed DB-side yet. */
   excludeIds?: string[];
+  /** Picker-only session context. Presence of sessionVibes/venueCategories
+   * routes app/api/rank/venues to rank_venues_for_user instead of
+   * get_ranked_venues — see that route for the branch. */
+  sessionVibes?: string[];
+  priceLevels?: number[];
+  groupSize?: string | null;
+  venueCategories?: string[];
 }
 
 interface RankedEventQueryParams extends RankedQueryParams {
@@ -45,11 +52,26 @@ export async function getRankedVenues({
   lng,
   limit,
   excludeIds,
+  sessionVibes,
+  priceLevels,
+  groupSize,
+  venueCategories,
 }: RankedQueryParams): Promise<Venue[]> {
   const res = await fetch("/api/rank/venues", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, anonId, lat, lng, limit, excludeIds }),
+    body: JSON.stringify({
+      userId,
+      anonId,
+      lat,
+      lng,
+      limit,
+      excludeIds,
+      sessionVibes,
+      priceLevels,
+      groupSize,
+      venueCategories,
+    }),
   });
   if (!res.ok) throw new Error(`getRankedVenues failed: ${res.status}`);
   const data = await res.json();
