@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkle, Star } from "lucide-react";
 import { ACTIVITY_OPTIONS, ACTIVITY_OPTION_LABELS, BUDGET_OPTIONS, MUSIC_OPTIONS } from "@/lib/preferenceOptions";
 import {
   DrinksIcon,
@@ -79,6 +80,41 @@ function SkipCorner({ onClick }: { onClick: () => void }) {
   );
 }
 
+// Same decorative scatter as the Picks hero (app/results/page.tsx) — fill-only
+// (stroke off) so lucide's Star/Sparkle render as delicate glints instead of
+// bulky plus-signs at small sizes. Kept low-opacity and sparse (4 per screen)
+// since this sits behind a question headline, not a full marketing lockup.
+function HeroStars() {
+  return (
+    <div className="absolute inset-x-0 top-0 h-36 overflow-hidden pointer-events-none" aria-hidden>
+      <Sparkle
+        className="absolute top-4 left-10 text-accent-pink/50 fill-current"
+        size={10}
+        stroke="none"
+        style={{ filter: "drop-shadow(0 0 3px rgba(255,20,147,0.6))" }}
+      />
+      <Star
+        className="absolute top-11 right-14 text-amber-300/50 fill-current"
+        size={9}
+        stroke="none"
+        style={{ filter: "drop-shadow(0 0 3px rgba(253,224,71,0.6))" }}
+      />
+      <Sparkle
+        className="absolute top-24 left-1/4 text-accent-pink/40 fill-current"
+        size={8}
+        stroke="none"
+        style={{ filter: "drop-shadow(0 0 2px rgba(255,20,147,0.5))" }}
+      />
+      <Star
+        className="absolute top-2 right-1/3 text-amber-300/40 fill-current"
+        size={7}
+        stroke="none"
+        style={{ filter: "drop-shadow(0 0 2px rgba(253,224,71,0.5))" }}
+      />
+    </div>
+  );
+}
+
 // Shared, self-contained "static questions" onboarding: activity interests,
 // music taste, price comfort zone. Mounted in two places — inside the full
 // signup narrative (OnboardingFlow) and standalone as a one-time gate before
@@ -117,9 +153,12 @@ export default function StaticPreferenceOnboarding({ onComplete }: Props) {
     return (
       <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <SkipCorner onClick={() => finish()} />
+        <HeroStars />
         <div>
           <OnboardingProgress step={1} total={TOTAL_SCREENS} />
-          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s your vibe?</h2>
+          <h2 className="relative z-10 font-script text-neon-pink text-4xl sm:text-[40px] leading-tight">
+            What&apos;s your vibe?
+          </h2>
           <p className="mt-2 text-sm text-muted">Pick a few. We&apos;ll do the rest.</p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -153,9 +192,12 @@ export default function StaticPreferenceOnboarding({ onComplete }: Props) {
     return (
       <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
         <SkipCorner onClick={() => finish()} />
+        <HeroStars />
         <div>
           <OnboardingProgress step={2} total={TOTAL_SCREENS} />
-          <h2 className="font-display font-bold text-white text-[28px]">What&apos;s the soundtrack?</h2>
+          <h2 className="relative z-10 font-script text-neon-green text-4xl sm:text-[40px] leading-tight">
+            What&apos;s the soundtrack?
+          </h2>
           <p className="mt-2 text-sm text-muted">Pick your genres. We&apos;ll match the room.</p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -187,9 +229,12 @@ export default function StaticPreferenceOnboarding({ onComplete }: Props) {
   return (
     <main className="relative flex flex-col justify-between min-h-dvh px-6 pt-24 pb-10">
       <SkipCorner onClick={() => finish()} />
+      <HeroStars />
       <div>
         <OnboardingProgress step={3} total={TOTAL_SCREENS} />
-        <h2 className="font-display font-bold text-white text-[28px]">What&apos;s tonight worth to you?</h2>
+        <h2 className="relative z-10 font-script text-neon-pink text-4xl sm:text-[40px] leading-tight">
+          What&apos;s tonight worth to you?
+        </h2>
         <p className="mt-2 text-sm text-muted">So we don&apos;t send you somewhere that blows your night.</p>
 
         <div className="mt-6 flex flex-col gap-3">
