@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Zap, Moon, Sparkle, Star } from "lucide-react";
+import { Moon, Sparkle, Star } from "lucide-react";
 import { Venue } from "@/lib/types";
 import { sortByProximity, Coords } from "@/lib/geo";
 import { readCachedCoords, GEO_COORDS_KEY, GEO_DENIED_KEY } from "@/lib/geoStorage";
@@ -11,22 +11,18 @@ import { RESULTS_KEY, RESULT_BACK_KEY } from "@/lib/storageKeys";
 import { LineupSection } from "@/components/LineupSection";
 import { BigShowsSection } from "@/components/BigShowsSection";
 import { RailSection } from "@/components/RailSection";
+import TonightRail from "@/components/TonightRail";
 import { RailConfig } from "@/lib/homeRails";
 import { track } from "@/lib/analytics";
 import { getRankedVenues } from "@/lib/scoring";
-import { logAction } from "@/lib/track-action";
 import { getAnonId } from "@/lib/anon";
 import { createClient } from "@/lib/supabase/client";
-import NotInterestedButton from "@/components/NotInterestedButton";
 import HostEventLink from "@/components/HostEventLink";
-import VenueRailCard from "@/components/VenueRailCard";
 import PicksSearch from "@/components/PicksSearch";
 import PickerEntryCard from "@/components/PickerEntryCard";
 import DidYouGoCard from "@/components/DidYouGoCard";
 import VisitSurveyModal from "@/components/VisitSurveyModal";
 import { PendingVisit } from "@/lib/visitSurvey";
-
-const INITIAL_TONIGHT_COUNT = 8;
 
 function TonightContent() {
   const params = useSearchParams();
@@ -108,7 +104,6 @@ function TonightContent() {
   const [venues, setVenues] = useState<Venue[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [showAllTonight, setShowAllTonight] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeRails, setActiveRails] = useState<RailConfig[]>([]);
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
@@ -232,10 +227,6 @@ function TonightContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCoords.lat, userCoords.lng, userId, locationReady]);
 
-  function toStory(index: number) {
-    router.push(`/tonight/${index}`);
-  }
-
   // Re-fetch after any outcome — "not this time" writes a row so the next
   // saved-and-passed event (if any) surfaces; abandoning the survey writes
   // nothing, so the same prompt correctly reappears.
@@ -244,23 +235,6 @@ function TonightContent() {
     setSurveyOpen(false);
     fetchPendingVisit();
   }
-
-  function hideVenue(target: Venue) {
-    setVenues((prev) => {
-      if (!prev) return prev;
-      const next = prev.filter((v) => v !== target);
-      try {
-        sessionStorage.setItem(RESULTS_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-    if (target.id) {
-      logAction({ userId, anonId: getAnonId(), targetType: "venue", targetId: target.id, actionType: "hidden" });
-    }
-  }
-
-  const visibleVenues = venues && (showAllTonight ? venues : venues.slice(0, INITIAL_TONIGHT_COUNT));
-  const hasMoreVenues = !!venues && venues.length > INITIAL_TONIGHT_COUNT && !showAllTonight;
 
   return (
     <main className="flex flex-col min-h-screen pb-12">
@@ -366,9 +340,16 @@ function TonightContent() {
       {/* The Lineup — promoter events, first rail on the page per Courtney's
           request. Fully self-contained (fetches its own data on mount,
           self-hides when empty) so it's safe to render ahead of the
-          Tonight venues block without depending on that block's
-          loading/error/venues state. */}
+          venues loading/error state below. */}
       <LineupSection userId={userId} />
+
+      {/* Tonight — events-first (get_tonight_rail), falling back to
+          live-density-ranked venues only when tonight's event count is
+          thin. Fully self-contained like Lineup above, independent of the
+          venues fetch/loading/error state below. */}
+      <div className="pt-2">
+        <TonightRail userId={userId} lat={userCoords.lat} lng={userCoords.lng} precise={isPrecise} />
+      </div>
 
       {/* Loading skeleton */}
       {loading && (
@@ -399,9 +380,9 @@ function TonightContent() {
         </div>
       )}
 
-      {/* "Did you go?" trigger — independent of the Tonight venues fetch
-          below (separate data source), so it must not be gated behind
-          venues loading/erroring/being empty. */}
+      {/* "Did you go?" trigger — independent of the venues fetch below
+          (separate data source), so it must not be gated behind venues
+          loading/erroring/being empty. */}
       {pendingVisit && (
         <div className="pt-2 pb-4">
           <DidYouGoCard
@@ -423,58 +404,6 @@ function TonightContent() {
       {/* Results */}
       {!loading && !errorMsg && venues && venues.length > 0 && (
         <div className="flex flex-col gap-6">
-          <div>
-            <h3 className="px-5 mb-3 flex items-center gap-2">
-              <Zap className="text-accent fill-current shrink-0" size={18} aria-hidden />
-              <span className="font-script text-neon-pink text-2xl leading-none">Tonight</span>
-              <span
-                className="flex-1 h-px bg-gradient-to-r from-accent-pink/70 to-transparent"
-                style={{ boxShadow: "0 0 6px rgba(255,61,187,0.6)" }}
-                aria-hidden
-              />
-              <Sparkle className="text-accent fill-current shrink-0" size={14} stroke="none" aria-hidden />
-            </h3>
-            <div
-              className="flex gap-3.5 overflow-x-auto px-5 pb-1"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {visibleVenues!.map((venue, index) => {
-                const card = (
-                  <VenueRailCard
-                    venue={venue}
-                    onClick={() => toStory(index)}
-                    showDistance={isPrecise}
-                    userId={userId}
-                  />
-                );
-                return (
-                  <div key={`${venue.name}-${index}`} className="flex-none">
-                    {venue.placeId ? (
-                      <NotInterestedButton
-                        itemType="venue"
-                        itemId={venue.placeId}
-                        onConfirm={() => hideVenue(venue)}
-                      >
-                        {card}
-                      </NotInterestedButton>
-                    ) : (
-                      card
-                    )}
-                  </div>
-                );
-              })}
-              {hasMoreVenues && (
-                <button
-                  onClick={() => setShowAllTonight(true)}
-                  className="flex-none w-28 rounded-2xl border border-card-border bg-card flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
-                >
-                  <span className="text-2xl">→</span>
-                  <span className="text-xs text-accent font-semibold">See more</span>
-                </button>
-              )}
-            </div>
-          </div>
-
           {activeRails.map((rail) => (
             <RailSection key={rail.id} config={rail} lat={userCoords.lat} lng={userCoords.lng} precise={isPrecise} userId={userId} />
           ))}
