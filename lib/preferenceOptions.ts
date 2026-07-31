@@ -8,6 +8,20 @@ export const MUSIC_OPTIONS = [
   "Latin", "Jazz / Neo Soul", "Live Bands", "Gospel",
 ];
 
+// MUSIC_OPTIONS values -> log_genre_preferences' p_genres keys. That RPC
+// (and user_genre_preferences.genre) expects exactly these snake_case
+// values, not the display labels above.
+export const MUSIC_OPTION_GENRE_KEYS: Record<string, string> = {
+  "Hip-Hop / Rap": "hip_hop_rap",
+  "R&B / Soul": "rnb_soul",
+  "Afrobeats": "afrobeats",
+  "House / EDM": "house_edm",
+  "Latin": "latin",
+  "Jazz / Neo Soul": "jazz_neo_soul",
+  "Live Bands": "live_bands",
+  "Gospel": "gospel",
+};
+
 // Stored values match onboarding_vibe_map.ui_option in the DB exactly, so
 // activity_interests entries map 1:1 to seed_tag_affinity_from_onboarding's
 // p_selected_options without a translation step — also matches the

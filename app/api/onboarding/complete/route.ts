@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getClientIp, isRateLimited } from "@/lib/rateLimit";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { MUSIC_OPTION_GENRE_KEYS } from "@/lib/preferenceOptions";
 
 const MAX_REQUESTS_PER_WINDOW = 30;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -63,14 +64,45 @@ export async function POST(request: Request) {
 
   // activityInterests values already are onboarding_vibe_map.ui_option keys
   // (ACTIVITY_OPTIONS in lib/preferenceOptions.ts) — no translation needed.
+  //
+  // seed_onboarding_preferences, not seed_tag_affinity_from_onboarding: the
+  // latter is a plain INSERT with no ON CONFLICT handling against
+  // user_tag_affinity's unique (user_id, tag) index, so any onboarding tag
+  // that collides with an existing behavior/picker-sourced tag (e.g.
+  // "drinks" -> "cocktails", near-guaranteed for any active user) aborts
+  // the entire multi-row insert and silently seeds nothing. This one uses
+  // ON CONFLICT ... DO UPDATE (same pattern as log_user_action), so a
+  // colliding tag just adds its weight instead of nuking the whole batch.
   if (activityInterests.length > 0) {
-    const { error } = await supabaseAdmin.rpc("seed_tag_affinity_from_onboarding", {
+    const { error } = await supabaseAdmin.rpc("seed_onboarding_preferences", {
       p_user_id: userId,
       p_anon_id: userId ? null : anonId,
       p_selected_options: activityInterests,
     });
     if (error) {
-      console.error("seed_tag_affinity_from_onboarding RPC error:", error);
+      console.error("seed_onboarding_preferences RPC error:", error);
+    }
+  }
+
+  // musicPrefs values are MUSIC_OPTIONS display labels ("Hip-Hop / Rap"),
+  // not the snake_case keys log_genre_preferences/user_genre_preferences
+  // expect — map before sending. Raw picks only, not connected to scoring;
+  // idempotent via a unique constraint + ON CONFLICT DO NOTHING on the DB
+  // side, so no dedup needed here even if onboarding re-runs.
+  if (musicPrefs.length > 0) {
+    const genres = musicPrefs
+      .map((label) => MUSIC_OPTION_GENRE_KEYS[label])
+      .filter((key): key is string => !!key);
+
+    if (genres.length > 0) {
+      const { error } = await supabaseAdmin.rpc("log_genre_preferences", {
+        p_user_id: userId,
+        p_anon_id: userId ? null : anonId,
+        p_genres: genres,
+      });
+      if (error) {
+        console.error("log_genre_preferences RPC error:", error);
+      }
     }
   }
 
