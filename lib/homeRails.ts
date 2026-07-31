@@ -85,3 +85,12 @@ export const TODAY_RAILS: RailConfig[] = [
     categories: ["daytime_outdoor"],
   },
 ];
+
+// Every rail config in one place, keyed by id — backs the "See more" full
+// listing page (app/rail/[id]/page.tsx), which needs to resolve a rail's
+// title/railType/categories from just the id in the URL.
+export const ALL_RAILS: RailConfig[] = [...TONIGHT_RAILS, ...TODAY_RAILS];
+
+export function getRailConfig(id: string): RailConfig | undefined {
+  return ALL_RAILS.find((rail) => rail.id === id);
+}

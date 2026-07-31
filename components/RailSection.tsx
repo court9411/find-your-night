@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Venue } from "@/lib/types";
 import { RailConfig, MIN_RAIL_VENUES } from "@/lib/homeRails";
 import { VENUE_DETAIL_BACK_KEY } from "@/lib/storageKeys";
@@ -111,6 +112,9 @@ export function RailSection({ config, lat = null, lng = null, precise = false, u
       <h3 className="font-display font-bold text-xl tracking-wide px-5 mb-3 flex items-center gap-2">
         <Icon className={colorClass} size={20} aria-hidden />
         {config.title}
+        <Link href={`/rail/${config.id}`} className="ml-auto text-accent text-xs font-medium shrink-0">
+          See more →
+        </Link>
       </h3>
       <div
         className="flex gap-3.5 overflow-x-auto px-5 pb-1"
