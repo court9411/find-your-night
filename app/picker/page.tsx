@@ -138,16 +138,19 @@ export default function SmartNightPicker() {
       const coords = readCachedCoords();
       const anonId = getAnonId();
       const { venueCategories, sessionVibes } = PICKER_MOOD_CONTEXT[nightOrDay];
-      const ranked = await getRankedVenues({
-        userId,
-        anonId,
-        lat: coords.lat,
-        lng: coords.lng,
-        limit: 20,
-        venueCategories,
-        sessionVibes,
-        groupSize,
-      });
+      const rankArgs = { lat: coords.lat, lng: coords.lng, limit: 20, venueCategories, sessionVibes, groupSize };
+      let ranked = await getRankedVenues({ userId, anonId, ...rankArgs });
+
+      // rank_venues_for_user (the RPC this call hits) can legitimately run
+      // dry for a signed-in account with enough history — e.g. everything
+      // nearby already swiped through — while the same call with no
+      // p_user_id still has a full pool. Retry once without personalization
+      // rather than dead-ending someone who's simply used the app a lot;
+      // same "degrade instead of go blank" convention as the Tonight rail's
+      // live-density fallback.
+      if (ranked.length === 0 && userId) {
+        ranked = await getRankedVenues({ userId: null, anonId, ...rankArgs });
+      }
 
       if (ranked.length === 0) {
         setStep("empty");
