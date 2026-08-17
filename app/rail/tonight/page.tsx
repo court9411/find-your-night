@@ -76,7 +76,7 @@ export default function TonightRailListingPage() {
       <div className="flex items-center justify-between w-full max-w-md px-6">
         <h1 className="font-display font-extrabold text-3xl tracking-tight flex items-center gap-2">
           <Zap className="text-accent fill-current" size={24} aria-hidden />
-          Tonight
+          Happening Now
         </h1>
         <PicksLink className="text-sm text-muted underline underline-offset-4">
           Back

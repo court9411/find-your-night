@@ -85,7 +85,7 @@ export default function TonightRail({ userId, lat = null, lng = null, precise = 
     <div>
       <h3 className="px-5 mb-3 flex items-center gap-2">
         <Zap className="text-accent fill-current shrink-0" size={18} aria-hidden />
-        <span className="font-script text-neon-pink text-2xl leading-none">Tonight</span>
+        <span className="font-script text-neon-pink text-2xl leading-none">Happening Now</span>
         <span
           className="flex-1 h-px bg-gradient-to-r from-accent-pink/70 to-transparent"
           style={{ boxShadow: "0 0 6px rgba(255,61,187,0.6)" }}

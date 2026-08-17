@@ -94,7 +94,7 @@ export default function VenueRailCard({
           {showDistance && distanceMiles != null && <> · {distanceMiles.toFixed(1)}mi</>}
         </p>
         {matchReason && (
-          <p className={`text-[10px] ${accentClass} font-semibold leading-tight truncate`}>{matchReason}</p>
+          <p className={`text-[10px] ${accentClass} font-semibold leading-tight line-clamp-2`}>{matchReason}</p>
         )}
         <p className="text-[11px] text-accent font-semibold mt-0.5">{venue.price}</p>
       </div>
